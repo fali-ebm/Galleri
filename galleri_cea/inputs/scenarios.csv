@@ -1,5 +1,10 @@
 scenario,parameter,value
 Galleri test half price,c_galleri,474.5
-Higher Galleri sensitivity (upper GI),sens_g_ugi,0.6
-Shorter sojourn time,sojourn_years,1
+Galleri sensitivity at CCGA3 stage I-II level,sens_g_ugi,0.40
+Galleri sensitivity at CCGA3 all-stage level,sens_g_ugi,0.85
+Shorter sojourn time (lower 95% CI),sojourn_years,1.92
+Longer sojourn time (upper 95% CI),sojourn_years,2.96
+Higher EGD mortality (ASGE 1/10000),p_death_sae,0.5
+PET CT with diagnostic CT (24.4 mSv),msv_pet,24.4
+Late-stage continuing cost = early,c_fu_late,7141
 Lower procedure disutility,d_proc,0.002

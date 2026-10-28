@@ -15,7 +15,7 @@ A tibble.
 \description{
 Coerces column types and adds any missing optional columns. The parameter
 table has one row per model input: \code{parameter}, \code{value}, \code{dist}, and
-optionally \code{label}, \code{status} (DUMMY / SOURCED / DATA), \code{se}, \code{n}, \code{group}
+optionally \code{label}, \code{status} (DUMMY / ASSUMPTION / SOURCED / DATA), \code{se}, \code{n}, \code{group}
 (dirichlet groups), \code{low}, \code{high} (one-way SA range), \code{unit}, \code{description},
 \code{source}.
 }

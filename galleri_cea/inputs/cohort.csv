@@ -1,7 +1,37 @@
 population,risk_group,sex,start_age,share,kunzmann_scoped,status,notes
-screening,kunzmann_high,male,60,0.1475,1,DUMMY,
-screening,kunzmann_high,female,60,0.1475,1,DUMMY,
-screening,kunzmann_low,male,60,0.3525,0,DUMMY,
-screening,kunzmann_low,female,60,0.3525,0,DUMMY,
-galleri_positive,all,male,65,0.6,0,DUMMY,
-galleri_positive,all,female,65,0.4,0,DUMMY,
+screening,kunzmann_high,male,52,0.027439,1,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
+screening,kunzmann_low,male,52,0.065572,0,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
+screening,kunzmann_high,male,57,0.027059,1,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
+screening,kunzmann_low,male,57,0.064667,0,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
+screening,kunzmann_high,male,62,0.027897,1,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
+screening,kunzmann_low,male,62,0.066668,0,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
+screening,kunzmann_high,male,67,0.025029,1,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
+screening,kunzmann_low,male,67,0.059814,0,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
+screening,kunzmann_high,male,72,0.019926,1,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
+screening,kunzmann_low,male,72,0.04762,0,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
+screening,kunzmann_high,male,77,0.014633,1,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
+screening,kunzmann_low,male,77,0.03497,0,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
+screening,kunzmann_high,female,52,0.02771,1,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
+screening,kunzmann_low,female,52,0.066222,0,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
+screening,kunzmann_high,female,57,0.027748,1,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
+screening,kunzmann_low,female,57,0.066314,0,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
+screening,kunzmann_high,female,62,0.029447,1,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
+screening,kunzmann_low,female,62,0.070372,0,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
+screening,kunzmann_high,female,67,0.027436,1,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
+screening,kunzmann_low,female,67,0.065567,0,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
+screening,kunzmann_high,female,72,0.023025,1,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
+screening,kunzmann_low,female,72,0.055027,0,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
+screening,kunzmann_high,female,77,0.017652,1,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
+screening,kunzmann_low,female,77,0.042186,0,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
+galleri_positive,all,male,52,0.093009,0,ASSUMPTION,Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort
+galleri_positive,all,male,57,0.091727,0,ASSUMPTION,Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort
+galleri_positive,all,male,62,0.094565,0,ASSUMPTION,Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort
+galleri_positive,all,male,67,0.084843,0,ASSUMPTION,Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort
+galleri_positive,all,male,72,0.067546,0,ASSUMPTION,Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort
+galleri_positive,all,male,77,0.049604,0,ASSUMPTION,Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort
+galleri_positive,all,female,52,0.093932,0,ASSUMPTION,Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort
+galleri_positive,all,female,57,0.094062,0,ASSUMPTION,Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort
+galleri_positive,all,female,62,0.099819,0,ASSUMPTION,Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort
+galleri_positive,all,female,67,0.093003,0,ASSUMPTION,Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort
+galleri_positive,all,female,72,0.078052,0,ASSUMPTION,Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort
+galleri_positive,all,female,77,0.059838,0,ASSUMPTION,Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort

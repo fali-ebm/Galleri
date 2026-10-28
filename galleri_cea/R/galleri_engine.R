@@ -5,7 +5,12 @@
 #   ceakit::lookup_by_age()  - baseline risks by risk group x sex x age
 # =============================================================
 
-STATES <- c("well", "pre", "early", "late", "dead_cancer", "dead_other")
+# lead_early / lead_late: screen-detected cancers during their lead time (the
+# time until they would have presented with symptoms). No cancer deaths occur
+# in lead time, so screening is credited only for stage shift, not for the
+# lead time itself (stage-specific survival is measured from clinical diagnosis).
+STATES <- c("well", "pre", "lead_early", "lead_late", "early", "late", "dead_cancer", "dead_other")
+DEAD <- c("dead_cancer", "dead_other")
 CHANNELS <- c("cost", "qaly", "daly", "ly", "clin_dx", "clin_late", "ca_death", "oc_death")
 ARMS_GP <- c("No workup", "EGD only", "Full workup")
 ARMS_SC <- c("No screening (usual care)", "Kunzmann -> EGD", "Galleri -> EGD only", "Galleri -> full workup")
@@ -17,28 +22,38 @@ baseline_for <- function(data, row, settings)
 
 transition_matrix <- function(mo, inc, p) {
   pp <- 1 - exp(-1 / p$sojourn_years); pl <- p$p_late_clin; s <- 1 - mo
-  P <- matrix(0, 6, 6, dimnames = list(STATES, STATES))
-  P["well", ]  <- c(s * (1 - inc), s * inc, 0, 0, 0, mo)
-  P["pre", ]   <- c(0, s * (1 - pp), s * pp * (1 - pl), s * pp * pl, 0, mo)
-  P["early", ] <- c(0, 0, s * (1 - p$m_early), 0, s * p$m_early, mo)
-  P["late", ]  <- c(0, 0, 0, s * (1 - p$m_late), s * p$m_late, mo)
-  P["dead_cancer", "dead_cancer"] <- 1; P["dead_other", "dead_other"] <- 1
+  n <- length(STATES)
+  P <- matrix(0, n, n, dimnames = list(STATES, STATES))
+  P[, "dead_other"] <- mo
+  P["well", c("well", "pre")] <- s * c(1 - inc, inc)
+  P["pre", c("pre", "early", "late")] <- s * c(1 - pp, pp * (1 - pl), pp * pl)
+  P["lead_early", c("lead_early", "early")] <- s * c(1 - pp, pp)
+  P["lead_late", c("lead_late", "late")] <- s * c(1 - pp, pp)
+  P["early", c("early", "dead_cancer")] <- s * c(1 - p$m_early, p$m_early)
+  P["late", c("late", "dead_cancer")] <- s * c(1 - p$m_late, p$m_late)
+  P[DEAD, ] <- 0; P["dead_cancer", "dead_cancer"] <- 1; P["dead_other", "dead_other"] <- 1
   P
 }
 
 markov_parts <- function(curve, p) {
   transition <- function(t) transition_matrix(curve$mort_other[t], curve$inc_ugi[t], p)
   rewards <- function(t, P) {
-    alive <- ceakit::alive_fraction(P, c("dead_cancer", "dead_other"))
-    live <- seq_len(6) <= 4
-    R <- matrix(0, 6, length(CHANNELS), dimnames = list(STATES, CHANNELS))
+    alive <- setNames(ceakit::alive_fraction(P, DEAD), STATES)
+    live <- !STATES %in% DEAD
+    R <- matrix(0, length(STATES), length(CHANNELS), dimnames = list(STATES, CHANNELS))
+    u <- c(well = 1, pre = 1, lead_early = p$u_mult_early, lead_late = p$u_mult_late,
+           early = p$u_mult_early, late = p$u_mult_late, dead_cancer = 0, dead_other = 0)
+    dw <- c(well = 0, pre = 0, lead_early = p$dw_early, lead_late = p$dw_late,
+            early = p$dw_early, late = p$dw_late, dead_cancer = 0, dead_other = 0)
     R[, "ly"] <- alive
-    R[, "qaly"] <- alive * curve$utility_well[t] * c(1, 1, p$u_mult_early, p$u_mult_late, 0, 0)
-    R["early", "cost"] <- alive[3] * p$c_fu_early + P["early", "dead_cancer"] * p$c_eol
-    R["late", "cost"]  <- alive[4] * p$c_fu_late  + P["late", "dead_cancer"]  * p$c_eol
+    R[, "qaly"] <- alive * curve$utility_well[t] * u[STATES]
+    R["lead_early", "cost"] <- alive[["lead_early"]] * p$c_fu_early
+    R["lead_late", "cost"]  <- alive[["lead_late"]] * p$c_fu_late
+    R["early", "cost"] <- alive[["early"]] * p$c_fu_early + P["early", "dead_cancer"] * p$c_eol
+    R["late", "cost"]  <- alive[["late"]] * p$c_fu_late  + P["late", "dead_cancer"]  * p$c_eol
     R["pre", "cost"]   <- P["pre", "early"] * (p$c_symp_dx + p$c_tx_first_early) +
                           P["pre", "late"]  * (p$c_symp_dx + p$c_tx_first_late)
-    R[, "daly"] <- alive * c(0, 0, p$dw_early, p$dw_late, 0, 0) +            # YLD
+    R[, "daly"] <- alive * dw[STATES] +                                       # YLD
                    P[, "dead_cancer"] * curve$daly_ref_le[t] * live           # YLL, new deaths only
     R["pre", "clin_dx"] <- P["pre", "early"] + P["pre", "late"]
     R["pre", "clin_late"] <- P["pre", "late"]
@@ -181,8 +196,8 @@ ADDITIVE <- c("total_cancers", "cancer_free", "kunz_scores", "galleri_tests", "i
 
 initial_state <- function(l, p) {
   fl <- l$found * p$p_late_screen; pd <- l$sae * p$p_death_sae
-  c(well = max(0, 1 - l$total - pd), pre = l$missed, early = l$found - fl, late = fl,
-    dead_cancer = 0, dead_other = pd)
+  c(well = max(0, 1 - l$total - pd), pre = l$missed, lead_early = l$found - fl, lead_late = fl,
+    early = 0, late = 0, dead_cancer = 0, dead_other = pd)
 }
 
 row_outcomes <- function(row, data, p, settings, population) {
@@ -191,7 +206,7 @@ row_outcomes <- function(row, data, p, settings, population) {
   arms <- if (population == "screening") arms_screening(p, row, curve[1, ]) else arms_galleri_positive(p)
   one <- function(l) {
     init <- initial_state(l, p); life <- drop(init %*% V)
-    fl <- init[["late"]]; pd <- init[["dead_other"]]
+    fl <- init[["lead_late"]]; pd <- init[["dead_other"]]
     n_proc <- l$n_egd + l$n_ent + l$n_pet + l$n_eus
     q_harm <- n_proc * p$d_proc + (l$sae - pd) * p$d_sae + l$rad_ca * p$loss_rad_ca
     d_harm <- q_harm + pd * curve$daly_ref_le[1]
@@ -263,7 +278,8 @@ trace_table <- function(p, data, settings, population) {
       dplyr::mutate(arm = a, share = row$share))
   }) |>
     tidyr::pivot_longer(dplyr::all_of(STATES), names_to = "state", values_to = "prop") |>
+    dplyr::mutate(state = sub("^lead_", "", state)) |>
     dplyr::group_by(arm, cycle, state) |> dplyr::summarise(prop = sum(prop * share), .groups = "drop") |>
-    dplyr::mutate(state = factor(state, STATES, c("Well", "Undiagnosed cancer", "Early-stage dx",
+    dplyr::mutate(state = factor(state, setdiff(STATES, c("lead_early", "lead_late")), c("Well", "Undiagnosed cancer", "Early-stage dx",
                                                    "Late-stage dx", "Cancer death", "Other-cause death")))
 }

@@ -16,6 +16,13 @@ model with competing risks:
   Galleri followed by the full workup. The results are reported per
   100,000 screened.
 
+Screen-detected cancers enter lead-time states (`lead_early`, `lead_late`)
+and have no cancer deaths until they would have presented with symptoms.
+Stage-specific survival is measured from clinical diagnosis, so screening
+is credited only for the stage shift, not for the lead time. The test suite
+checks this: detection without a stage shift leaves cancer deaths
+unchanged.
+
 **Code:**
 - `R/galleri_engine.R`: the tree (`ceakit::tree_paths`), the Markov model
   (`ceakit::markov_values`), the time-0 event ledgers and the derived
@@ -34,16 +41,18 @@ model with competing risks:
 - `counts.csv`: optional observed workup counts.
 - `scenarios.csv`: deterministic scenarios.
 
-`data-raw/make_dummy_inputs.R` documents how the placeholder tables were
-built. Kunzmann score ≥ 8 = 29.5% of people and 77.4% of EAC cases
-(Kunzmann et al., Clin Gastroenterol Hepatol 2018). Every other input is a
-DUMMY placeholder.
+`data-raw/make_us_inputs.R` builds `baseline_risks.csv` and `cohort.csv`
+from published US data: the SSA 2022 life table, SEER incidence, Census 2024
+population and the Kunzmann score capture. `inputs/SOURCES.md` lists the
+source or reasoning for every input. Inputs are marked `SOURCED`,
+`ASSUMPTION` or `DUMMY`. The workup branch probabilities are still `DUMMY`
+until local counts are added to `inputs/counts.csv`.
 
 ## Workflow
 
 1. **Inputs**: edit `inputs/parameters.csv`. Each row has a value, a PSA
    distribution (`dist` with `se` or `n`), and a `status` and `source`.
-   - Change `DUMMY` to `SOURCED` or `DATA` as evidence comes in.
+   - Change `DUMMY` to `SOURCED`, `ASSUMPTION` or `DATA` as evidence comes in.
    - Other tables in `inputs/` (e.g. `life_table.csv`) are data the model
      reads.
    - `inputs/scenarios.csv` lists deterministic scenarios.

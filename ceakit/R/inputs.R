@@ -23,7 +23,7 @@ DISTRIBUTIONS <- c("fixed", "beta", "gamma", "normal", "lognormal", "dirichlet")
 #'
 #' Coerces column types and adds any missing optional columns. The parameter
 #' table has one row per model input: `parameter`, `value`, `dist`, and
-#' optionally `label`, `status` (DUMMY / SOURCED / DATA), `se`, `n`, `group`
+#' optionally `label`, `status` (DUMMY / ASSUMPTION / SOURCED / DATA), `se`, `n`, `group`
 #' (dirichlet groups), `low`, `high` (one-way SA range), `unit`, `description`,
 #' `source`.
 #' @param df Data frame.

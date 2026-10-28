@@ -18,8 +18,7 @@ test_that("workup tree probabilities sum to 1 and procedures are counted per pat
 test_that("every cohort row's Markov trace conserves the cohort", {
   for (i in seq_len(nrow(D$cohort))) {
     curve <- E$baseline_for(D, D$cohort[i, ], S); mk <- E$markov_parts(curve, p0)
-    expect_silent(ceakit::check_trace(ceakit::markov_trace(mk$n, mk$transition, c(1, 0, 0, 0, 0, 0) |>
-      setNames(E$STATES))))
+    expect_silent(ceakit::check_trace(ceakit::markov_trace(mk$n, mk$transition, setNames(as.numeric(E$STATES == "well"), E$STATES))))
   }
 })
 
@@ -27,6 +26,25 @@ test_that("regression: no further DALYs accrue after death (fixed double countin
   curve <- E$baseline_for(D, D$cohort[1, ], S)
   V <- E$galleri_markov_values(curve, p0, S)
   expect_equal(unname(V[c("dead_cancer", "dead_other"), c("daly", "qaly", "cost", "ly")]), matrix(0, 2, 4))
+})
+
+test_that("regression: no lead-time penalty - detecting a cancer with no stage shift changes no deaths", {
+  # Screen detection with the same stage mix as symptomatic presentation must not
+  # change cancer deaths (survival is measured from clinical diagnosis).
+  curve <- E$baseline_for(D, D$cohort[1, ], S)
+  p <- p0; p$p_late_screen <- p$p_late_clin
+  V <- E$galleri_markov_values(curve, p, S)
+  pre <- setNames(as.numeric(E$STATES == "pre"), E$STATES)
+  det <- setNames(c(0, 0, 1 - p$p_late_clin, p$p_late_clin, 0, 0, 0, 0), E$STATES)
+  expect_equal(drop(det %*% V)[["ca_death"]], drop(pre %*% V)[["ca_death"]], tolerance = 1e-10)
+})
+
+test_that("stage shift at screening reduces cancer deaths", {
+  curve <- E$baseline_for(D, D$cohort[1, ], S)
+  V <- E$galleri_markov_values(curve, p0, S)
+  pre <- setNames(as.numeric(E$STATES == "pre"), E$STATES)
+  det <- setNames(c(0, 0, 1 - p0$p_late_screen, p0$p_late_screen, 0, 0, 0, 0), E$STATES)
+  expect_lt(drop(det %*% V)[["ca_death"]], drop(pre %*% V)[["ca_death"]])
 })
 
 test_that("no workup / no screening arms have no procedures or harms", {
