@@ -7,10 +7,12 @@ This repository holds two things:
 | [`ceakit/`](ceakit) | An R package with reusable tools for decision modelling and cost-effectiveness analysis: input tables and validation, decision-tree and Markov engines, PSA, one-way SA, scenarios, ICER frontier, CEAC, EVPI/EVPPI, tables, plots, a Shiny app, and a project template. |
 | [`galleri_cea/`](galleri_cea) | The Galleri upper GI model, built with ceakit. It has two analyses: the Galleri +ve workup (no workup vs EGD only vs full workup) and the screening comparison (usual care vs Kunzmann score ≥ 8 → EGD vs Galleri → EGD only vs Galleri → full workup). |
 
-> **Inputs are placeholders.** Every parameter except the Kunzmann score
-> capture (29.5% flagged, 77.4% of EAC cases; Kunzmann et al., *Clin
-> Gastroenterol Hepatol* 2018) is marked `DUMMY`. Results are illustrative
-> until real inputs are added.
+> **Inputs status.** The model uses US, payer-perspective inputs for
+> adults aged 50-79. Each input is marked `SOURCED` (published data) or
+> `ASSUMPTION` (reasoning documented). See
+> [`galleri_cea/inputs/SOURCES.md`](galleri_cea/inputs/SOURCES.md).
+> The Galleri +ve workup branch probabilities are still `DUMMY` until local
+> workup counts are added to `inputs/counts.csv`.
 
 ## Install the toolkit
 

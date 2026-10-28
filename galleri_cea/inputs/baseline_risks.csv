@@ -1,73 +1,307 @@
 risk_group,sex,age_from,age_to,mort_other,inc_ugi,prev_ugi,prev_other,utility_well,daly_ref_le,status,source
-all,male,40,44,0.001437,0.00006792,0.0006099,0.0002033,0.892,49,DUMMY,
-all,male,45,49,0.002253,0.00009168,0.0007831,0.000261,0.872,44.25,DUMMY,
-all,male,50,54,0.003534,0.0001238,0.001005,0.0003352,0.852,39.5,DUMMY,
-all,male,55,59,0.005542,0.0001671,0.001291,0.0004304,0.832,34.75,DUMMY,
-all,male,60,64,0.008691,0.0002255,0.001658,0.0005526,0.812,30,DUMMY,
-all,male,65,69,0.01363,0.0003044,0.002129,0.0007095,0.792,25.25,DUMMY,
-all,male,70,74,0.02138,0.0004109,0.002733,0.0009111,0.772,20.5,DUMMY,
-all,male,75,79,0.03353,0.0005546,0.003509,0.00117,0.752,15.75,DUMMY,
-all,male,80,84,0.05258,0.0007487,0.004506,0.001502,0.732,11,DUMMY,
-all,male,85,89,0.08246,0.001011,0.005786,0.001929,0.712,6.25,DUMMY,
-all,male,90,94,0.1293,0.001364,0.00743,0.002477,0.692,2,DUMMY,
-all,male,95,100,0.2028,0.001841,0.00954,0.00318,0.672,2,DUMMY,
-all,female,40,44,0.001006,0.00003396,0.0003049,0.0002033,0.892,49,DUMMY,
-all,female,45,49,0.001577,0.00004584,0.0003915,0.000261,0.872,44.25,DUMMY,
-all,female,50,54,0.002474,0.00006188,0.0005027,0.0003352,0.852,39.5,DUMMY,
-all,female,55,59,0.003879,0.00008353,0.0006455,0.0004304,0.832,34.75,DUMMY,
-all,female,60,64,0.006084,0.0001127,0.0008289,0.0005526,0.812,30,DUMMY,
-all,female,65,69,0.009541,0.0001522,0.001064,0.0007095,0.792,25.25,DUMMY,
-all,female,70,74,0.01496,0.0002054,0.001367,0.0009111,0.772,20.5,DUMMY,
-all,female,75,79,0.02347,0.0002773,0.001755,0.00117,0.752,15.75,DUMMY,
-all,female,80,84,0.03681,0.0003743,0.002253,0.001502,0.732,11,DUMMY,
-all,female,85,89,0.05772,0.0005053,0.002893,0.001929,0.712,6.25,DUMMY,
-all,female,90,94,0.09053,0.0006821,0.003715,0.002477,0.692,2,DUMMY,
-all,female,95,100,0.142,0.0009207,0.00477,0.00318,0.672,2,DUMMY,
-kunzmann_high,male,40,44,0.001437,0.0001782,0.0016,0.0002033,0.892,49,DUMMY,
-kunzmann_high,male,45,49,0.002253,0.0002405,0.002055,0.000261,0.872,44.25,DUMMY,
-kunzmann_high,male,50,54,0.003534,0.0003247,0.002638,0.0003352,0.852,39.5,DUMMY,
-kunzmann_high,male,55,59,0.005542,0.0004383,0.003387,0.0004304,0.832,34.75,DUMMY,
-kunzmann_high,male,60,64,0.008691,0.0005916,0.00435,0.0005526,0.812,30,DUMMY,
-kunzmann_high,male,65,69,0.01363,0.0007986,0.005585,0.0007095,0.792,25.25,DUMMY,
-kunzmann_high,male,70,74,0.02138,0.001078,0.007171,0.0009111,0.772,20.5,DUMMY,
-kunzmann_high,male,75,79,0.03353,0.001455,0.009208,0.00117,0.752,15.75,DUMMY,
-kunzmann_high,male,80,84,0.05258,0.001964,0.01182,0.001502,0.732,11,DUMMY,
-kunzmann_high,male,85,89,0.08246,0.002652,0.01518,0.001929,0.712,6.25,DUMMY,
-kunzmann_high,male,90,94,0.1293,0.003579,0.01949,0.002477,0.692,2,DUMMY,
-kunzmann_high,male,95,100,0.2028,0.004832,0.02503,0.00318,0.672,2,DUMMY,
-kunzmann_high,female,40,44,0.001006,0.0000891,0.0008,0.0002033,0.892,49,DUMMY,
-kunzmann_high,female,45,49,0.001577,0.0001203,0.001027,0.000261,0.872,44.25,DUMMY,
-kunzmann_high,female,50,54,0.002474,0.0001624,0.001319,0.0003352,0.852,39.5,DUMMY,
-kunzmann_high,female,55,59,0.003879,0.0002192,0.001694,0.0004304,0.832,34.75,DUMMY,
-kunzmann_high,female,60,64,0.006084,0.0002958,0.002175,0.0005526,0.812,30,DUMMY,
-kunzmann_high,female,65,69,0.009541,0.0003993,0.002792,0.0007095,0.792,25.25,DUMMY,
-kunzmann_high,female,70,74,0.01496,0.000539,0.003586,0.0009111,0.772,20.5,DUMMY,
-kunzmann_high,female,75,79,0.02347,0.0007276,0.004604,0.00117,0.752,15.75,DUMMY,
-kunzmann_high,female,80,84,0.03681,0.0009822,0.005912,0.001502,0.732,11,DUMMY,
-kunzmann_high,female,85,89,0.05772,0.001326,0.007591,0.001929,0.712,6.25,DUMMY,
-kunzmann_high,female,90,94,0.09053,0.00179,0.009747,0.002477,0.692,2,DUMMY,
-kunzmann_high,female,95,100,0.142,0.002416,0.01251,0.00318,0.672,2,DUMMY,
-kunzmann_low,male,40,44,0.001437,0.00002177,0.0001955,0.0002033,0.892,49,DUMMY,
-kunzmann_low,male,45,49,0.002253,0.00002939,0.000251,0.000261,0.872,44.25,DUMMY,
-kunzmann_low,male,50,54,0.003534,0.00003967,0.0003223,0.0003352,0.852,39.5,DUMMY,
-kunzmann_low,male,55,59,0.005542,0.00005355,0.0004139,0.0004304,0.832,34.75,DUMMY,
-kunzmann_low,male,60,64,0.008691,0.00007229,0.0005314,0.0005526,0.812,30,DUMMY,
-kunzmann_low,male,65,69,0.01363,0.00009758,0.0006824,0.0007095,0.792,25.25,DUMMY,
-kunzmann_low,male,70,74,0.02138,0.0001317,0.0008762,0.0009111,0.772,20.5,DUMMY,
-kunzmann_low,male,75,79,0.03353,0.0001778,0.001125,0.00117,0.752,15.75,DUMMY,
-kunzmann_low,male,80,84,0.05258,0.00024,0.001445,0.001502,0.732,11,DUMMY,
-kunzmann_low,male,85,89,0.08246,0.000324,0.001855,0.001929,0.712,6.25,DUMMY,
-kunzmann_low,male,90,94,0.1293,0.0004373,0.002382,0.002477,0.692,2,DUMMY,
-kunzmann_low,male,95,100,0.2028,0.0005903,0.003058,0.00318,0.672,2,DUMMY,
-kunzmann_low,female,40,44,0.001006,0.00001089,0.00009775,0.0002033,0.892,49,DUMMY,
-kunzmann_low,female,45,49,0.001577,0.0000147,0.0001255,0.000261,0.872,44.25,DUMMY,
-kunzmann_low,female,50,54,0.002474,0.00001984,0.0001612,0.0003352,0.852,39.5,DUMMY,
-kunzmann_low,female,55,59,0.003879,0.00002678,0.0002069,0.0004304,0.832,34.75,DUMMY,
-kunzmann_low,female,60,64,0.006084,0.00003614,0.0002657,0.0005526,0.812,30,DUMMY,
-kunzmann_low,female,65,69,0.009541,0.00004879,0.0003412,0.0007095,0.792,25.25,DUMMY,
-kunzmann_low,female,70,74,0.01496,0.00006586,0.0004381,0.0009111,0.772,20.5,DUMMY,
-kunzmann_low,female,75,79,0.02347,0.0000889,0.0005625,0.00117,0.752,15.75,DUMMY,
-kunzmann_low,female,80,84,0.03681,0.00012,0.0007223,0.001502,0.732,11,DUMMY,
-kunzmann_low,female,85,89,0.05772,0.000162,0.0009274,0.001929,0.712,6.25,DUMMY,
-kunzmann_low,female,90,94,0.09053,0.0002187,0.001191,0.002477,0.692,2,DUMMY,
-kunzmann_low,female,95,100,0.142,0.0002952,0.001529,0.00318,0.672,2,DUMMY,
+all,male,50,50,0.005666,0.000177,0.0004195,0.01164,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,51,51,0.006069,0.000177,0.0004195,0.01164,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,52,52,0.006539,0.000177,0.0004195,0.01164,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,53,53,0.007073,0.000177,0.0004195,0.01164,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,54,54,0.007675,0.000177,0.0004195,0.01164,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,55,55,0.008348,0.000305,0.0007228,0.01966,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,56,56,0.009051,0.000305,0.0007228,0.01966,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,57,57,0.009822,0.000305,0.0007228,0.01966,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,58,58,0.01067,0.000305,0.0007228,0.01966,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,59,59,0.01155,0.000305,0.0007228,0.01966,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,60,60,0.01246,0.000456,0.001081,0.03001,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,61,61,0.0134,0.000456,0.001081,0.03001,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,62,62,0.01445,0.000456,0.001081,0.03001,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,63,63,0.01557,0.000456,0.001081,0.03001,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,64,64,0.01674,0.000456,0.001081,0.03001,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,65,65,0.0179,0.000626,0.001484,0.04326,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,66,66,0.01902,0.000626,0.001484,0.04326,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,67,67,0.02021,0.000626,0.001484,0.04326,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,68,68,0.02157,0.000626,0.001484,0.04326,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,69,69,0.02309,0.000626,0.001484,0.04326,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,70,70,0.02483,0.000832,0.001972,0.05246,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,71,71,0.0267,0.000832,0.001972,0.05246,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,72,72,0.02876,0.000832,0.001972,0.05246,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,73,73,0.03112,0.000832,0.001972,0.05246,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,74,74,0.03386,0.000832,0.001972,0.05246,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,75,75,0.03709,0.001,0.00237,0.05982,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,76,76,0.04113,0.001,0.00237,0.05982,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,77,77,0.04524,0.001,0.00237,0.05982,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,78,78,0.04979,0.001,0.00237,0.05982,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,79,79,0.05477,0.001,0.00237,0.05982,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,80,80,0.06066,0.001142,0.002707,0.06374,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,81,81,0.06703,0.001142,0.002707,0.06374,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,82,82,0.074,0.001142,0.002707,0.06374,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,83,83,0.08174,0.001142,0.002707,0.06374,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,84,84,0.09046,0.001142,0.002707,0.06374,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,85,85,0.1005,0.001114,0.00264,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,86,86,0.1118,0.001114,0.00264,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,87,87,0.1245,0.001114,0.00264,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,88,88,0.1384,0.001114,0.00264,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,89,89,0.1532,0.001114,0.00264,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,90,90,0.1697,0.001114,0.00264,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,91,91,0.188,0.001114,0.00264,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,92,92,0.2084,0.001114,0.00264,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,93,93,0.2308,0.001114,0.00264,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,94,94,0.2539,0.001114,0.00264,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,95,95,0.2774,0.001114,0.00264,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,96,96,0.3009,0.001114,0.00264,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,97,97,0.3243,0.001114,0.00264,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,98,98,0.3473,0.001114,0.00264,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,99,99,0.3694,0.001114,0.00264,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,male,100,100,0.3919,0.001114,0.00264,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,50,50,0.003407,0.000082,0.0001943,0.01447,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,51,51,0.003642,0.000082,0.0001943,0.01447,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,52,52,0.003917,0.000082,0.0001943,0.01447,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,53,53,0.004238,0.000082,0.0001943,0.01447,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,54,54,0.004619,0.000082,0.0001943,0.01447,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,55,55,0.00504,0.000121,0.0002868,0.01847,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,56,56,0.005493,0.000121,0.0002868,0.01847,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,57,57,0.005987,0.000121,0.0002868,0.01847,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,58,58,0.006509,0.000121,0.0002868,0.01847,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,59,59,0.007067,0.000121,0.0002868,0.01847,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,60,60,0.007658,0.000162,0.0003839,0.02405,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,61,61,0.008305,0.000162,0.0003839,0.02405,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,62,62,0.008991,0.000162,0.0003839,0.02405,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,63,63,0.009681,0.000162,0.0003839,0.02405,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,64,64,0.01034,0.000162,0.0003839,0.02405,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,65,65,0.01102,0.00022,0.0005214,0.03136,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,66,66,0.01174,0.00022,0.0005214,0.03136,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,67,67,0.01253,0.00022,0.0005214,0.03136,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,68,68,0.01351,0.00022,0.0005214,0.03136,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,69,69,0.01468,0.00022,0.0005214,0.03136,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,70,70,0.01602,0.000296,0.0007015,0.03756,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,71,71,0.01747,0.000296,0.0007015,0.03756,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,72,72,0.0192,0.000296,0.0007015,0.03756,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,73,73,0.0212,0.000296,0.0007015,0.03756,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,74,74,0.02345,0.000296,0.0007015,0.03756,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,75,75,0.02598,0.000381,0.000903,0.04211,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,76,76,0.02915,0.000381,0.000903,0.04211,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,77,77,0.03239,0.000381,0.000903,0.04211,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,78,78,0.03589,0.000381,0.000903,0.04211,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,79,79,0.03968,0.000381,0.000903,0.04211,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,80,80,0.04416,0.000471,0.001116,0.04383,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,81,81,0.04909,0.000471,0.001116,0.04383,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,82,82,0.05464,0.000471,0.001116,0.04383,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,83,83,0.06107,0.000471,0.001116,0.04383,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,84,84,0.06843,0.000471,0.001116,0.04383,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,85,85,0.07684,0.000489,0.001159,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,86,86,0.0862,0.000489,0.001159,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,87,87,0.09685,0.000489,0.001159,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,88,88,0.109,0.000489,0.001159,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,89,89,0.1219,0.000489,0.001159,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,90,90,0.1358,0.000489,0.001159,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,91,91,0.1511,0.000489,0.001159,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,92,92,0.168,0.000489,0.001159,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,93,93,0.1863,0.000489,0.001159,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,94,94,0.2064,0.000489,0.001159,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,95,95,0.2281,0.000489,0.001159,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,96,96,0.2504,0.000489,0.001159,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,97,97,0.2737,0.000489,0.001159,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,98,98,0.297,0.000489,0.001159,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,99,99,0.3195,0.000489,0.001159,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+all,female,100,100,0.3427,0.000489,0.001159,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,50,50,0.005666,0.0002538,0.0006016,0.01164,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,51,51,0.006069,0.0002538,0.0006016,0.01164,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,52,52,0.006539,0.0002538,0.0006016,0.01164,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,53,53,0.007073,0.0002538,0.0006016,0.01164,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,54,54,0.007675,0.0002538,0.0006016,0.01164,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,55,55,0.008348,0.0004505,0.001068,0.01966,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,56,56,0.009051,0.0004505,0.001068,0.01966,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,57,57,0.009822,0.0004505,0.001068,0.01966,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,58,58,0.01067,0.0004505,0.001068,0.01966,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,59,59,0.01155,0.0004505,0.001068,0.01966,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,60,60,0.01246,0.0006835,0.00162,0.03001,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,61,61,0.0134,0.0006835,0.00162,0.03001,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,62,62,0.01445,0.0006835,0.00162,0.03001,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,63,63,0.01557,0.0006835,0.00162,0.03001,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,64,64,0.01674,0.0006835,0.00162,0.03001,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,65,65,0.0179,0.0009364,0.002219,0.04326,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,66,66,0.01902,0.0009364,0.002219,0.04326,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,67,67,0.02021,0.0009364,0.002219,0.04326,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,68,68,0.02157,0.0009364,0.002219,0.04326,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,69,69,0.02309,0.0009364,0.002219,0.04326,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,70,70,0.02483,0.001219,0.00289,0.05246,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,71,71,0.0267,0.001219,0.00289,0.05246,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,72,72,0.02876,0.001219,0.00289,0.05246,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,73,73,0.03112,0.001219,0.00289,0.05246,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,74,74,0.03386,0.001219,0.00289,0.05246,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,75,75,0.03709,0.001423,0.003373,0.05982,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,76,76,0.04113,0.001423,0.003373,0.05982,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,77,77,0.04524,0.001423,0.003373,0.05982,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,78,78,0.04979,0.001423,0.003373,0.05982,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,79,79,0.05477,0.001423,0.003373,0.05982,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,80,80,0.06066,0.001609,0.003814,0.06374,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,81,81,0.06703,0.001609,0.003814,0.06374,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,82,82,0.074,0.001609,0.003814,0.06374,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,83,83,0.08174,0.001609,0.003814,0.06374,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,84,84,0.09046,0.001609,0.003814,0.06374,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,85,85,0.1005,0.001531,0.003628,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,86,86,0.1118,0.001531,0.003628,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,87,87,0.1245,0.001531,0.003628,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,88,88,0.1384,0.001531,0.003628,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,89,89,0.1532,0.001531,0.003628,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,90,90,0.1697,0.001531,0.003628,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,91,91,0.188,0.001531,0.003628,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,92,92,0.2084,0.001531,0.003628,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,93,93,0.2308,0.001531,0.003628,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,94,94,0.2539,0.001531,0.003628,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,95,95,0.2774,0.001531,0.003628,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,96,96,0.3009,0.001531,0.003628,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,97,97,0.3243,0.001531,0.003628,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,98,98,0.3473,0.001531,0.003628,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,99,99,0.3694,0.001531,0.003628,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,male,100,100,0.3919,0.001531,0.003628,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,50,50,0.003407,0.00009942,0.0002356,0.01447,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,51,51,0.003642,0.00009942,0.0002356,0.01447,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,52,52,0.003917,0.00009942,0.0002356,0.01447,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,53,53,0.004238,0.00009942,0.0002356,0.01447,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,54,54,0.004619,0.00009942,0.0002356,0.01447,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,55,55,0.00504,0.0001558,0.0003693,0.01847,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,56,56,0.005493,0.0001558,0.0003693,0.01847,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,57,57,0.005987,0.0001558,0.0003693,0.01847,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,58,58,0.006509,0.0001558,0.0003693,0.01847,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,59,59,0.007067,0.0001558,0.0003693,0.01847,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,60,60,0.007658,0.0002102,0.0004981,0.02405,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,61,61,0.008305,0.0002102,0.0004981,0.02405,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,62,62,0.008991,0.0002102,0.0004981,0.02405,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,63,63,0.009681,0.0002102,0.0004981,0.02405,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,64,64,0.01034,0.0002102,0.0004981,0.02405,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,65,65,0.01102,0.0002856,0.0006768,0.03136,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,66,66,0.01174,0.0002856,0.0006768,0.03136,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,67,67,0.01253,0.0002856,0.0006768,0.03136,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,68,68,0.01351,0.0002856,0.0006768,0.03136,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,69,69,0.01468,0.0002856,0.0006768,0.03136,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,70,70,0.01602,0.0003841,0.0009103,0.03756,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,71,71,0.01747,0.0003841,0.0009103,0.03756,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,72,72,0.0192,0.0003841,0.0009103,0.03756,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,73,73,0.0212,0.0003841,0.0009103,0.03756,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,74,74,0.02345,0.0003841,0.0009103,0.03756,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,75,75,0.02598,0.0004865,0.001153,0.04211,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,76,76,0.02915,0.0004865,0.001153,0.04211,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,77,77,0.03239,0.0004865,0.001153,0.04211,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,78,78,0.03589,0.0004865,0.001153,0.04211,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,79,79,0.03968,0.0004865,0.001153,0.04211,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,80,80,0.04416,0.000598,0.001417,0.04383,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,81,81,0.04909,0.000598,0.001417,0.04383,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,82,82,0.05464,0.000598,0.001417,0.04383,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,83,83,0.06107,0.000598,0.001417,0.04383,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,84,84,0.06843,0.000598,0.001417,0.04383,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,85,85,0.07684,0.0006201,0.00147,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,86,86,0.0862,0.0006201,0.00147,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,87,87,0.09685,0.0006201,0.00147,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,88,88,0.109,0.0006201,0.00147,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,89,89,0.1219,0.0006201,0.00147,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,90,90,0.1358,0.0006201,0.00147,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,91,91,0.1511,0.0006201,0.00147,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,92,92,0.168,0.0006201,0.00147,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,93,93,0.1863,0.0006201,0.00147,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,94,94,0.2064,0.0006201,0.00147,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,95,95,0.2281,0.0006201,0.00147,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,96,96,0.2504,0.0006201,0.00147,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,97,97,0.2737,0.0006201,0.00147,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,98,98,0.297,0.0006201,0.00147,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,99,99,0.3195,0.0006201,0.00147,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_high,female,100,100,0.3427,0.0006201,0.00147,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,50,50,0.005666,0.0001448,0.0003433,0.01164,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,51,51,0.006069,0.0001448,0.0003433,0.01164,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,52,52,0.006539,0.0001448,0.0003433,0.01164,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,53,53,0.007073,0.0001448,0.0003433,0.01164,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,54,54,0.007675,0.0001448,0.0003433,0.01164,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,55,55,0.008348,0.0002441,0.0005786,0.01966,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,56,56,0.009051,0.0002441,0.0005786,0.01966,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,57,57,0.009822,0.0002441,0.0005786,0.01966,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,58,58,0.01067,0.0002441,0.0005786,0.01966,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,59,59,0.01155,0.0002441,0.0005786,0.01966,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,60,60,0.01246,0.0003608,0.0008552,0.03001,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,61,61,0.0134,0.0003608,0.0008552,0.03001,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,62,62,0.01445,0.0003608,0.0008552,0.03001,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,63,63,0.01557,0.0003608,0.0008552,0.03001,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,64,64,0.01674,0.0003608,0.0008552,0.03001,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,65,65,0.0179,0.0004961,0.001176,0.04326,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,66,66,0.01902,0.0004961,0.001176,0.04326,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,67,67,0.02021,0.0004961,0.001176,0.04326,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,68,68,0.02157,0.0004961,0.001176,0.04326,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,69,69,0.02309,0.0004961,0.001176,0.04326,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,70,70,0.02483,0.0006699,0.001588,0.05246,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,71,71,0.0267,0.0006699,0.001588,0.05246,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,72,72,0.02876,0.0006699,0.001588,0.05246,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,73,73,0.03112,0.0006699,0.001588,0.05246,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,74,74,0.03386,0.0006699,0.001588,0.05246,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,75,75,0.03709,0.0008229,0.00195,0.05982,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,76,76,0.04113,0.0008229,0.00195,0.05982,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,77,77,0.04524,0.0008229,0.00195,0.05982,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,78,78,0.04979,0.0008229,0.00195,0.05982,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,79,79,0.05477,0.0008229,0.00195,0.05982,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,80,80,0.06066,0.0009465,0.002243,0.06374,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,81,81,0.06703,0.0009465,0.002243,0.06374,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,82,82,0.074,0.0009465,0.002243,0.06374,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,83,83,0.08174,0.0009465,0.002243,0.06374,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,84,84,0.09046,0.0009465,0.002243,0.06374,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,85,85,0.1005,0.0009395,0.002227,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,86,86,0.1118,0.0009395,0.002227,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,87,87,0.1245,0.0009395,0.002227,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,88,88,0.1384,0.0009395,0.002227,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,89,89,0.1532,0.0009395,0.002227,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,90,90,0.1697,0.0009395,0.002227,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,91,91,0.188,0.0009395,0.002227,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,92,92,0.2084,0.0009395,0.002227,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,93,93,0.2308,0.0009395,0.002227,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,94,94,0.2539,0.0009395,0.002227,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,95,95,0.2774,0.0009395,0.002227,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,96,96,0.3009,0.0009395,0.002227,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,97,97,0.3243,0.0009395,0.002227,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,98,98,0.3473,0.0009395,0.002227,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,99,99,0.3694,0.0009395,0.002227,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,male,100,100,0.3919,0.0009395,0.002227,0.06251,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,50,50,0.003407,0.00007471,0.0001771,0.01447,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,51,51,0.003642,0.00007471,0.0001771,0.01447,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,52,52,0.003917,0.00007471,0.0001771,0.01447,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,53,53,0.004238,0.00007471,0.0001771,0.01447,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,54,54,0.004619,0.00007471,0.0001771,0.01447,0.816,38.1,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,55,55,0.00504,0.0001064,0.0002522,0.01847,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,56,56,0.005493,0.0001064,0.0002522,0.01847,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,57,57,0.005987,0.0001064,0.0002522,0.01847,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,58,58,0.006509,0.0001064,0.0002522,0.01847,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,59,59,0.007067,0.0001064,0.0002522,0.01847,0.815,33.33,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,60,60,0.007658,0.0001419,0.0003362,0.02405,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,61,61,0.008305,0.0001419,0.0003362,0.02405,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,62,62,0.008991,0.0001419,0.0003362,0.02405,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,63,63,0.009681,0.0001419,0.0003362,0.02405,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,64,64,0.01034,0.0001419,0.0003362,0.02405,0.815,28.66,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,65,65,0.01102,0.0001926,0.0004564,0.03136,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,66,66,0.01174,0.0001926,0.0004564,0.03136,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,67,67,0.01253,0.0001926,0.0004564,0.03136,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,68,68,0.01351,0.0001926,0.0004564,0.03136,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,69,69,0.01468,0.0001926,0.0004564,0.03136,0.824,24.12,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,70,70,0.01602,0.0002591,0.0006141,0.03756,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,71,71,0.01747,0.0002591,0.0006141,0.03756,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,72,72,0.0192,0.0002591,0.0006141,0.03756,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,73,73,0.0212,0.0002591,0.0006141,0.03756,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,74,74,0.02345,0.0002591,0.0006141,0.03756,0.824,19.76,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,75,75,0.02598,0.0003368,0.0007983,0.04211,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,76,76,0.02915,0.0003368,0.0007983,0.04211,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,77,77,0.03239,0.0003368,0.0007983,0.04211,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,78,78,0.03589,0.0003368,0.0007983,0.04211,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,79,79,0.03968,0.0003368,0.0007983,0.04211,0.811,15.65,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,80,80,0.04416,0.0004178,0.0009903,0.04383,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,81,81,0.04909,0.0004178,0.0009903,0.04383,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,82,82,0.05464,0.0004178,0.0009903,0.04383,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,83,83,0.06107,0.0004178,0.0009903,0.04383,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,84,84,0.06843,0.0004178,0.0009903,0.04383,0.811,11.96,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,85,85,0.07684,0.0004341,0.001029,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,86,86,0.0862,0.0004341,0.001029,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,87,87,0.09685,0.0004341,0.001029,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,88,88,0.109,0.0004341,0.001029,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,89,89,0.1219,0.0004341,0.001029,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,90,90,0.1358,0.0004341,0.001029,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,91,91,0.1511,0.0004341,0.001029,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,92,92,0.168,0.0004341,0.001029,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,93,93,0.1863,0.0004341,0.001029,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,94,94,0.2064,0.0004341,0.001029,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,95,95,0.2281,0.0004341,0.001029,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,96,96,0.2504,0.0004341,0.001029,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,97,97,0.2737,0.0004341,0.001029,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,98,98,0.297,0.0004341,0.001029,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,99,99,0.3195,0.0004341,0.001029,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md
+kunzmann_low,female,100,100,0.3427,0.0004341,0.001029,0.03975,0.811,7.05,SOURCED,qx: SSA 2022 period life table; incidence: SEER CSR 1975-2017 Tables 2.7/8.7/24.7; see SOURCES.md

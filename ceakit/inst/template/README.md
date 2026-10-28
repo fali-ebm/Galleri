@@ -6,7 +6,7 @@ Decision model and cost-effectiveness analysis built with **ceakit**.
 
 1. **Inputs**: edit `inputs/parameters.csv`. Each row has a value, a PSA
    distribution (`dist` with `se` or `n`), and a `status` and `source`.
-   - Change `DUMMY` to `SOURCED` or `DATA` as evidence comes in.
+   - Change `DUMMY` to `SOURCED`, `ASSUMPTION` or `DATA` as evidence comes in.
    - Other tables in `inputs/` (e.g. `life_table.csv`) are data the model
      reads.
    - `inputs/scenarios.csv` lists deterministic scenarios.
