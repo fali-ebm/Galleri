@@ -1,0 +1,99 @@
+---
+title: "Galleri upper GI screening: cost-effectiveness analysis"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+  word_document: default
+params:
+  results: "outputs/results.rds"
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.width = 9, fig.height = 5.5)
+library(ceakit)
+options(knitr.kable.NA = "")
+esc <- function(d) { d <- as.data.frame(d); d[] <- lapply(d, function(x) if (is.character(x)) gsub("$", "\\$", x, fixed = TRUE) else x); d }
+kbl <- function(d, ...) knitr::kable(esc(d), ...)
+results <- readRDS(params$results)
+proj <- load_project(".")
+P <- proj$params
+labels <- setNames(dplyr::coalesce(P$label, P$parameter), P$parameter)
+n_dummy <- sum(P$status == "DUMMY", na.rm = TRUE)
+```
+
+```{r dummy-warning, results = "asis"}
+if (n_dummy) cat(sprintf("> **Draft:** %d of %d inputs are still DUMMY placeholders. Results are illustrative only.\n\n", n_dummy, nrow(P)))
+```
+
+Structured to follow the CHEERS 2022 reporting checklist. Text in *italics* is a prompt to replace.
+
+# Methods
+
+**Population, setting and location.** *Describe the population, setting and country.*
+
+**Comparators.** `r paste(unique(unlist(lapply(results, function(r) r$arms))), collapse = "; ")`.
+
+**Perspective.** *e.g. health-care payer.*  **Time horizon.** *e.g. lifetime.*
+
+**Discounting.** *State annual discount rates for costs and outcomes.*
+
+**Model.** *Describe the structure (decision tree at screening + Markov states), cycle length, half-cycle correction and key assumptions.* Willingness to pay: `r fmt(results[[1]]$settings$wtp)` per `r results[[1]]$analysis$effect_label`. Probabilistic analysis: `r fmt(results[[1]]$settings$n_sim)` simulations.
+
+## Model inputs
+
+```{r params}
+kbl(P[, intersect(c("label", "value", "dist", "se", "n", "unit", "source", "status"), names(P))],
+             digits = 4, caption = "Model inputs with distributions used in the PSA")
+```
+
+# Results
+
+```{r results, results = "asis"}
+for (r in results) {
+  cat("\n\n## ", r$analysis$title, "\n\n", sep = "")
+  print(kbl(r$wide, caption = paste("Base case (95% uncertainty intervals,", r$analysis$unit, ")")))
+  cat("\n\n")
+  inc <- r$incremental; inc$icer <- fmt(inc$icer); inc$cost <- fmt(inc$cost, 2); inc$effect <- fmt(inc$effect, 4)
+  print(kbl(inc, caption = "Incremental analysis"))
+  cat("\n\n")
+  print(plot_metrics(r))
+}
+```
+
+# Uncertainty
+
+```{r uncertainty, results = "asis", fig.height = 5}
+for (r in results) {
+  cat("\n\n## ", r$analysis$title, "\n\n", sep = "")
+  for (p in list(plot_ce_plane(r), plot_ceac(r), plot_tornado(r, labels), plot_evpi(r), plot_evppi(r, labels)))
+    if (!is.null(p)) { print(p); cat("\n\n") }
+  if (!is.null(r$scenarios)) {
+    sc <- r$scenarios; sc$icer <- fmt(sc$icer); sc$cost <- fmt(sc$cost, 2); sc$effect <- fmt(sc$effect, 4)
+    print(kbl(sc[, c("scenario", "arm", "cost", "effect", "icer")], caption = "Scenario analyses"))
+  }
+}
+```
+
+# Discussion
+
+*Summarise findings, limitations, generalisability and how uncertainty affects the decision.*
+
+# CHEERS 2022 checklist
+
+```{r cheers}
+items <- c("Title", "Abstract", "Background and objectives", "Health economic analysis plan",
+  "Study population", "Setting and location", "Comparators", "Perspective", "Time horizon",
+  "Discount rate", "Selection of outcomes", "Measurement of outcomes", "Valuation of outcomes",
+  "Measurement and valuation of resources and costs", "Currency, price date, and conversion",
+  "Rationale and description of model", "Analytics and assumptions", "Characterising heterogeneity",
+  "Characterising distributional effects", "Characterising uncertainty",
+  "Approach to engagement with patients and others affected by the study", "Study parameters",
+  "Summary of main results", "Effect of uncertainty",
+  "Effect of engagement with patients and others affected by the study",
+  "Study findings, limitations, generalisability, and current knowledge", "Source of funding",
+  "Conflicts of interest")
+knitr::kable(data.frame(Item = seq_along(items), Topic = items, `Reported in` = "", check.names = FALSE),
+             caption = "CHEERS 2022 items (check wording against the published statement)")
+```

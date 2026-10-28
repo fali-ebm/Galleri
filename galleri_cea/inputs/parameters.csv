@@ -1,0 +1,54 @@
+parameter,label,value,status,dist,se,n,group,low,high,unit,description,source,analysis
+sens_g_ugi,Galleri sensitivity (upper GI),0.40,DUMMY,beta,,100,,,,proportion,P(Galleri +ve with esophagus/stomach signal | prevalent upper GI cancer),,screening
+sens_g_other,Galleri E/S signal (other cancer),0.30,DUMMY,beta,,100,,,,proportion,P(Galleri +ve with esophagus/stomach signal | prevalent cancer elsewhere that the workup can find),,screening
+fpr_g_es,Galleri false-positive rate (E/S),0.0005,DUMMY,beta,,20000,,,,proportion,P(Galleri +ve with esophagus/stomach signal | no cancer),,screening
+sens_egd,EGD sensitivity,0.95,DUMMY,beta,,100,,,,proportion,EGD sensitivity for prevalent upper GI cancer,,screening
+sens_ds_other,Downstream workup sensitivity,0.60,DUMMY,beta,,100,,,,proportion,P(ENT/PET CT/EUS workup finds a non-upper-GI cancer | Galleri +ve and EGD -ve),,screening
+p_egd_pos,P(EGD +ve),0.35,DUMMY,beta,,100,,,,proportion,EGD +ve among Galleri +ve (observed workup; can be set from workup_counts.csv),,galleri_positive
+p_ent_route,P(routed to ENT),0.30,DUMMY,beta,,100,,,,proportion,EGD -ve patients routed to ENT evaluation (rest go to PET CT),,both
+p_ent_pos,P(ENT +ve),0.15,DUMMY,beta,,100,,,,proportion,ENT evaluation +ve,,galleri_positive
+p_pet_pb,P(PET pancreatobiliary +ve),0.15,DUMMY,dirichlet,,100,pet,,,proportion,PET CT pancreatobiliary finding (PET -ve is the remainder of the group),,both
+p_pet_incid,P(PET incidental +ve),0.10,DUMMY,dirichlet,,100,pet,,,proportion,PET CT incidental non-GI/non-pancreatobiliary finding,,galleri_positive
+p_eus_pos,P(EUS sampling +ve),0.40,DUMMY,dirichlet,,100,eus,,,proportion,EUS sampling +ve (no sampling is the remainder of the group),,both
+p_eus_neg,P(EUS sampling -ve),0.35,DUMMY,dirichlet,,100,eus,,,proportion,EUS sampling -ve,,both
+p_miss,P(missed cancer | -ve workup),0.08,DUMMY,beta,,100,,,,proportion,Cancer present but missed after a negative workup,,galleri_positive
+p_incid_cancer,P(cancer | incidental finding),1,DUMMY,fixed,,,,,,proportion,Share of incidental PET +ve findings that are cancer (rest are benign),,galleri_positive
+p_late_screen,P(late | screen-detected),0.30,DUMMY,beta,,100,,,,proportion,Share of screen-detected cancers that are late stage,,both
+p_late_clin,P(late | symptomatic),0.75,DUMMY,beta,,100,,,,proportion,Share of cancers presenting with symptoms that are late stage,,both
+sojourn_years,Preclinical sojourn time,2,DUMMY,gamma,0.5,,,,,years,Mean years an undiagnosed cancer stays preclinical before symptoms (annual presentation = 1 - exp(-1/sojourn)),,both
+m_early,Cancer mortality after early dx,0.06,DUMMY,beta,,200,,,,per year,Annual probability of cancer death after early-stage diagnosis,,both
+m_late,Cancer mortality after late dx,0.40,DUMMY,beta,,200,,,,per year,Annual probability of cancer death after late-stage diagnosis,,both
+sae_egd,P(serious AE | EGD),0.001,DUMMY,beta,,5000,,,,per procedure,Serious adverse event per EGD,,both
+sae_ent,P(serious AE | ENT),0.0005,DUMMY,beta,,5000,,,,per procedure,Serious adverse event per ENT evaluation (nasolaryngoscopy),,both
+sae_eus,P(serious AE | EUS),0.002,DUMMY,beta,,5000,,,,per procedure,Serious adverse event per diagnostic EUS,,both
+sae_eus_samp,P(serious AE | EUS sampling),0.01,DUMMY,beta,,5000,,,,per procedure,Additional serious adverse event risk per EUS sampling (FNA/FNB),,both
+p_death_sae,P(death | serious AE),0.01,DUMMY,beta,,500,,,,proportion,Share of serious adverse events that are fatal,,both
+msv_pet,PET CT dose (mSv),14,DUMMY,gamma,3.5,,,,,mSv,Effective radiation dose per PET CT,,both
+risk_per_sv,Cancer risk per Sv,0.05,DUMMY,gamma,0.0125,,,,,per Sv,Lifetime excess cancer risk per sievert (check ICRP 103 nominal coefficient),,both
+loss_rad_ca,QALY/DALY loss per radiation cancer,5,DUMMY,gamma,1.25,,,,,QALYs,QALYs (and DALYs) lost per radiation-induced cancer,,both
+t_egd,Days to EGD,14,DUMMY,gamma,3.5,,,,,days,Days from Galleri result (or risk score) to EGD,,both
+t_ent,Days to ENT,21,DUMMY,gamma,5.25,,,,,days,Days from previous step to ENT evaluation,,both
+t_pet,Days to PET CT,14,DUMMY,gamma,3.5,,,,,days,Days from previous step to PET CT,,both
+t_eus,Days to EUS,21,DUMMY,gamma,5.25,,,,,days,Days from previous step to EUS,,both
+t_tb,Days to tumor board,7,DUMMY,gamma,1.75,,,,,days,Days from previous step to tumor board,,both
+c_galleri,Cost Galleri test,949,DUMMY,gamma,237.25,,,,,USD,Galleri test (check current price),,screening
+c_kunz,Cost Kunzmann scoring,15,DUMMY,gamma,3.75,,,,,USD,Applying the Kunzmann score (clinician/admin time),,screening
+c_egd,Cost EGD,1500,DUMMY,gamma,375,,,,,USD,Upper GI endoscopy,,both
+c_ent,Cost ENT evaluation,400,DUMMY,gamma,100,,,,,USD,ENT evaluation,,both
+c_pet,Cost PET CT,2000,DUMMY,gamma,500,,,,,USD,PET CT,,both
+c_eus,Cost EUS,2500,DUMMY,gamma,625,,,,,USD,Endoscopic ultrasound,,both
+c_eus_samp,Cost EUS sampling,800,DUMMY,gamma,200,,,,,USD,EUS sampling (FNA/FNB) incl. pathology,,both
+c_tb,Cost tumor board,300,DUMMY,gamma,75,,,,,USD,Tumor board discussion,,both
+c_symp_dx,Cost symptomatic diagnosis,2500,DUMMY,gamma,625,,,,,USD,Diagnostic workup when a cancer presents with symptoms,,both
+c_tx_first_early,First-year cost early dx,50000,DUMMY,gamma,12500,,,,,USD,Treatment cost in the year of an early-stage diagnosis,,both
+c_tx_first_late,First-year cost late dx,80000,DUMMY,gamma,20000,,,,,USD,Treatment cost in the year of a late-stage diagnosis,,both
+c_fu_early,Annual cost after early dx,2000,DUMMY,gamma,500,,,,,USD per year,Annual follow-up/continuing care cost after early-stage diagnosis,,both
+c_fu_late,Annual cost after late dx,15000,DUMMY,gamma,3750,,,,,USD per year,Annual continuing care cost after late-stage diagnosis,,both
+c_eol,End-of-life cost,30000,DUMMY,gamma,7500,,,,,USD,Cost of terminal care at cancer death,,both
+c_sae,Cost serious AE,10000,DUMMY,gamma,2500,,,,,USD,Cost of managing a serious adverse event,,both
+u_mult_early,Utility multiplier early dx,0.85,DUMMY,beta,,100,,,,multiplier,Utility after early-stage diagnosis as a share of age-specific baseline utility,,both
+u_mult_late,Utility multiplier late dx,0.60,DUMMY,beta,,100,,,,multiplier,Utility after late-stage diagnosis as a share of age-specific baseline utility,,both
+d_proc,QALY loss per procedure,0.01,DUMMY,gamma,0.005,,,,,QALYs,QALY (and DALY) loss per diagnostic procedure (EGD/ENT/PET CT/EUS),,both
+d_sae,QALY loss per serious AE,0.05,DUMMY,gamma,0.025,,,,,QALYs,QALY (and DALY) loss per non-fatal serious adverse event,,both
+dw_early,Disability weight early dx,0.10,DUMMY,beta,,100,,,,weight,Disability weight while living after early-stage diagnosis (DALYs),,both
+dw_late,Disability weight late dx,0.45,DUMMY,beta,,100,,,,weight,Disability weight while living after late-stage diagnosis (DALYs),,both

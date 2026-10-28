@@ -1,0 +1,9 @@
+.Rproj.user/
+.Rhistory
+.RData
+*.Rcheck/
+*.tar.gz
+renv/library/
+_targets/
+galleri_cea/outputs/
+*.html

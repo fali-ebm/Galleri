@@ -1,0 +1,7 @@
+outputs/
+.Rproj.user/
+.Rhistory
+.RData
+renv/library/
+_targets/
+*.html

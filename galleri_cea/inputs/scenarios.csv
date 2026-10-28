@@ -1,0 +1,5 @@
+scenario,parameter,value
+Galleri test half price,c_galleri,474.5
+Higher Galleri sensitivity (upper GI),sens_g_ugi,0.6
+Shorter sojourn time,sojourn_years,1
+Lower procedure disutility,d_proc,0.002

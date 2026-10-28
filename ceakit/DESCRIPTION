@@ -1,0 +1,46 @@
+Package: ceakit
+Type: Package
+Title: Toolkit for Decision Modelling and Cost-Effectiveness Analysis
+Version: 0.2.0
+Authors@R: person("Maryam", "Hussain", role = c("aut", "cre"), email = "hussain.maryamr@gmail.com")
+Description: Reusable building blocks for health economic decision models:
+    parameter tables with distributions and sources, input validation,
+    decision-tree and cohort Markov engines with competing risks, probabilistic
+    and one-way sensitivity analysis, scenarios, incremental analysis with
+    dominance, acceptability curves, value of information (EVPI, EVPPI),
+    standard tables and plots, export, a generic Shiny app, and a project
+    template so every analysis follows the same structure.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.1
+Depends: R (>= 4.1)
+Imports:
+    dplyr,
+    ggplot2,
+    graphics,
+    grDevices,
+    openxlsx,
+    purrr,
+    readr,
+    readxl,
+    rlang,
+    scales,
+    stats,
+    tibble,
+    tidyr,
+    tools,
+    utils
+Suggests:
+    BCEA,
+    bslib,
+    dampack,
+    DT,
+    knitr,
+    markdown,
+    mgcv,
+    rmarkdown,
+    shiny,
+    testthat (>= 3.0.0),
+    voi
+Config/testthat/edition: 3

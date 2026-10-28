@@ -1,0 +1,17 @@
+branch,outcome,parameter,n,notes
+egd,positive,p_egd_pos,,Galleri +ve patients with cancer found on EGD
+egd,negative,,,Galleri +ve patients with a negative EGD
+route,ent,p_ent_route,,EGD -ve patients sent to ENT evaluation
+route,pet,,,EGD -ve patients sent to PET CT
+ent,positive,p_ent_pos,,ENT evaluations positive for cancer
+ent,negative,,,ENT evaluations negative
+pet,pancreatobiliary,p_pet_pb,,PET CT pancreatobiliary positive
+pet,incidental,p_pet_incid,,PET CT incidental non-GI/non-pancreatobiliary positive
+pet,negative,,,PET CT negative
+eus,sampling_positive,p_eus_pos,,EUS with sampling positive for cancer
+eus,sampling_negative,p_eus_neg,,EUS with sampling negative
+eus,no_sampling,,,EUS without sampling
+followup,cancer_later,p_miss,,Negative-workup patients later diagnosed with cancer on follow-up
+followup,no_cancer,,,Negative-workup patients with no cancer on follow-up
+incidental,cancer,p_incid_cancer,,Incidental PET findings confirmed as cancer
+incidental,benign,,,Incidental PET findings that were benign

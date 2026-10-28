@@ -1,0 +1,4 @@
+scenario,parameter,value
+Higher test cost,c_test,100
+Lower sensitivity,sens,0.70
+Higher prevalence,p_prev,0.04
