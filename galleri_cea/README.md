@@ -12,9 +12,8 @@ model with competing risks:
   (EGD, then ENT or PET CT, then EUS ± sampling, then tumor board). The
   results are reported per 1,000 Galleri +ve.
 - **`screening`**: a screening population. It compares usual care, a
-  Kunzmann score ≥ 8 followed by EGD, Galleri followed by EGD only, and
-  Galleri followed by the full workup. The results are reported per
-  100,000 screened.
+  Kunzmann score ≥ 8 followed by EGD, and Galleri followed by the full
+  workup. The results are reported per 100,000 screened.
 
 Screen-detected cancers enter lead-time states (`lead_early`, `lead_late`)
 and have no cancer deaths until they would have presented with symptoms.

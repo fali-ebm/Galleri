@@ -5,8 +5,7 @@
 #   analyses$galleri_positive  people already Galleri +ve (esophagus/stomach
 #                              signal): no workup vs EGD only vs full workup
 #   analyses$screening         screening population: usual care vs Kunzmann
-#                              score >= 8 -> EGD vs Galleri -> EGD only vs
-#                              Galleri -> full workup
+#                              score >= 8 -> EGD vs Galleri -> full workup
 # Inputs: inputs/parameters.csv, baseline_risks.csv (competing risks by
 # risk_group x sex x age), cohort.csv, counts.csv (observed workup counts).
 # =============================================================

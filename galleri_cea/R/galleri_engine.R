@@ -13,7 +13,7 @@ STATES <- c("well", "pre", "lead_early", "lead_late", "early", "late", "dead_can
 DEAD <- c("dead_cancer", "dead_other")
 CHANNELS <- c("cost", "qaly", "daly", "ly", "clin_dx", "clin_late", "ca_death", "oc_death")
 ARMS_GP <- c("No workup", "EGD only", "Full workup")
-ARMS_SC <- c("No screening (usual care)", "Kunzmann -> EGD", "Galleri -> EGD only", "Galleri -> full workup")
+ARMS_SC <- c("No screening (usual care)", "Kunzmann -> EGD", "Galleri -> full workup")
 
 # ---- Markov model ---------------------------------------------------------
 baseline_for <- function(data, row, settings)
@@ -148,31 +148,24 @@ arms_galleri_positive <- function(p, row = NULL, curve0 = NULL) {
 arms_screening <- function(p, row, curve0) {
   pu <- curve0$prev_ugi; po <- curve0$prev_other; total <- pu + po; free <- 1 - total
   a_u <- pu * p$sens_g_ugi; a_o <- po * p$sens_g_other; a_f <- free * p$fpr_g_es; gp <- a_u + a_o + a_f
-  galleri <- function(full) {
+  galleri <- function() {
     l <- ledger(total); l$galleri <- 1; l$cost_tests <- p$c_galleri
     l$investigated <- gp; l$free_inv <- a_f; l$n_egd <- gp
     found_u <- a_u * p$sens_egd
-    if (!full) {
-      l$found <- l$found_ugi <- found_u; l$missed_inv <- a_u - found_u + a_o
-      l$n_invasive <- gp; l$invasive_free <- a_f
-      l$sae <- gp * p$sae_egd; l$sae_free <- a_f * p$sae_egd
-      l$cost_dx <- gp * p$c_egd; l$days <- gp * p$t_egd
-    } else {
-      n2 <- gp - found_u; found_o <- a_o * p$sens_ds_other
-      ent <- n2 * p$p_ent_route; pet <- n2 * (1 - p$p_ent_route)
-      eus <- pet * p$p_pet_pb; samp <- eus * (p$p_eus_pos + p$p_eus_neg)
-      tb <- ent * (1 - p$p_ent_pos) + pet * (1 - p$p_pet_pb * p$p_eus_pos)
-      f2 <- if (n2 > 0) a_f / n2 else 0
-      l$found <- found_u + found_o; l$found_ugi <- found_u
-      l$missed_inv <- a_u - found_u + a_o - found_o
-      l$n_ent <- ent; l$n_pet <- pet; l$n_eus <- eus; l$n_samp <- samp; l$n_tb <- tb
-      l$n_invasive <- gp + eus + samp; l$invasive_free <- a_f + f2 * (eus + samp)
-      ds <- ent * p$sae_ent + eus * p$sae_eus + samp * p$sae_eus_samp
-      l$sae <- gp * p$sae_egd + ds; l$sae_free <- a_f * p$sae_egd + f2 * ds
-      l$rad_ca <- pet * p$msv_pet / 1000 * p$risk_per_sv
-      l$cost_dx <- gp * p$c_egd + ent * p$c_ent + pet * p$c_pet + eus * p$c_eus + samp * p$c_eus_samp + tb * p$c_tb
-      l$days <- gp * p$t_egd + ent * p$t_ent + pet * p$t_pet + eus * p$t_eus + tb * p$t_tb
-    }
+    n2 <- gp - found_u; found_o <- a_o * p$sens_ds_other
+    ent <- n2 * p$p_ent_route; pet <- n2 * (1 - p$p_ent_route)
+    eus <- pet * p$p_pet_pb; samp <- eus * (p$p_eus_pos + p$p_eus_neg)
+    tb <- ent * (1 - p$p_ent_pos) + pet * (1 - p$p_pet_pb * p$p_eus_pos)
+    f2 <- if (n2 > 0) a_f / n2 else 0
+    l$found <- found_u + found_o; l$found_ugi <- found_u
+    l$missed_inv <- a_u - found_u + a_o - found_o
+    l$n_ent <- ent; l$n_pet <- pet; l$n_eus <- eus; l$n_samp <- samp; l$n_tb <- tb
+    l$n_invasive <- gp + eus + samp; l$invasive_free <- a_f + f2 * (eus + samp)
+    ds <- ent * p$sae_ent + eus * p$sae_eus + samp * p$sae_eus_samp
+    l$sae <- gp * p$sae_egd + ds; l$sae_free <- a_f * p$sae_egd + f2 * ds
+    l$rad_ca <- pet * p$msv_pet / 1000 * p$risk_per_sv
+    l$cost_dx <- gp * p$c_egd + ent * p$c_ent + pet * p$c_pet + eus * p$c_eus + samp * p$c_eus_samp + tb * p$c_tb
+    l$days <- gp * p$t_egd + ent * p$t_ent + pet * p$t_pet + eus * p$t_eus + tb * p$t_tb
     l$missed <- total - l$found
     l
   }
@@ -183,7 +176,7 @@ arms_screening <- function(p, row, curve0) {
     k$n_egd <- k$n_invasive <- 1; k$invasive_free <- free
     k$sae <- p$sae_egd; k$sae_free <- free * p$sae_egd; k$cost_dx <- p$c_egd; k$days <- p$t_egd
   }
-  stats::setNames(list(ledger(total), k, galleri(FALSE), galleri(TRUE)), ARMS_SC)
+  stats::setNames(list(ledger(total), k, galleri()), ARMS_SC)
 }
 
 # ---- Outcomes per cohort row and per population ----------------------------
