@@ -2,10 +2,10 @@
 # PROJECT CONTRACT - Galleri upper GI screening & workup
 # (engine in galleri_engine.R, figures in galleri_plots.R)
 #
-#   analyses$galleri_positive  people already Galleri +ve (esophagus/stomach
-#                              signal): no workup vs full workup
-#   analyses$screening         screening population: usual care vs Kunzmann
-#                              score >= 8 -> EGD vs Galleri -> full workup
+# Both analyses use the same screening cohort (adults 50-79). In the Galleri
+# arm a -ve result follows usual care and a +ve result goes to the full workup.
+#   analyses$galleri     usual care vs Galleri: benefits and harms per 100,000
+#   analyses$comparison  usual care vs Kunzmann score >= 8 -> EGD vs Galleri
 # Inputs: inputs/parameters.csv, baseline_risks.csv (competing risks by
 # risk_group x sex x age), cohort.csv, counts.csv (observed workup counts).
 # =============================================================
@@ -37,7 +37,7 @@ validate_data <- function(data, settings) {
   for (cc in c("mort_other", "inc_ugi", "prev_ugi", "prev_other", "utility_well"))
     if (any(is.na(B[[cc]]) | B[[cc]] < 0 | B[[cc]] > 1)) e <- c(e, sprintf("baseline_risks: %s must be 0-1", cc))
   if (any(B$prev_ugi + B$prev_other > 1, na.rm = TRUE)) e <- c(e, "baseline_risks: prev_ugi + prev_other > 1")
-  for (pp in c("screening", "galleri_positive")) {
+  for (pp in POPULATION) {
     s <- sum(C$share[C$population == pp])
     if (abs(s - 1) > 0.001) e <- c(e, sprintf("cohort: shares for '%s' sum to %.4f (must be 1)", pp, s))
   }
@@ -101,7 +101,7 @@ METRICS <- tibble::tribble(
   "fp_per_found", "6. Efficiency", "False positives investigated per cancer found", "ratio", 1,
   "invasive_per_found", "6. Efficiency", "Invasive procedures per cancer found", "ratio", 1)
 
-ALL_PARAMS <- c("sens_g_ugi", "sens_g_other", "fpr_g_es", "sens_egd", "sens_ds_other", "p_egd_pos",
+ALL_PARAMS <- c("sens_g_ugi", "sens_g_other", "fpr_g_es", "sens_egd", "p_egd_pos",
   "p_ent_route", "p_ent_pos", "p_pet_pb", "p_pet_incid", "p_eus_pos", "p_eus_neg", "p_miss",
   "p_incid_cancer", "p_late_screen", "p_late_clin", "sojourn_years", "m_early", "m_late", "sae_egd",
   "sae_ent", "sae_eus", "sae_eus_samp", "p_death_sae", "msv_pet", "risk_per_sv", "loss_rad_ca", "t_egd",
@@ -119,21 +119,19 @@ KEY <- c("screen_detected", "late_averted", "ca_deaths_averted", "free_investiga
 make_analysis <- function(name, title, arms, owsa, cohort_n, unit, required, plots)
   ceakit::cea_analysis(
     name = name, title = title, arms = arms,
-    run = function(p, data, settings) run_population(p, data, settings, name)$total,
+    run = function(p, data, settings) run_population(p, data, settings, arms)$total,
     cost = "cost_total", effect = "qaly_total", effect_label = "QALY",
     metrics = METRICS, derive = derive_galleri, required = required, cohort_n = cohort_n, unit = unit,
     owsa = owsa, key_metrics = KEY, constraints = keep_ordered, plots = plots)
 
 analyses <- list(
-  galleri_positive = make_analysis(
-    "galleri_positive", "Galleri +ve workup", ARMS_GP, c("Full workup", "No workup"), 1000,
-    "per 1,000 Galleri +ve",
-    setdiff(ALL_PARAMS, c("sens_g_ugi", "sens_g_other", "fpr_g_es", "sens_egd", "sens_ds_other", "c_galleri", "c_kunz")),
+  galleri = make_analysis(
+    "galleri", "Galleri: benefits and harms", c("Usual care", "Galleri"), c("Galleri", "Usual care"), 100000,
+    "per 100,000 screened", setdiff(ALL_PARAMS, c("c_kunz", "sens_egd")),
     list(workup_tree = plot_workup_tree, benefit_harm = plot_balance, icon_array = plot_icons,
          markov_trace = plot_trace, cancer_states = plot_cancer_states, subgroups = plot_subgroups)),
-  screening = make_analysis(
-    "screening", "Screening comparison", ARMS_SC, c("Galleri -> full workup", "Kunzmann -> EGD"), 100000,
-    "per 100,000 screened",
-    setdiff(ALL_PARAMS, c("p_egd_pos", "p_ent_pos", "p_pet_incid", "p_miss", "p_incid_cancer")),
+  comparison = make_analysis(
+    "comparison", "Usual care vs Kunzmann vs Galleri", ARMS, c("Galleri", "Kunzmann -> EGD"), 100000,
+    "per 100,000 screened", ALL_PARAMS,
     list(strategy_tree = plot_strategy_tree, benefit_harm = plot_balance, markov_trace = plot_trace,
          cancer_states = plot_cancer_states, subgroups = plot_subgroups)))

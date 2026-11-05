@@ -12,8 +12,10 @@
 STATES <- c("well", "pre", "lead_early", "lead_late", "early", "late", "dead_cancer", "dead_other")
 DEAD <- c("dead_cancer", "dead_other")
 CHANNELS <- c("cost", "qaly", "daly", "ly", "clin_dx", "clin_late", "ca_death", "oc_death")
-ARMS_GP <- c("No workup", "Full workup")
-ARMS_SC <- c("No screening (usual care)", "Kunzmann -> EGD", "Galleri -> full workup")
+# Arms. Every analysis runs on the same screening cohort (cohort.csv) and
+# picks the arms it compares from ARMS.
+ARMS <- c("Usual care", "Kunzmann -> EGD", "Galleri")
+POPULATION <- "screening"
 
 # ---- Markov model ---------------------------------------------------------
 baseline_for <- function(data, row, settings)
@@ -130,34 +132,23 @@ ledger_from_paths <- function(d, total, scale = 1, galleri = 0, test_cost = 0) {
   l
 }
 
-arms_galleri_positive <- function(p, row = NULL, curve0 = NULL) {
-  full <- workup_paths(p)
-  total <- sum(full$prob * (full$found + full$missed))
-  stats::setNames(list(ledger(total), ledger_from_paths(full, total)), ARMS_GP)
-}
-
-arms_screening <- function(p, row, curve0) {
+arms_all <- function(p, row, curve0) {
   pu <- curve0$prev_ugi; po <- curve0$prev_other; total <- pu + po; free <- 1 - total
   a_u <- pu * p$sens_g_ugi; a_o <- po * p$sens_g_other; a_f <- free * p$fpr_g_es; gp <- a_u + a_o + a_f
+  # Galleri: -ve -> usual care; +ve -> the full workup flowchart (workup_paths).
+  # Galleri accuracy sets how many people test +ve (gp) and how many of them
+  # have cancer (a_u + a_o) or not (a_f). The workup counts set the procedures,
+  # costs, harms and days per person worked up, and the share of the cancers
+  # among positives that the workup finds (the rest are missed despite workup).
   galleri <- function() {
-    l <- ledger(total); l$galleri <- 1; l$cost_tests <- p$c_galleri
-    l$investigated <- gp; l$free_inv <- a_f; l$n_egd <- gp
-    found_u <- a_u * p$sens_egd
-    n2 <- gp - found_u; found_o <- a_o * p$sens_ds_other
-    ent <- n2 * p$p_ent_route; pet <- n2 * (1 - p$p_ent_route)
-    eus <- pet * p$p_pet_pb; samp <- eus * (p$p_eus_pos + p$p_eus_neg)
-    tb <- ent * (1 - p$p_ent_pos) + pet * (1 - p$p_pet_pb * p$p_eus_pos)
-    f2 <- if (n2 > 0) a_f / n2 else 0
-    l$found <- found_u + found_o; l$found_ugi <- found_u
-    l$missed_inv <- a_u - found_u + a_o - found_o
-    l$n_ent <- ent; l$n_pet <- pet; l$n_eus <- eus; l$n_samp <- samp; l$n_tb <- tb
-    l$n_invasive <- gp + eus + samp; l$invasive_free <- a_f + f2 * (eus + samp)
-    ds <- ent * p$sae_ent + eus * p$sae_eus + samp * p$sae_eus_samp
-    l$sae <- gp * p$sae_egd + ds; l$sae_free <- a_f * p$sae_egd + f2 * ds
-    l$rad_ca <- pet * p$msv_pet / 1000 * p$risk_per_sv
-    l$cost_dx <- gp * p$c_egd + ent * p$c_ent + pet * p$c_pet + eus * p$c_eus + samp * p$c_eus_samp + tb * p$c_tb
-    l$days <- gp * p$t_egd + ent * p$t_ent + pet * p$t_pet + eus * p$t_eus + tb * p$t_tb
-    l$missed <- total - l$found
+    d <- workup_paths(p)
+    yf <- sum(d$prob * d$found); ym <- sum(d$prob * d$missed)
+    det <- if (yf + ym > 0) yf / (yf + ym) else 0
+    l <- ledger_from_paths(d, total, scale = gp, galleri = 1, test_cost = p$c_galleri)
+    fr <- if (gp > 0) a_f / gp else 0
+    l$found <- (a_u + a_o) * det; l$found_ugi <- a_u * det
+    l$missed_inv <- (a_u + a_o) - l$found; l$missed <- total - l$found
+    l$free_inv <- a_f; l$invasive_free <- fr * l$n_invasive; l$sae_free <- fr * l$sae
     l
   }
   k <- ledger(total); k$kunz <- 1; k$cost_tests <- p$c_kunz
@@ -167,7 +158,7 @@ arms_screening <- function(p, row, curve0) {
     k$n_egd <- k$n_invasive <- 1; k$invasive_free <- free
     k$sae <- p$sae_egd; k$sae_free <- free * p$sae_egd; k$cost_dx <- p$c_egd; k$days <- p$t_egd
   }
-  stats::setNames(list(ledger(total), k, galleri()), ARMS_SC)
+  stats::setNames(list(ledger(total), k, galleri()), ARMS)
 }
 
 # ---- Outcomes per cohort row and per population ----------------------------
@@ -184,10 +175,10 @@ initial_state <- function(l, p) {
     early = 0, late = 0, dead_cancer = 0, dead_other = pd)
 }
 
-row_outcomes <- function(row, data, p, settings, population) {
+row_outcomes <- function(row, data, p, settings, arms) {
   curve <- baseline_for(data, row, settings)
   V <- galleri_markov_values(curve, p, settings)
-  arms <- if (population == "screening") arms_screening(p, row, curve[1, ]) else arms_galleri_positive(p)
+  ledgers <- arms_all(p, row, curve[1, ])[arms]
   one <- function(l) {
     init <- initial_state(l, p); life <- drop(init %*% V)
     fl <- init[["lead_late"]]; pd <- init[["dead_other"]]
@@ -208,14 +199,14 @@ row_outcomes <- function(row, data, p, settings, population) {
       qaly_total = life[["qaly"]] - q_harm, qaly_harms = q_harm,
       daly_total = life[["daly"]] + d_harm, daly_harms = d_harm)[ADDITIVE]
   }
-  sapply(arms, one)
+  sapply(ledgers, one)
 }
 
-cohort_rows <- function(data, population) data$cohort[data$cohort$population == population, ]
+cohort_rows <- function(data, population = POPULATION) data$cohort[data$cohort$population == population, ]
 
-run_population <- function(p, data, settings, population) {
-  C <- cohort_rows(data, population)
-  mats <- lapply(seq_len(nrow(C)), function(i) row_outcomes(C[i, ], data, p, settings, population))
+run_population <- function(p, data, settings, arms) {
+  C <- cohort_rows(data)
+  mats <- lapply(seq_len(nrow(C)), function(i) row_outcomes(C[i, ], data, p, settings, arms))
   list(cohort = C, rows = mats, total = Reduce(`+`, Map(`*`, mats, C$share)))
 }
 
@@ -238,8 +229,8 @@ derive_galleri <- function(A, settings) {
 }
 
 # Subgroup (cohort row) results, base case
-subgroup_table <- function(p, data, settings, population, cohort_n) {
-  pop <- run_population(p, data, settings, population)
+subgroup_table <- function(p, data, settings, arms, cohort_n) {
+  pop <- run_population(p, data, settings, arms)
   purrr::map_dfr(seq_along(pop$rows), function(i) {
     m <- rbind(pop$rows[[i]], derive_galleri(pop$rows[[i]], settings)); r <- pop$cohort[i, ]
     tibble::tibble(risk_group = r$risk_group, sex = r$sex, start_age = r$start_age, share = r$share,
@@ -253,12 +244,11 @@ subgroup_table <- function(p, data, settings, population, cohort_n) {
 }
 
 # Cohort-weighted Markov trace by arm
-trace_table <- function(p, data, settings, population) {
-  C <- cohort_rows(data, population)
+trace_table <- function(p, data, settings, arms) {
+  C <- cohort_rows(data)
   purrr::map_dfr(seq_len(nrow(C)), function(i) {
     row <- C[i, ]; curve <- baseline_for(data, row, settings); mk <- markov_parts(curve, p)
-    arms <- if (population == "screening") arms_screening(p, row, curve[1, ]) else arms_galleri_positive(p)
-    purrr::imap_dfr(arms, function(l, a) ceakit::markov_trace(mk$n, mk$transition, initial_state(l, p)) |>
+    purrr::imap_dfr(arms_all(p, row, curve[1, ])[arms], function(l, a) ceakit::markov_trace(mk$n, mk$transition, initial_state(l, p)) |>
       dplyr::mutate(arm = a, share = row$share))
   }) |>
     tidyr::pivot_longer(dplyr::all_of(STATES), names_to = "state", values_to = "prop") |>

@@ -1,18 +1,17 @@
 parameter,label,value,status,dist,se,n,group,low,high,unit,description,source,analysis
-sens_g_ugi,Galleri sensitivity (upper GI),0.637,ASSUMPTION,beta,,60,,0.40,0.85,proportion,P(Galleri +ve with esophagus/stomach signal | prevalent upper GI cancer),PATHFINDER 2 episode sensitivity for 12 deadly cancers 69.8% x CSO accuracy 91.3% (GRAIL 2026); range CCGA3 stage I-II to all-stage (Klein 2021),screening
-sens_g_other,Galleri E/S signal (other cancer),0.0068,ASSUMPTION,beta,,1000,,,,proportion,P(Galleri +ve with esophagus/stomach signal | prevalent cancer elsewhere that the workup can find),Overall episode sensitivity 39.3% x CSO error 8.7% (PATHFINDER 2) x assumed 20% of wrong CSOs called E/S,screening
-fpr_g_es,Galleri false-positive rate (E/S),0.00036,ASSUMPTION,beta,,20000,,,,proportion,P(Galleri +ve with esophagus/stomach signal | no cancer),False-positive rate 0.36% (PATHFINDER 2 specificity 99.64%) x assumed 10% with an E/S CSO,screening
-sens_egd,EGD sensitivity,0.887,SOURCED,beta,,300,,,,proportion,EGD sensitivity for prevalent upper GI cancer,1 - 11.3% upper GI cancers missed at EGD within 3 years (Menon & Trudgill 2014),screening
-sens_ds_other,Downstream workup sensitivity,0.60,ASSUMPTION,beta,,50,,,,proportion,P(ENT/PET CT/EUS workup finds a non-upper-GI cancer | Galleri +ve and EGD -ve),No direct source; wide uncertainty,screening
-p_egd_pos,P(EGD +ve),0.35,DUMMY,beta,,100,,,,proportion,EGD +ve among Galleri +ve (observed workup; can be set from workup_counts.csv),Awaiting local workup counts (inputs/counts.csv),galleri_positive
+sens_g_ugi,Galleri sensitivity (upper GI),0.637,ASSUMPTION,beta,,60,,0.40,0.85,proportion,P(Galleri +ve with esophagus/stomach signal | prevalent upper GI cancer),PATHFINDER 2 episode sensitivity for 12 deadly cancers 69.8% x CSO accuracy 91.3% (GRAIL 2026); range CCGA3 stage I-II to all-stage (Klein 2021),both
+sens_g_other,Galleri E/S signal (other cancer),0.0068,ASSUMPTION,beta,,1000,,,,proportion,P(Galleri +ve with esophagus/stomach signal | prevalent cancer elsewhere that the workup can find),Overall episode sensitivity 39.3% x CSO error 8.7% (PATHFINDER 2) x assumed 20% of wrong CSOs called E/S,both
+fpr_g_es,Galleri false-positive rate (E/S),0.00036,ASSUMPTION,beta,,20000,,,,proportion,P(Galleri +ve with esophagus/stomach signal | no cancer),False-positive rate 0.36% (PATHFINDER 2 specificity 99.64%) x assumed 10% with an E/S CSO,both
+sens_egd,EGD sensitivity,0.887,SOURCED,beta,,300,,,,proportion,EGD sensitivity for prevalent upper GI cancer,1 - 11.3% upper GI cancers missed at EGD within 3 years (Menon & Trudgill 2014),comparison
+p_egd_pos,P(EGD +ve),0.35,DUMMY,beta,,100,,,,proportion,EGD +ve among Galleri +ve (observed workup; set from inputs/counts.csv),Awaiting local workup counts (inputs/counts.csv),both
 p_ent_route,P(routed to ENT),0.30,DUMMY,beta,,100,,,,proportion,EGD -ve patients routed to ENT evaluation (rest go to PET CT),Awaiting local workup counts (inputs/counts.csv),both
-p_ent_pos,P(ENT +ve),0.15,DUMMY,beta,,100,,,,proportion,ENT evaluation +ve,Awaiting local workup counts (inputs/counts.csv),galleri_positive
+p_ent_pos,P(ENT +ve),0.15,DUMMY,beta,,100,,,,proportion,ENT evaluation +ve,Awaiting local workup counts (inputs/counts.csv),both
 p_pet_pb,P(PET pancreatobiliary +ve),0.15,DUMMY,dirichlet,,100,pet,,,proportion,PET CT pancreatobiliary finding (PET -ve is the remainder of the group),Awaiting local workup counts (inputs/counts.csv),both
-p_pet_incid,P(PET incidental +ve),0.10,DUMMY,dirichlet,,100,pet,,,proportion,PET CT incidental non-GI/non-pancreatobiliary finding,Awaiting local workup counts (inputs/counts.csv),galleri_positive
+p_pet_incid,P(PET incidental +ve),0.10,DUMMY,dirichlet,,100,pet,,,proportion,PET CT incidental non-GI/non-pancreatobiliary finding,Awaiting local workup counts (inputs/counts.csv),both
 p_eus_pos,P(EUS sampling +ve),0.40,DUMMY,dirichlet,,100,eus,,,proportion,EUS sampling +ve (no sampling is the remainder of the group),Awaiting local workup counts (inputs/counts.csv),both
 p_eus_neg,P(EUS sampling -ve),0.35,DUMMY,dirichlet,,100,eus,,,proportion,EUS sampling -ve,Awaiting local workup counts (inputs/counts.csv),both
-p_miss,P(missed cancer | -ve workup),0.08,DUMMY,beta,,100,,,,proportion,Cancer present but missed after a negative workup,Awaiting local follow-up data (cancers diagnosed within 12 months of a negative workup),galleri_positive
-p_incid_cancer,P(cancer | incidental finding),1,DUMMY,fixed,,,,,,proportion,Share of incidental PET +ve findings that are cancer (rest are benign),Awaiting local workup counts,galleri_positive
+p_miss,P(missed cancer | -ve workup),0.08,DUMMY,beta,,100,,,,proportion,Cancer present but missed after a negative workup,Awaiting local follow-up data (cancers diagnosed within 12 months of a negative workup),both
+p_incid_cancer,P(cancer | incidental finding),1,DUMMY,fixed,,,,,,proportion,Share of incidental PET +ve findings that are cancer (rest are benign),Awaiting local workup counts,both
 p_late_screen,P(late | screen-detected),0.47,SOURCED,beta,,200,,,,proportion,Share of screen-detected cancers that are late stage,PATHFINDER 2: 53% of Galleri-detected cancers stage I-II (GRAIL 2026),both
 p_late_clin,P(late | symptomatic),0.703,SOURCED,beta,,500,,,,proportion,Share of cancers presenting with symptoms that are late stage,SEER regional + distant share of staged esophageal and stomach cancers; weighted by 50-79 incidence (40.5% esophagus),both
 sojourn_years,Preclinical sojourn time,2.37,SOURCED,gamma,0.27,,,1.92,2.96,years,Mean years an undiagnosed cancer stays preclinical before symptoms (annual presentation = 1 - exp(-1/sojourn)),Gastric cancer mean sojourn time 2.37 y (95% CI 1.92-2.96; Bae et al. 2014),both
@@ -31,8 +30,8 @@ t_ent,Days to ENT,21,ASSUMPTION,gamma,5.25,,,,,days,Days from previous step to E
 t_pet,Days to PET CT,14,ASSUMPTION,gamma,3.5,,,,,days,Days from previous step to PET CT,Assumed (see t_egd),both
 t_eus,Days to EUS,21,ASSUMPTION,gamma,5.25,,,,,days,Days from previous step to EUS,Assumed (see t_egd),both
 t_tb,Days to tumor board,7,ASSUMPTION,gamma,1.75,,,,,days,Days from previous step to tumor board,Assumed (see t_egd),both
-c_galleri,Cost Galleri test,949,SOURCED,gamma,237.25,,,474.5,949,USD,Galleri test,GRAIL list price $949 (not covered by Medicare),screening
-c_kunz,Cost Kunzmann scoring,15,ASSUMPTION,gamma,3.75,,,,,USD,Applying the Kunzmann score (clinician/admin time),Assumed,screening
+c_galleri,Cost Galleri test,949,SOURCED,gamma,237.25,,,474.5,949,USD,Galleri test,GRAIL list price $949 (not covered by Medicare),both
+c_kunz,Cost Kunzmann scoring,15,ASSUMPTION,gamma,3.75,,,,,USD,Applying the Kunzmann score (clinician/admin time),Assumed,comparison
 c_egd,Cost EGD,1001,SOURCED,gamma,250,,,,,USD,Upper GI endoscopy with biopsy,Medicare 2024 CPT 43239: OPPS $864.59 + physician $136.48,both
 c_ent,Cost ENT evaluation,127,SOURCED,gamma,32,,,,,USD,ENT evaluation (flexible laryngoscopy),Medicare 2026 CPT 31575 non-facility $127.26 (procedure only; excludes office visit),both
 c_pet,Cost PET CT,1459,SOURCED,gamma,365,,,,,USD,PET CT,Medicare OPPS CPT 78815 $1458.59 (July 2025; facility component),both

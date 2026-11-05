@@ -18,6 +18,7 @@ The `status` column in each table means:
 | `sens_g_ugi` | 0.637 (range 0.40-0.85) | PATHFINDER 2 episode sensitivity for the 12 deadly cancers (69.8%) × cancer signal origin (CSO) accuracy (91.3%). The range runs from CCGA3 stage I-II sensitivity (esophagus 12/25, stomach 4/12) to CCGA3 all-stage sensitivity (esophagus 84/99, stomach 20/29). **ASSUMPTION**: the 12-cancer figure applies to esophagus and stomach. |
 | `sens_g_other` | 0.0068 | Overall episode sensitivity 39.3% × CSO error 8.7% × an assumed 20% of wrong CSOs that are called esophagus/stomach. **ASSUMPTION** |
 | `fpr_g_es` | 0.00036 | False-positive rate 0.36% (specificity 99.64%) × an assumed 10% of false positives with an esophagus/stomach CSO. **ASSUMPTION** |
+| Workup yield | from your counts | Galleri accuracy sets how many people test +ve and how many of them have cancer. Your workup counts set the procedures per person worked up and the share of those cancers the workup finds: found ÷ (found + missed despite workup). |
 | `p_late_screen` | 0.47 | 53% of PATHFINDER 2 screen-detected cancers were stage I-II. |
 
 ## Natural history
@@ -34,7 +35,7 @@ The `status` column in each table means:
 | `prev_other` | (all-site − UGI) × 2.37 | All-site incidence (Table 2.7) minus esophagus and stomach. **ASSUMPTION**: same sojourn time, and every other cancer counts as findable by the downstream workup (generous; this matters only through `sens_g_other`). |
 | `mort_other` | qx by single year | SSA 2022 period life table (2025 Trustees Report). This is **all-cause** mortality, which slightly overstates competing mortality because cancer deaths are included. |
 | Kunzmann groups | RR 2.62 (high) / 0.32 (low) | 29.5% of people score ≥ 8, and they contain 77.4% of esophageal adenocarcinoma (EAC). The RR is applied to the EAC share of esophageal cancer only (63.1%, SEER 2004-15). Stomach risk is unchanged. **ASSUMPTION**: the 29.5% share is the same in every age-sex group (in reality the score rises with age and with male sex). |
-| `cohort.csv` | shares | Census Vintage 2024 resident population ages 50-79 by 5-year band and sex, entered at the band midpoint. **ASSUMPTION**: the Galleri +ve cohort has the same age-sex mix; replace it with your own cohort. |
+| `cohort.csv` | shares | Census Vintage 2024 resident population ages 50-79 by 5-year band and sex, entered at the band midpoint. Both analyses use this cohort. |
 
 ## Harms
 

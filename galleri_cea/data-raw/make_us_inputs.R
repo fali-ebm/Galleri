@@ -74,9 +74,7 @@ screening <- expand_grid(pop, tibble(risk_group = c("kunzmann_high", "kunzmann_l
                                      k = c(k_share, 1 - k_share), kunzmann_scoped = c(1, 0))) |>
   mutate(population = "screening", share = share * k, status = "ASSUMPTION",
          notes = "Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)")
-gpos <- pop |> mutate(population = "galleri_positive", risk_group = "all", kunzmann_scoped = 0, status = "ASSUMPTION",
-                      notes = "Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort")
-cohort <- bind_rows(screening, gpos) |>
+cohort <- screening |>
   mutate(share = round(share, 6)) |>
   group_by(population) |> mutate(share = round(share + (row_number() == 1) * (1 - sum(share)), 6)) |> ungroup() |>
   select(population, risk_group, sex, start_age, share, kunzmann_scoped, status, notes)

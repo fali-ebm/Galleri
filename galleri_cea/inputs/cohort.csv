@@ -23,15 +23,3 @@ screening,kunzmann_high,female,72,0.023025,1,ASSUMPTION,Census 2024 age-sex shar
 screening,kunzmann_low,female,72,0.055027,0,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
 screening,kunzmann_high,female,77,0.017652,1,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
 screening,kunzmann_low,female,77,0.042186,0,ASSUMPTION,Census 2024 age-sex shares x Kunzmann 29.5% flagged (same in every age-sex group: assumption)
-galleri_positive,all,male,52,0.093009,0,ASSUMPTION,Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort
-galleri_positive,all,male,57,0.091727,0,ASSUMPTION,Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort
-galleri_positive,all,male,62,0.094565,0,ASSUMPTION,Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort
-galleri_positive,all,male,67,0.084843,0,ASSUMPTION,Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort
-galleri_positive,all,male,72,0.067546,0,ASSUMPTION,Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort
-galleri_positive,all,male,77,0.049604,0,ASSUMPTION,Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort
-galleri_positive,all,female,52,0.093932,0,ASSUMPTION,Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort
-galleri_positive,all,female,57,0.094062,0,ASSUMPTION,Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort
-galleri_positive,all,female,62,0.099819,0,ASSUMPTION,Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort
-galleri_positive,all,female,67,0.093003,0,ASSUMPTION,Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort
-galleri_positive,all,female,72,0.078052,0,ASSUMPTION,Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort
-galleri_positive,all,female,77,0.059838,0,ASSUMPTION,Galleri +ve cohort assumed to mirror the 50-79 age-sex mix; replace with your own cohort

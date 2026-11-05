@@ -4,16 +4,29 @@ Decision model and cost-effectiveness analysis built with **ceakit**.
 
 ## This project
 
-Two analyses, both a decision tree at time 0 followed by a lifetime Markov
-model with competing risks:
+One decision tree at time 0 for a screening population (US adults 50-79),
+followed by a lifetime Markov model with competing risks. The tree has
+three arms:
 
-- **`galleri_positive`**: people with a Galleri +ve esophagus/stomach
-  signal. It compares no workup with the full flowchart workup
-  (EGD, then ENT or PET CT, then EUS ± sampling, then tumor board). The
-  results are reported per 1,000 Galleri +ve.
-- **`screening`**: a screening population. It compares usual care, a
-  Kunzmann score ≥ 8 followed by EGD, and Galleri followed by the full
-  workup. The results are reported per 100,000 screened.
+1. **Usual care**: no screening. Cancers present with symptoms.
+2. **Kunzmann -> EGD**: people with a Kunzmann score ≥ 8 have an EGD.
+   Everyone else follows usual care.
+3. **Galleri**: a -ve result (or a signal pointing elsewhere) follows
+   usual care. A +ve esophagus/stomach signal goes to the full flowchart
+   workup (EGD, then ENT or PET CT, then EUS ± sampling, then tumor board).
+
+Two analyses use this tree. Both report results per 100,000 screened.
+
+- **`galleri`**: usual care vs Galleri. It gives the benefits and harms of
+  Galleri, the workup tree and what happens to each 1,000 people worked up.
+- **`comparison`**: all three arms, with the incremental analysis that
+  ranks them.
+
+In the Galleri arm, Galleri accuracy (sensitivity and false-positive rate)
+sets how many people test +ve and how many of them have cancer. Your workup
+counts set the procedures, costs, harms and days for each person worked
+up, and the share of those cancers the workup finds. The rest are missed
+despite the workup.
 
 Screen-detected cancers enter lead-time states (`lead_early`, `lead_late`)
 and have no cancer deaths until they would have presented with symptoms.
