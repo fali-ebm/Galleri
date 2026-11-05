@@ -5,7 +5,7 @@ This repository holds two things:
 | Folder | What it is |
 |---|---|
 | [`ceakit/`](ceakit) | An R package with reusable tools for decision modelling and cost-effectiveness analysis: input tables and validation, decision-tree and Markov engines, PSA, one-way SA, scenarios, ICER frontier, CEAC, EVPI/EVPPI, tables, plots, a Shiny app, and a project template. |
-| [`galleri_cea/`](galleri_cea) | The Galleri upper GI model, built with ceakit. It has two analyses: the Galleri +ve workup (no workup vs EGD only vs full workup) and the screening comparison (usual care vs Kunzmann score ≥ 8 → EGD vs Galleri → full workup). |
+| [`galleri_cea/`](galleri_cea) | The Galleri upper GI model, built with ceakit. It has two analyses: the Galleri +ve workup (no workup vs full workup) and the screening comparison (usual care vs Kunzmann score ≥ 8 → EGD vs Galleri → full workup). |
 
 > **Inputs status.** The model uses US, payer-perspective inputs for
 > adults aged 50-79. Each input is marked `SOURCED` (published data) or

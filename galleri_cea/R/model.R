@@ -3,7 +3,7 @@
 # (engine in galleri_engine.R, figures in galleri_plots.R)
 #
 #   analyses$galleri_positive  people already Galleri +ve (esophagus/stomach
-#                              signal): no workup vs EGD only vs full workup
+#                              signal): no workup vs full workup
 #   analyses$screening         screening population: usual care vs Kunzmann
 #                              score >= 8 -> EGD vs Galleri -> full workup
 # Inputs: inputs/parameters.csv, baseline_risks.csv (competing risks by

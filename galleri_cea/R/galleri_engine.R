@@ -12,7 +12,7 @@
 STATES <- c("well", "pre", "lead_early", "lead_late", "early", "late", "dead_cancer", "dead_other")
 DEAD <- c("dead_cancer", "dead_other")
 CHANNELS <- c("cost", "qaly", "daly", "ly", "clin_dx", "clin_late", "ca_death", "oc_death")
-ARMS_GP <- c("No workup", "EGD only", "Full workup")
+ARMS_GP <- c("No workup", "Full workup")
 ARMS_SC <- c("No screening (usual care)", "Kunzmann -> EGD", "Galleri -> full workup")
 
 # ---- Markov model ---------------------------------------------------------
@@ -99,15 +99,6 @@ workup_paths <- function(p) {
   add_path_details(d, p)
 }
 
-egd_only_paths <- function(p, full = workup_paths(p)) {
-  rest <- full[full$leaf != "egd_pos", ]
-  ca_neg <- sum(rest$prob * (rest$found + rest$missed)) / sum(rest$prob)
-  tibble::tibble(leaf = c("egd_pos", "egd_neg"), prob = c(p$p_egd_pos, 1 - p$p_egd_pos),
-                 path = c("EGD +ve", "EGD -ve > stop"), n_egd = 1, n_ent = 0, n_pet = 0, n_eus = 0,
-                 n_samp = 0, n_tb = 0, found = c(1, 0), missed = c(0, ca_neg), site = c("Upper GI", NA)) |>
-    add_path_details(p)
-}
-
 add_path_details <- function(d, p) {
   d$free <- 1 - d$found - d$missed
   d$n_invasive <- d$n_egd + d$n_eus + d$n_samp
@@ -140,9 +131,9 @@ ledger_from_paths <- function(d, total, scale = 1, galleri = 0, test_cost = 0) {
 }
 
 arms_galleri_positive <- function(p, row = NULL, curve0 = NULL) {
-  full <- workup_paths(p); egd <- egd_only_paths(p, full)
+  full <- workup_paths(p)
   total <- sum(full$prob * (full$found + full$missed))
-  stats::setNames(list(ledger(total), ledger_from_paths(egd, total), ledger_from_paths(full, total)), ARMS_GP)
+  stats::setNames(list(ledger(total), ledger_from_paths(full, total)), ARMS_GP)
 }
 
 arms_screening <- function(p, row, curve0) {

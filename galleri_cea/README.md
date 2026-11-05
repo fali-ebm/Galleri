@@ -8,7 +8,7 @@ Two analyses, both a decision tree at time 0 followed by a lifetime Markov
 model with competing risks:
 
 - **`galleri_positive`**: people with a Galleri +ve esophagus/stomach
-  signal. It compares no workup, EGD only and the full flowchart workup
+  signal. It compares no workup with the full flowchart workup
   (EGD, then ENT or PET CT, then EUS ± sampling, then tumor board). The
   results are reported per 1,000 Galleri +ve.
 - **`screening`**: a screening population. It compares usual care, a
