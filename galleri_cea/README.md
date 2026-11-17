@@ -4,17 +4,36 @@ Decision model and cost-effectiveness analysis built with **ceakit**.
 
 ## This project
 
-Two analyses, both a decision tree at time 0 followed by a lifetime Markov
-model with competing risks:
+One decision tree at time 0 for a screening population (US adults 50-79),
+followed by a lifetime Markov model with competing risks. The tree has
+three arms:
 
-- **`galleri_positive`**: people with a Galleri +ve esophagus/stomach
-  signal. It compares no workup, EGD only and the full flowchart workup
-  (EGD, then ENT or PET CT, then EUS ± sampling, then tumor board). The
-  results are reported per 1,000 Galleri +ve.
-- **`screening`**: a screening population. It compares usual care, a
-  Kunzmann score ≥ 8 followed by EGD, Galleri followed by EGD only, and
-  Galleri followed by the full workup. The results are reported per
-  100,000 screened.
+1. **Usual care**: no screening. Cancers present with symptoms.
+2. **Kunzmann -> EGD**: people with a Kunzmann score ≥ 8 have an EGD.
+   Everyone else follows usual care.
+3. **Galleri**: a -ve result (or a signal pointing elsewhere) follows
+   usual care. A +ve esophagus/stomach signal goes to the full flowchart
+   workup (EGD, then ENT or PET CT, then EUS ± sampling, then tumor board).
+
+Two analyses use this tree. Both report results per 100,000 screened.
+
+- **`galleri`**: usual care vs Galleri. It gives the benefits and harms of
+  Galleri, the workup tree and what happens to each 1,000 people worked up.
+- **`comparison`**: all three arms, with the incremental analysis that
+  ranks them.
+
+In the Galleri arm, Galleri accuracy (sensitivity and false-positive rate)
+sets how many people test +ve and how many of them have cancer. Your workup
+counts set the procedures, costs, harms and days for each person worked
+up, and the share of those cancers the workup finds. The rest are missed
+despite the workup.
+
+Screen-detected cancers enter lead-time states (`lead_early`, `lead_late`)
+and have no cancer deaths until they would have presented with symptoms.
+Stage-specific survival is measured from clinical diagnosis, so screening
+is credited only for the stage shift, not for the lead time. The test suite
+checks this: detection without a stage shift leaves cancer deaths
+unchanged.
 
 **Code:**
 - `R/galleri_engine.R`: the tree (`ceakit::tree_paths`), the Markov model
@@ -34,16 +53,18 @@ model with competing risks:
 - `counts.csv`: optional observed workup counts.
 - `scenarios.csv`: deterministic scenarios.
 
-`data-raw/make_dummy_inputs.R` documents how the placeholder tables were
-built. Kunzmann score ≥ 8 = 29.5% of people and 77.4% of EAC cases
-(Kunzmann et al., Clin Gastroenterol Hepatol 2018). Every other input is a
-DUMMY placeholder.
+`data-raw/make_us_inputs.R` builds `baseline_risks.csv` and `cohort.csv`
+from published US data: the SSA 2022 life table, SEER incidence, Census 2024
+population and the Kunzmann score capture. `inputs/SOURCES.md` lists the
+source or reasoning for every input. Inputs are marked `SOURCED`,
+`ASSUMPTION` or `DUMMY`. The workup branch probabilities are still `DUMMY`
+until local counts are added to `inputs/counts.csv`.
 
 ## Workflow
 
 1. **Inputs**: edit `inputs/parameters.csv`. Each row has a value, a PSA
    distribution (`dist` with `se` or `n`), and a `status` and `source`.
-   - Change `DUMMY` to `SOURCED` or `DATA` as evidence comes in.
+   - Change `DUMMY` to `SOURCED`, `ASSUMPTION` or `DATA` as evidence comes in.
    - Other tables in `inputs/` (e.g. `life_table.csv`) are data the model
      reads.
    - `inputs/scenarios.csv` lists deterministic scenarios.

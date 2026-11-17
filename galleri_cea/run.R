@@ -12,7 +12,7 @@ for (r in results) print(r)
 
 # Galleri-specific extra output: results by subgroup (cohort row)
 for (r in results) readr::write_csv(
-  proj$env$subgroup_table(r$p, proj$data, proj$settings, r$analysis$name, r$analysis$cohort_n),
+  proj$env$subgroup_table(r$p, proj$data, proj$settings, r$analysis$arms, r$analysis$cohort_n),
   file.path("outputs", r$analysis$name, "subgroups.csv"))
 
 # Verification tests (tests/testthat) - must pass before reporting
