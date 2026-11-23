@@ -8,3 +8,6 @@ Higher EGD mortality (ASGE 1/10000),p_death_sae,0.5
 PET CT with diagnostic CT (24.4 mSv),msv_pet,24.4
 Late-stage continuing cost = early,c_fu_late,7141
 Lower procedure disutility,d_proc,0.002
+Missed after negative workup at NHS-Galleri 2-year rate,p_miss,0.178
+Incidental PET findings malignant at nationwide thyroid rate,p_incid_cancer,0.194
+EGD finds fewer (PPV 50%; lower NHS-Galleri round),p_egd_pos,0.39

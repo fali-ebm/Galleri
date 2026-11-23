@@ -5,8 +5,9 @@ The `status` column in each table means:
 - **SOURCED**: taken from, or derived arithmetically from, the source cited.
 - **ASSUMPTION**: no direct source. The value and the reasoning are given so a
   reviewer can challenge it.
-- **DUMMY**: placeholder waiting for local data (workup branch probabilities →
-  `inputs/counts.csv`).
+- **DUMMY**: placeholder with no source. None are left. The workup branch
+  probabilities now come from the literature (below) until local counts
+  are entered in `inputs/counts.csv`, which then overrides them.
 
 `baseline_risks.csv` and `cohort.csv` are built by
 `data-raw/make_us_inputs.R`. Edit the script, not the CSVs.
@@ -20,6 +21,23 @@ The `status` column in each table means:
 | `fpr_g_es` | 0.00036 | False-positive rate 0.36% (specificity 99.64%) × an assumed 10% of false positives with an esophagus/stomach CSO. **ASSUMPTION** |
 | Workup yield | from your counts | Galleri accuracy sets how many people test +ve and how many of them have cancer. Your workup counts set the procedures per person worked up and the share of those cancers the workup finds: found ÷ (found + missed despite workup). |
 | `p_late_screen` | 0.47 | 53% of PATHFINDER 2 screen-detected cancers were stage I-II. |
+
+## Galleri +ve workup (literature values until local counts are added)
+
+Searched in PubMed and Consensus in November 2026. No study reports a
+step-by-step workup for an esophagus/stomach cancer signal, so each branch
+is derived from the closest published anchor. Your `counts.csv` replaces
+all of these.
+
+| Parameter | Value | Derivation |
+|---|---|---|
+| `p_egd_pos` | 0.50 | PPV of the stomach/esophagus signal 64.6% (NHS-Galleri, 3 rounds) × first signal-origin prediction correct 87% (real-world, 111,080 tests) × EGD sensitivity 88.7%. Cross-check: the model's own Galleri accuracy inputs give a PPV of 67.6% among E/S positives, close to the 64.6% observed. |
+| `p_ent_route` | 0.30 | **ASSUMPTION**: a local pathway choice, so there are no published data. |
+| `p_ent_pos` | 0.10 | **ASSUMPTION**: only case series exist (3 early oropharyngeal cancers found after a Galleri head and neck signal). |
+| `p_pet_pb`, `p_pet_incid` | 0.087, 0.159 | **ASSUMPTION**, anchored on PATHFINDER 2: PET/CT after a negative targeted workup found cancer in 7/63 (11.1%). Half of that yield is assumed to come from pancreatobiliary findings (70% malignant × EUS sensitivity 91%) and half from incidental findings (one-third malignant). |
+| `p_eus_pos`, `p_eus_neg` | 0.64, 0.26 | **ASSUMPTION**: 70% of PET pancreatobiliary findings malignant × EUS-guided tissue acquisition sensitivity 91% (newer-generation needles 91-94%); 90% of EUS include sampling. |
+| `p_miss` | 0.034 | PATHFINDER 2: 4 of about 117 positives with no cancer at diagnostic resolution had cancer diagnosed within 12 months. This matches the study's ratio of cancers found to missed among positives (173 vs 4). Scenario: 17.8% of NHS-Galleri round-1 false positives had cancer diagnosed over the next 2 rounds (includes new cancers). |
+| `p_incid_cancer` | 0.33 | Incidental FDG PET/CT findings are malignant about one-third of the time (thyroid 30.8%, meta-analysis of 5,151 nodules; breast 33.5%; prostate 21.3%). Scenario: 19.4% (nationwide Dutch thyroid cohort). |
 
 ## Natural history
 
@@ -82,6 +100,16 @@ use the medical care component of the CPI.
 | `d_proc`, `d_sae`, `loss_rad_ca` | | **ASSUMPTION** |
 
 ## References
+
+- Neal RD, et al. Performance of a multi-cancer early detection test in the randomized controlled NHS-Galleri trial. *Nat Med* 2026;32:3770-80. doi:10.1038/s41591-026-04652-8
+- Nabavizadeh N, et al. Performance and safety of a multi-cancer early detection test: the PATHFINDER 2 study. *Nat Med* 2026;32:3760-9. doi:10.1038/s41591-026-04618-w
+- Matrana M, et al. Real-world data and clinical experience from over 100,000 multi-cancer early detection tests. *Nat Commun* 2025;16:9625. doi:10.1038/s41467-025-64094-7
+- Talwar A, et al. The role of multicancer early detection tests in head and neck squamous cell carcinoma: a case series. *Head Neck* 2026;48:E126-31. doi:10.1002/hed.70337
+- Endoscopic ultrasound-guided Franseen fine-needle biopsy for solid pancreatic lesions: systematic review and meta-analysis. *Dig Dis Sci* 2026. doi:10.1007/s10620-026-09970-y
+- de Leijer JF, et al. Focal thyroid incidentalomas on 18F-FDG PET/CT: systematic review and meta-analysis. *Front Endocrinol* 2021.
+- Coerts HI, et al. Malignancy risk of thyroid incidentalomas detected by [18F]FDG PET/CT: nationwide study in the Netherlands. *Eur J Nucl Med Mol Imaging* 2026.
+- Iacovitti CM, et al. Breast incidental uptake on PET/CT: updated systematic review and meta-analysis. *Pharmaceuticals* 2025.
+- Martinello C, et al. Prostatic incidental uptake on PET/CT: updated systematic review and meta-analysis. *Front Oncol* 2026.
 
 - GRAIL. PATHFINDER 2 results fact sheet (2026). Galleri performance in 35,878 adults aged 50+.
 - Schrag D, et al. Blood-based tests for multicancer early detection (PATHFINDER). *Lancet* 2023;402:1251-60.
