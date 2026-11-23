@@ -68,6 +68,7 @@ out <- list(
   scenarios = read.csv("outputs/galleri/scenarios.csv"),
   owsa = read.csv("outputs/galleri/owsa.csv"),
   subgroups = subset(read.csv("outputs/galleri/subgroups.csv"), arm == "Galleri"),
+  accuracy = read.csv("outputs/galleri/accuracy_by_group.csv"),
   params = data.frame(parameter = proj$params$parameter, label = proj$params$label, value = proj$params$value))
 dir.create("viz", showWarnings = FALSE)
 write_json(out, "viz/galleri_viz_data.json", digits = 6, auto_unbox = TRUE, na = "null")

@@ -60,7 +60,14 @@ tables, then a model load and calibration check) before touching anything,
 and backs up replaced files to `data-raw/import_backup/`. After editing the
 CSVs directly, refresh the workbook with `python3 tools/export_inputs_xlsx.py`.
 
-**False-positive burden.** For cancer-free people worked up after a Galleri
+**False-positive burden (QALYs and DALYs).** Cancer-free people worked up after a
+Galleri positive lose the whole-pathway QALYs measured by Matza 2024 (0.079-0.111
+by where the workup ends), plus persisting worry (17% for 6 months), complications,
+deaths and radiation cancers. DALYs use the GBD anxiety weight over the days of
+uncertainty. Every component is reported per 100,000. `accuracy_by_group.csv` gives
+the 2×2, PPV and NPV by attained age for each sex × race/ethnicity group.
+
+**Workup counts and costs of false positives.** For cancer-free people worked up after a Galleri
 +ve, the model reports EGDs, ENT, PET CT, EUS and sampling, perforations,
 complication deaths, PET CT dose and radiation cancers, days in workup,
 workup and complication cost, and the QALYs lost. These follow the workup

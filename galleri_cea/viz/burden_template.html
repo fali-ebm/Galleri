@@ -89,6 +89,8 @@ button.replay { font: 500 12px var(--mono); letter-spacing: .08em; text-transfor
 button.replay:hover { color: var(--paper); border-color: var(--faint); }
 button:focus-visible { outline: 2px solid var(--found); outline-offset: 2px; }
 .sankey-node rect { shape-rendering: crispEdges; }
+.ramp { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--mute); align-items: center; }
+.ramp i { display: inline-block; width: 22px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -2px; }
 .sankey-link { fill: none; }
 </style>
 </head>
@@ -134,8 +136,27 @@ button:focus-visible { outline: 2px solid var(--found); outline-offset: 2px; }
   <div class="ledger" id="ledger"></div>
 </section>
 
+<section class="chapter" aria-labelledby="c3b">
+  <span class="num">04 · ALL THE FALSE ALARMS</span>
+  <h2 id="c3b">Added up, false alarms cost <em id="fp-q"></em> years of healthy life</h2>
+  <p class="text note" id="fpb-intro"></p>
+  <div class="split">
+    <div class="fig" id="fpc-wrap"><svg id="fpc" role="img" aria-label="QALYs lost and DALYs incurred by cancer-free men worked up, by component"></svg></div>
+    <div class="tablebox"><table id="fpcount"><thead><tr><th>Among <span id="fpn"></span> cancer-free men</th><th style="text-align:right">Per 100,000</th></tr></thead><tbody></tbody></table></div>
+  </div>
+  <p class="note" id="fpb-note"></p>
+</section>
+
+<section class="chapter" aria-labelledby="c3c">
+  <span class="num">05 · SAME TEST, DIFFERENT ODDS</span>
+  <h2 id="c3c">A positive result means <em>less</em> for a woman in her fifties than for a man in his eighties</h2>
+  <p class="text note">The test is equally sensitive and specific for everyone. What changes is how many people have cancer to find, which comes from SEER rates by age, sex and race. Each cell is one year of age: how many cancer-free people are worked up for every cancer the test finds.</p>
+  <div class="ramp" id="acc-ramp"></div>
+  <div class="fig" id="acc-wrap" style="overflow-x:auto"><svg id="acc" role="img" aria-label="Cancer-free people worked up per cancer found, by year of age, for men and women of each race and ethnicity"></svg></div>
+</section>
+
 <section class="chapter" aria-labelledby="c4">
-  <span class="num">04 · OVERDIAGNOSIS</span>
+  <span class="num">06 · OVERDIAGNOSIS</span>
   <h2 id="c4">The older the man, the more often the cancer found <em>would never have mattered</em></h2>
   <p class="text note">Overdiagnosed: a cancer found by screening that would never have caused symptoms, because the man would have died of something else first. Bars are cancers found each year of age.</p>
   <div class="key"><span><i class="sw found"></i>found, would have caused symptoms</span><span><i class="sw overdx"></i>found, overdiagnosed</span></div>
@@ -143,7 +164,7 @@ button:focus-visible { outline: 2px solid var(--found); outline-offset: 2px; }
 </section>
 
 <section class="chapter" aria-labelledby="c5">
-  <span class="num">05 · WHAT A NEGATIVE MISSES</span>
+  <span class="num">07 · WHAT A NEGATIVE MISSES</span>
   <h2 id="c5">A negative result is not an <em>all-clear</em></h2>
   <p class="text note" id="fn-intro"></p>
   <div class="key"><span><i class="sw found"></i>upper GI cancer, test positive</span><span><i class="sw missed"></i>upper GI cancer, test negative</span></div>
@@ -151,7 +172,7 @@ button:focus-visible { outline: 2px solid var(--found); outline-offset: 2px; }
 </section>
 
 <section class="chapter" aria-labelledby="c6">
-  <span class="num">06 · THE LEDGER</span>
+  <span class="num">08 · THE LEDGER</span>
   <h2 id="c6">The burden, <em>counted</em></h2>
   <div class="tablebox"><table id="tbl"><thead><tr><th>Per 100,000 men, age 50 to 85</th><th style="text-align:right">Base case</th><th style="text-align:right">95% interval</th></tr></thead><tbody></tbody></table></div>
 </section>
@@ -411,9 +432,69 @@ function drawTable() {
     tr.append('td').attr('class', sub ? 'sub' : null).text(label.trim()); tr.append('td').attr('class', 'n').text(v.v); tr.append('td').attr('class', 'ui').text(`${v.lo} – ${v.hi}`); });
 }
 
-function drawAll() { layoutRain(); drawRain(1); drawDiscs(); drawSankey(); drawLedger(); drawOverdx(); drawFN(); drawTable(); }
+/* ---------- 04: all the false alarms ---------- */
+function drawFPB() {
+  const F = DATA.fpb, n = DATA.ledger.n_fp;
+  document.getElementById('fp-q').textContent = F.qaly[0].toFixed(0);
+  document.getElementById('fpn').textContent = fmt(Math.round(n));
+  document.getElementById('fpb-intro').innerHTML = `Per 100,000 men over 35 years, the <b>${fmt(Math.round(n))}</b> worked up for a cancer they do not have lose <b>${F.qaly[0].toFixed(1)} QALYs</b> (95% interval ${F.qaly[1].toFixed(0)}–${F.qaly[2].toFixed(0)}) and incur <b>${F.daly[0].toFixed(1)} DALYs</b> (${F.daly[1].toFixed(1)}–${F.daly[2].toFixed(1)}). Most of it is the workup itself: the procedures and the weeks of not knowing.`;
+  const tb = d3.select('#fpcount tbody'); tb.selectAll('*').remove();
+  F.counts.forEach(([k, v]) => { const tr = tb.append('tr'), sub = k.startsWith('  '); tr.append('td').attr('class', sub ? 'sub' : null).text(k.trim());
+    tr.append('td').attr('class', 'n').text(v >= 10 ? fmt(Math.round(v)) : v.toFixed(2)); });
+  const wrap = document.getElementById('fpc-wrap'), W = wrap.clientWidth, row = 54, m = { t: 40, r: 10, b: 10, l: 10 }, H = m.t + m.b + row * F.comp.length;
+  const svg = d3.select('#fpc').attr('width', W).attr('height', H).attr('viewBox', `0 0 ${W} ${H}`); svg.selectAll('*').remove();
+  const colW = (W - m.l - m.r) / 2 - 10, xq = d3.scaleSqrt([0, d3.max(F.comp, c => c[1])], [0, colW - 60]), xd = d3.scaleSqrt([0, d3.max(F.comp, c => c[1])], [0, colW - 60]);
+  const cols = [['QALYs lost', 1, xq, C.alarm, m.l], ['DALYs incurred', 2, xd, '#eea47f', m.l + colW + 20]];
+  cols.forEach(([t, i, sc, col, x0]) => svg.append('text').attr('x', x0).attr('y', 16).style('fill', C.paper).style('font-weight', 600).text(t));
+  svg.append('text').attr('x', m.l).attr('y', 32).style('fill', C.faint).style('font-size', '11px').text('bar length on a square-root scale, so small parts stay visible');
+  F.comp.forEach((c, j) => { const y0 = m.t + j * row;
+    cols.forEach(([t, i, sc, col, x0]) => {
+      svg.append('text').attr('x', x0).attr('y', y0 + 14).style('font-size', '12.5px').style('fill', C.mute).text(c[0]);
+      const w = Math.max(1.5, sc(c[i]));
+      svg.append('rect').attr('x', x0).attr('y', y0 + 22).attr('width', w).attr('height', 14).attr('rx', 3).attr('fill', col);
+      svg.append('text').attr('x', x0 + w + 8).attr('y', y0 + 33).style('font-family', 'var(--mono)').style('font-size', '12px').style('fill', C.paper).text(c[i] >= 1 ? c[i].toFixed(1) : c[i].toFixed(2));
+    }); });
+  document.getElementById('fpb-note').innerHTML = `QALYs: whole-pathway losses from a time trade-off study of false-positive cancer screens (0.079 to 0.111 per person, by how far the workup goes), plus worry, complications, deaths and radiation; discounted at 3%. DALYs: GBD anxiety weight 0.030 over the days of uncertainty, worry, complications, years of life lost; undiscounted. Studies measuring EQ-5D after false-positive mammograms and lung scans found anxiety but no utility loss; valued that way, Galleri costs <b>${money(F.icer_eq5d)}</b> per QALY instead of <b>${money(F.icer)}</b>.`;
+}
+const money = v => v >= 1e6 ? '$' + (v / 1e6).toFixed(2) + 'M' : '$' + fmt(Math.round(v));
+
+/* ---------- 05: odds by age, sex, race ---------- */
+function drawAcc() {
+  const A2 = DATA.acc, ages = Array.from(new Set(A2.map(d => d.age))).sort((a, b) => a - b);
+  const races = ['all', 'nhw', 'nhb', 'nhapi', 'nhaian', 'hisp'], rl = { all: 'All', nhw: 'NH White', nhb: 'NH Black', nhapi: 'NH Asian/Pacific Isl.', nhaian: 'NH Am. Indian/Alaska N.', hisp: 'Hispanic' };
+  const bands = [[0, 0.4], [0.4, 0.7], [0.7, 1], [1, 2], [2, Infinity]], labs = ['< 0.4', '0.4–0.7', '0.7–1', '1–2', '> 2'];
+  const ramp = d3.quantize(d3.interpolateLab('#f6c7ad', '#7a2d12'), 5), band = v => bands.findIndex(([a, b]) => v >= a && v < b);
+  const rp = d3.select('#acc-ramp'); rp.selectAll('*').remove(); rp.append('span').text('Cancer-free people worked up per cancer found:');
+  labs.forEach((l, i) => rp.append('span').html(`<i style="background:${ramp[i]}"></i>${l}`));
+  const W0 = document.getElementById('acc-wrap').clientWidth, lw = 170, cw = Math.max(16, (Math.max(760, W0) - lw - 10) / ages.length), ch = 22, gap = 20;
+  const W = lw + cw * ages.length + 6, H = 26 + 2 * races.length * ch + gap + 6;
+  const svg = d3.select('#acc').attr('width', W).attr('height', H).attr('viewBox', `0 0 ${W} ${H}`); svg.selectAll('*').remove();
+  ages.forEach((a, j) => { if (a % 5 === 0) svg.append('text').attr('x', lw + j * cw + cw / 2).attr('y', 14).attr('text-anchor', 'middle').style('font-family', 'var(--mono)').style('font-size', '11px').style('fill', C.faint).text(a); });
+  svg.append('text').attr('x', lw - 10).attr('y', 14).attr('text-anchor', 'end').style('font-size', '11px').style('fill', C.faint).text('age →');
+  ['male', 'female'].forEach((sx, k) => { const y0 = 24 + k * (races.length * ch + gap);
+    svg.append('text').attr('x', 0).attr('y', y0 + 15).style('fill', C.paper).style('font-weight', 600).style('font-size', '12.5px').text(sx === 'male' ? 'Men' : 'Women');
+    races.forEach((r, i) => { const yy = y0 + i * ch;
+      svg.append('text').attr('x', lw - 10).attr('y', yy + ch / 2).attr('dy', '0.35em').attr('text-anchor', 'end').style('font-size', '12px').text(rl[r]);
+      ages.forEach((a, j) => { const d = A2.find(x => x.sex === sx && x.race_eth === r && x.age === a); if (!d) return;
+        svg.append('rect').attr('x', lw + j * cw + 0.5).attr('y', yy + 0.5).attr('width', cw - 1).attr('height', ch - 1).attr('rx', 2)
+          .attr('fill', ramp[band(d.cancer_free_per_cancer_found)])
+          .on('mousemove', ev => showTip(`<b>${sx === 'male' ? 'Men' : 'Women'}, ${d.race_label}, age ${a}</b>
+            <div class="r"><span>Tests</span><span class="m">${fmt(Math.round(d.tests))}</span></div>
+            <div class="r"><span style="color:${C.found}">True positives (upper GI)</span><span class="m">${d.tp.toFixed(1)}</span></div>
+            <div class="r"><span>Positives with another cancer</span><span class="m">${d.fp_other_cancer.toFixed(1)}</span></div>
+            <div class="r"><span style="color:${C.alarm}">Cancer-free, worked up</span><span class="m">${d.fp_cancer_free.toFixed(1)}</span></div>
+            <div class="r"><span>False negatives</span><span class="m">${d.fn.toFixed(1)}</span></div>
+            <div class="r"><span>PPV, upper GI / any cancer</span><span class="m">${Math.round(100 * d.ppv_upper_gi)}% / ${Math.round(100 * d.ppv_any_cancer)}%</span></div>
+            <div class="r"><span>NPV</span><span class="m">${(100 * d.npv).toFixed(3)}%</span></div>
+            <div class="r"><span>Cancer-free per cancer found</span><span class="m">${d.cancer_free_per_cancer_found.toFixed(2)}</span></div>`, ev)).on('mouseleave', hideTip);
+      });
+    });
+  });
+}
+
+function drawAll() { layoutRain(); drawRain(1); drawDiscs(); drawSankey(); drawLedger(); drawFPB(); drawAcc(); drawOverdx(); drawFN(); drawTable(); }
 drawAll();
-let rt; new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(() => { layoutRain(); drawRain(1); drawSankey(); drawOverdx(); drawFN(); }, 150); }).observe(document.querySelector('.wrap'));
+let rt; new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(() => { layoutRain(); drawRain(1); drawSankey(); drawFPB(); drawAcc(); drawOverdx(); drawFN(); }, 150); }).observe(document.querySelector('.wrap'));
 </script>
 </body>
 </html>

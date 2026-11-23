@@ -18,6 +18,9 @@ for (r in results) {
                    file.path("outputs", r$analysis$name, "calibration.csv"))
   readr::write_csv(proj$env$subgroup_grid(r$p, proj$data, proj$settings, r$analysis$arms, r$analysis$cohort_n),
                    file.path("outputs", r$analysis$name, "subgroups.csv"))
+  if ("Galleri" %in% r$analysis$arms)
+    readr::write_csv(proj$env$accuracy_table(r$p, proj$data, proj$settings, cohort_n = r$analysis$cohort_n),
+                     file.path("outputs", r$analysis$name, "accuracy_by_group.csv"))
 }
 
 # Verification tests (tests/testthat) - must pass before reporting

@@ -294,3 +294,39 @@ test_that("workbook importer: the committed workbook validates, and bad edits ar
   expect_true(any(grepl("p_egd_pos: proportions must be 0-1", r2$errors)))
   expect_equal(tools::md5sum(file.path(proj_dir, "inputs", "parameters.csv")), before)
 })
+
+test_that("false-positive burden: components add up, pathway TTO replaces per-procedure loss, scenario 0 restores it", {
+  m <- ev("galleri")[, "Galleri"]
+  expect_equal(m[["qaly_fp"]], m[["fp_qaly_pathway"]] + m[["fp_qaly_worry"]] + m[["fp_qaly_complications"]] +
+                 m[["fp_qaly_deaths"]] + m[["fp_qaly_radiation"]], tolerance = 1e-10)
+  expect_equal(m[["daly_fp"]], m[["fp_daly_anxiety"]] + m[["fp_daly_worry"]] + m[["fp_daly_complications"]] +
+                 m[["fp_daly_deaths"]] + m[["fp_daly_radiation"]], tolerance = 1e-10)
+  expect_equal(m[["fp_worry_cases"]], m[["free_investigated"]] * p0$p_worry, tolerance = 1e-10)
+  # pathway loss per false positive lies between the smallest and largest Matza values
+  per <- m[["fp_qaly_pathway"]] / m[["free_investigated"]]
+  expect_gt(per, 0.6 * p0$dfp_endo); expect_lt(per, p0$dfp_ext)        # discounted over the screening years
+  # switching to per-procedure loss: pathway QALYs = procedures x d_proc (discounted), harms fall
+  p <- p0; p$fp_tto <- 0; m0 <- ev("galleri", p)[, "Galleri"]
+  n_proc <- m0[["egd_free"]] + m0[["ent_free"]] + m0[["pet_ct_free"]] + m0[["eus_free"]] + m0[["incidental_followups_free"]]
+  expect_lt(m0[["fp_qaly_pathway"]], n_proc * p0$d_proc)        # discounted
+  expect_gt(m0[["fp_qaly_pathway"]], 0.4 * n_proc * p0$d_proc)
+  expect_lt(m0[["qaly_harms"]], m[["qaly_harms"]])
+  # more worry or a heavier anxiety weight only add burden
+  p <- p0; p$dw_anx <- 0.133; expect_gt(ev("galleri", p)["daly_fp", "Galleri"], m[["daly_fp"]])
+  p <- p0; p$p_worry <- 0; expect_equal(unname(ev("galleri", p)["fp_qaly_worry", "Galleri"]), 0)
+  # no false positives, no false-positive burden
+  p <- p0; p$fpr_g_es <- 0; expect_equal(unname(ev("galleri", p)["daly_fp", "Galleri"]), 0)
+})
+
+test_that("accuracy by age, sex and race: 2x2 adds up and PPV follows SEER risk", {
+  a <- E$accuracy_table(p0, D, S)
+  expect_equal(a$tp + a$fp + a$tn + a$fn, a$tests, tolerance = 1e-8)
+  expect_equal(nrow(a), length(S$subgroups$sexes) * length(S$subgroups$races) * (S$screen_stop_age - 50 + 1))
+  # sensitivity is a test property: round 1 vs later rounds, the same in every group
+  r1 <- a$sensitivity[a$age == 50]; r2 <- a$sensitivity[a$age == 70]
+  expect_equal(r1, rep(p0$sens_g_ugi, length(r1)), tolerance = 1e-8)
+  expect_equal(r2, rep(p0$sens_g_ugi * p0$sens_g_rep_ratio, length(r2)), tolerance = 1e-8)
+  # PPV is higher where risk is higher: men vs women, age 80 vs 55
+  g <- function(sx, ag) a$ppv_upper_gi[a$sex == sx & a$race_eth == "all" & a$age == ag]
+  expect_gt(g("male", 70), g("female", 70)); expect_gt(g("male", 80), g("male", 55))
+})

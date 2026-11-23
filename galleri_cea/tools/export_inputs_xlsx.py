@@ -123,6 +123,7 @@ CATS = [
     ("Costs (USD, inflated to the Settings cost year)", ["c_galleri", "galleri_cost_share", "c_kunz", "c_egd", "c_ent", "c_pet", "c_eus", "c_eus_samp", "c_tb", "c_symp_dx",
                      "c_tx_first_early", "c_tx_first_late", "c_fu_early", "c_fu_late", "c_eol", "c_sae", "c_perf", "c_incid_fu"]),
     ("Utilities, disutilities and disability weights", ["u_mult_early", "u_mult_late", "d_proc", "d_sae",
+        "dfp_endo", "dfp_pet", "dfp_ext", "fp_tto", "dw_anx", "p_worry", "dur_worry",
                                                         "dw_early", "dw_late"]),
 ]
 P = {r["parameter"]: r for r in rd("inputs/parameters.csv")}
@@ -346,6 +347,8 @@ extra = {8: ["Kunzmann split (Settings, Cohort)"], 9: ["Kunzmann RR on EAC share
          26: ["inc_eso, eac_share, late_eso (Baseline); SEER incidence/stage sheets"],
          27: ["inc_stom, late_stom (Baseline); SEER incidence/stage sheets"],
          28: ["inc_other (Baseline); SEER incidence/race-ratio sheets"], 30: ["mort_other (Baseline); NCHS life tables sheet"],
+         38: ["false-positive pathway disutilities (dfp_*)"], 39: ["scenario: fp_tto = 0"], 40: ["scenario: fp_tto = 0"],
+         41: ["p_worry"], 42: ["dur_worry"],
          36: ["cost inflation (CPI medical care sheet; Settings cost_year)"], 37: ["repeat-round positivity (context)"]}
 extra[26].append("mort_ugi (SEER mortality sheets)"); extra[27].append("mort_ugi (SEER mortality sheets)")
 for n, v in extra.items(): used.setdefault(n, []).extend(v)

@@ -14,3 +14,9 @@ EGD finds fewer (PPV 50%; lower NHS-Galleri round),p_egd_pos,0.39,2
 Missed cancers stay missed by Galleri,p_fn_persist,1,
 Galleri price shared across all cancers it detects,galleri_cost_share,0.077,2
 Same Galleri sensitivity in every round,sens_g_rep_ratio,1,2
+False positives: per-procedure loss only (EQ-5D finds none),fp_tto,0,"39, 40"
+False positives: lowest Matza pathway (0.031),dfp_endo,0.031,38
+False positives: lowest Matza pathway (0.031),dfp_pet,0.031,38
+False positives: lowest Matza pathway (0.031),dfp_ext,0.031,38
+Anxiety while waiting rated moderate (GBD 0.133),dw_anx,0.133,18
+No persisting worry after the all-clear,p_worry,0,

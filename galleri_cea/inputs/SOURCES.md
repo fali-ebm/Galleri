@@ -150,3 +150,32 @@ symptomatic workup are not modelled (about 0.1 per 100,000 people).
 - GBD 2019 Disability Weights (IHME).
 - WHO. Methods and data sources for global burden of disease estimates 2000-2019 (WHO/DDI/DNA/GHE/2020.3), Table 2.1.
 - Medicare physician fee schedule and OPPS rates as compiled in the Cook Medical 2024 reimbursement guide (CPT 43237-43239), CMS OPPS Addendum B July 2025 (78815), and CMS PFS 2026 (31575).
+
+## False-positive burden (cancer-free people worked up after a Galleri positive)
+
+| Parameter | Value | Source |
+|---|---|---|
+| `dfp_endo` | 0.079 QALY (0.064-0.094) | Whole-pathway loss when the workup ends after EGD + ENT. Matza 2024 time trade-off (UK general population, n = 203, 1-year horizon), false positive for colorectal cancer cleared by colonoscopy, 14 days of uncertainty (doi:10.1007/s41669-023-00443-w). |
+| `dfp_pet` | 0.088 QALY (0.073-0.104) | Workup ends with a negative PET CT. Matza 2024, false positive for pancreatic cancer cleared by CT + PET-CT, 23 days. |
+| `dfp_ext` | 0.111 QALY (0.091-0.130) | Workup goes on to EUS (± sampling) or follow-up of an incidental PET finding. Matza 2024, longest pathway (lung, 6-month follow-up scan). |
+| `fp_tto` | 1 (scenario 0) | 1: the pathway values replace the per-procedure `d_proc` for cancer-free people worked up after a Galleri positive (people with cancer keep `d_proc`). 0: per-procedure loss only; EQ-5D studies found short-term anxiety but no utility decrement after false-positive mammograms (Tosteson 2014) or lung screens (Gareen 2014). Matza values are preference-based vignettes from a GRAIL-funded study; measured-instrument values are near zero. Both are run. |
+| `dw_anx` | 0.030 (0.018-0.046); scenario 0.133 | GBD 2019 disability weight, anxiety disorders, mild (moderate 0.133). DALYs: weight × days of uncertainty (mean 38 days, from the workup path times). |
+| `p_worry` | 0.17 (0.10-0.25) | 17% with high cancer worry 6 months after a false-positive FIT and negative colonoscopy (Vermeer 2020). A systematic review found distress after positive screens mostly short-lived (Kim 2022, doi:10.1186/s12885-022-09261-5). |
+| `dur_worry` | 0.5 years (0.25-1) | **ASSUMPTION**. Persisting worry is weighted by `dw_anx` in both QALYs and DALYs. |
+
+Components reported per 100,000 (Galleri arm): negative EGDs, ENT exams, PET CTs,
+EUS and samplings, benign incidental follow-ups, EGD perforations and other serious
+complications, deaths from complications, radiation-induced cancers, days of
+uncertainty, people with persisting worry; QALYs lost (pathway, worry,
+complications, deaths, radiation) and DALYs (anxiety YLD, worry YLD,
+complication YLD, YLL, radiation). DALYs for cancer-free people now use the
+anxiety weight instead of `d_proc`, so total DALY harms fall while QALY harms rise.
+
+## Accuracy by age, sex and race (`outputs/<analysis>/accuracy_by_group.csv`)
+
+Galleri sensitivity (63.7% round 1, × 0.775 later) and false-positive rate are test
+properties applied to everyone. The SEER-calibrated preclinical upper GI cancer
+pool, other-cancer incidence and life table of each sex × race/ethnicity group set
+how many true and false positives occur, so PPV, NPV and the number of cancer-free
+people worked up per cancer found vary by attained age, sex and race.
+

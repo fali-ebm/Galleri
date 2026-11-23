@@ -48,9 +48,33 @@ table = [
   ("Radiation-induced cancers, all people worked up", ci("radiation_cancers", d=2)),
   ("False-negative test results", ci("screen_fn")),
   ("  presenting with symptoms within a year", ci("fn_symptomatic_1y")),
-  ("QALYs lost to the workup and its harms", ci("qaly_harms", d=1)),
+  ("QALYs lost to the workup and its harms, everyone worked up", ci("qaly_harms", d=1)),
+  ("QALYs lost by cancer-free people worked up", ci("qaly_fp", d=1)),
+  ("DALYs incurred by cancer-free people worked up", ci("daly_fp", d=1)),
 ]
-data = {"ages": ages, "tot": tot, "links": D["workup_links"], "ledger": ledger, "table": table,
+fpc = lambda k: R[k]["value"]
+fpb = {"counts": [
+    ["Negative EGDs", fpc("egd_free")], ["Negative PET CT scans", fpc("pet_ct_free")], ["Negative ENT exams", fpc("ent_free")],
+    ["Negative endoscopic ultrasounds", fpc("eus_free")], ["  of which with a biopsy", fpc("eus_sampling_free")],
+    ["Follow-ups of a harmless PET finding", fpc("incidental_followups_free")], ["Days waiting for the all-clear", fpc("days_free")],
+    ["Still worried 6 months later", fpc("fp_worry_cases")], ["EGD perforations", fpc("perforations_free")],
+    ["Other serious complications", fpc("fp_sae_other")], ["Deaths from complications", fpc("proc_deaths_free")],
+    ["Radiation-induced cancers, later in life", fpc("radiation_cancers_free")]],
+  "comp": [
+    ["Workup: procedures and uncertainty", fpc("fp_qaly_pathway"), fpc("fp_daly_anxiety")],
+    ["Persisting worry", fpc("fp_qaly_worry"), fpc("fp_daly_worry")],
+    ["Radiation-induced cancers", fpc("fp_qaly_radiation"), fpc("fp_daly_radiation")],
+    ["Deaths from complications", fpc("fp_qaly_deaths"), fpc("fp_daly_deaths")],
+    ["Non-fatal complications", fpc("fp_qaly_complications"), fpc("fp_daly_complications")]],
+  "qaly": [fpc("qaly_fp"), R["qaly_fp"]["lower_95"], R["qaly_fp"]["upper_95"]],
+  "daly": [fpc("daly_fp"), R["daly_fp"]["lower_95"], R["daly_fp"]["upper_95"]],
+  "icer": R["icer"]["value"], "qaly_net": R["qaly_net"]["value"]}
+SC = {r["scenario"]: r["icer"] for r in D["scenarios"] if r["arm"] == "Galleri"}
+fpb["icer_eq5d"] = SC.get("False positives: per-procedure loss only (EQ-5D finds none)")
+acc = [{k: r[k] for k in ["sex", "race_eth", "race_label", "age", "tests", "tp", "fp", "fp_other_cancer", "fp_cancer_free", "tn", "fn",
+                          "prevalence_per_100k_tested", "ppv_upper_gi", "ppv_any_cancer", "npv", "cancer_free_per_cancer_found"]}
+       for r in D["accuracy"]]
+data = {"fpb": fpb, "acc": acc, "ages": ages, "tot": tot, "links": D["workup_links"], "ledger": ledger, "table": table,
         "tests_total": R["galleri_tests"]["value"], "investigated": R["investigated"]["value"],
         "found": R["screen_detected"]["value"], "overdx": R["overdiagnosed"]["value"], "fn": R["screen_fn"]["value"],
         "fn_symp": R["fn_symptomatic_1y"]["value"], "price": P["c_galleri"], "cost_year": D["meta"]["cost_year"]}
