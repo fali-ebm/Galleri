@@ -8,3 +8,5 @@ _targets/
 galleri_cea/outputs/
 *.html
 Rplots.pdf
+galleri_cea/tmp/
+galleri_cea/data-raw/import_backup/
