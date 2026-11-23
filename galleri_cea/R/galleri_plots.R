@@ -96,7 +96,7 @@ plot_strategy_tree <- function(res, p, data) {
 
 plot_balance <- function(res, p, data, arm = utils::tail(res$arms, 1)) {
   keys <- c(screen_detected = "Benefit", late_averted = "Benefit", ca_deaths_averted = "Benefit",
-            free_investigated = "Harm", invasive_free = "Harm", missed_investigated = "Harm",
+            free_investigated = "Harm", invasive_free = "Harm", overdiagnosed = "Harm", missed_investigated = "Harm",
             sae_total = "Harm", proc_deaths = "Harm", radiation_cancers = "Harm")
   d <- res$long[res$long$arm == arm & res$long$key %in% names(keys), ]
   d$type <- keys[d$key]

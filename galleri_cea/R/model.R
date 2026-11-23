@@ -116,7 +116,7 @@ METRICS <- tibble::tribble(
   "screen_detected", "3. Benefit", "Cancers found by screening/workup (all rounds)", "count", 1,
   "found_upper_gi", "3. Benefit", "  - upper GI (esophagus/stomach)", "count", 1,
   "found_other", "3. Benefit", "  - other sites", "count", 1,
-  "clin_dx_lifetime", "3. Benefit", "Cancers diagnosed with symptoms over lifetime", "count", 1,
+  "clin_dx_lifetime", "3. Benefit", "Symptomatic diagnoses over lifetime (upper GI, net of other-site cancers found early)", "count", 1,
   "late_lifetime", "3. Benefit", "Late-stage diagnoses over lifetime", "count", 1,
   "late_averted", "3. Benefit", "Late-stage diagnoses averted vs reference", "count", 1,
   "ca_deaths", "3. Benefit", "Cancer deaths over lifetime", "count", 1,
@@ -124,7 +124,24 @@ METRICS <- tibble::tribble(
   "oc_deaths", "3. Benefit", "Other-cause deaths (competing risk)", "count", 0,
   "ly_total", "3. Benefit", "Life years (undiscounted)", "count", 0,
   "ly_gained", "3. Benefit", "Life years gained vs reference", "count", 1,
+  "overdiagnosed", "4. Harm", "Overdiagnosed cancers (screen-detected, would never have caused symptoms)", "count", 1,
+  "overdiagnosed_ugi", "4. Harm", "  - upper GI", "count", 1,
+  "overdiagnosed_other", "4. Harm", "  - other sites", "count", 1,
+  "overdiagnosis_share", "4. Harm", "Share of screen-detected cancers overdiagnosed", "ratio", 3,
   "free_investigated", "4. Harm", "Cancer-free people investigated (false positives)", "count", 0,
+  "egd_free", "4. Harm", "  - EGDs in cancer-free people", "count", 0,
+  "ent_free", "4. Harm", "  - ENT evaluations in cancer-free people", "count", 0,
+  "pet_ct_free", "4. Harm", "  - PET CTs in cancer-free people", "count", 0,
+  "eus_free", "4. Harm", "  - EUS in cancer-free people", "count", 1,
+  "eus_sampling_free", "4. Harm", "  - EUS samplings in cancer-free people", "count", 1,
+  "perforations_free", "4. Harm", "  - EGD perforations in cancer-free people", "count", 2,
+  "proc_deaths_free", "4. Harm", "  - deaths from complications in cancer-free people", "count", 3,
+  "dose_sv_free", "4. Harm", "  - PET CT dose to cancer-free people (Sv)", "count", 2,
+  "radiation_cancers_free", "4. Harm", "  - radiation-induced cancers in cancer-free people", "count", 3,
+  "mean_days_fp", "4. Harm", "  - mean days in workup per cancer-free person", "ratio", 0,
+  "days_free", "4. Harm", "  - person-days in workup, cancer-free people", "count", 0,
+  "cost_fp", "4. Harm", "Workup and complication cost in cancer-free people ($ per person, discounted)", "person", 2,
+  "qaly_fp", "4. Harm", "QALYs lost by cancer-free people worked up (procedures, complications, deaths, radiation)", "count", 2,
   "invasive_free", "4. Harm", "Invasive procedures in cancer-free people", "count", 0,
   "sae_total", "4. Harm", "Serious procedure complications (incl. perforation)", "count", 2,
   "perforations", "4. Harm", "  - EGD perforations", "count", 2,
@@ -158,7 +175,7 @@ keep_ordered <- function(q) {   # sampled values stay logically ordered
   q$u_mult_late <- min(q$u_mult_late, q$u_mult_early); q
 }
 
-KEY <- c("screen_detected", "late_averted", "ca_deaths_averted", "free_investigated",
+KEY <- c("screen_detected", "late_averted", "ca_deaths_averted", "free_investigated", "overdiagnosed",
          "invasive_free", "sae_total", "qaly_net", "daly_averted")
 
 make_analysis <- function(name, title, arms, owsa, cohort_n, unit, required, plots)

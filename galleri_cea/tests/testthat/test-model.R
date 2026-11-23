@@ -173,3 +173,41 @@ test_that("EGD perforation: counted on every EGD, fatal share follows p_death_pe
   p <- p0; p$p_death_perf <- 0.5                                           # deadlier perforation -> more procedure deaths
   expect_gt(ev("comparison", p)["proc_deaths", "Kunzmann -> EGD"], m1["proc_deaths", "Kunzmann -> EGD"])
 })
+
+test_that("overdiagnosis equals the excess lifetime diagnoses vs usual care (no procedure deaths)", {
+  # clin_dx_lifetime in a screening arm is net of the symptomatic diagnoses that
+  # other-site cancers found by the workup would have had, so all finds count
+  p <- p0; p$p_perf_egd <- 0; p$p_death_sae <- 0           # procedure deaths would change later onset
+  m <- ev("comparison", p)
+  for (arm in c("Galleri", "Kunzmann -> EGD")) {
+    excess <- m["found_upper_gi", arm] + m["found_other", arm] + m["clin_dx_lifetime", arm] -
+              m["clin_dx_lifetime", "Usual care"]
+    expect_equal(unname(m["overdiagnosed", arm]), unname(excess), tolerance = 1e-9)
+  }
+  m <- ev("galleri")
+  expect_gt(m["overdiagnosed", "Galleri"], 0)
+  expect_lt(m["overdiagnosed", "Galleri"], m["screen_detected", "Galleri"])
+  expect_equal(unname(m["overdiagnosed", 1]), 0)
+  # older people and slower-growing cancers are overdiagnosed more often
+  older <- row1; older$start_age <- 75
+  share <- function(r, p = p0) { s <- sim("Galleri", r, p); (s$ev[["overdx_ugi"]] + s$ev[["overdx_other"]]) /
+                                   (s$ev[["found_ugi"]] + s$ev[["found_other"]]) }
+  expect_gt(share(older), share(row1))
+  p <- p0; p$sojourn_years <- p0$sojourn_years * 2
+  expect_gt(share(row1, p), share(row1))
+})
+
+test_that("false-positive burden: counted only in cancer-free people and consistent with the totals", {
+  m <- ev("galleri")[, "Galleri"]
+  expect_equal(m[["egd_free"]], m[["free_investigated"]])            # every false positive has an EGD
+  for (k in c("ent", "pet_ct", "eus", "eus_sampling", "perforations"))
+    expect_lte(m[[paste0(k, "_free")]], m[[k]] + 1e-15)
+  expect_lte(m[["proc_deaths_free"]], m[["proc_deaths"]] + 1e-15)
+  expect_gt(m[["qaly_fp"]], 0); expect_gt(m[["cost_fp"]], 0)
+  p <- p0; p$fpr_g_es <- 0                                            # no false positives -> no burden
+  m0 <- ev("galleri", p)[, "Galleri"]
+  for (k in c("free_investigated", "egd_free", "pet_ct_free", "perforations_free", "qaly_fp", "cost_fp"))
+    expect_equal(m0[[k]], 0)
+  p <- p0; p$c_perf <- p0$c_perf * 2                                   # perforation cost feeds the FP cost
+  expect_gt(ev("galleri", p)["cost_fp", "Galleri"], m[["cost_fp"]])
+})

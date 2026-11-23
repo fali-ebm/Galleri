@@ -25,6 +25,21 @@ three arms and **annual screening from the start age to 85**:
      had another cancer), true negatives and false negatives, summed over all
      rounds. The Kunzmann arm reports the same table for its screening EGD.
 
+**Overdiagnosis.** A screen-detected cancer is overdiagnosed if, left alone,
+it would never have caused symptoms within the lifetime horizon (death from
+another cause first). For each age the model computes that probability from
+the calibrated natural history (`overdx_prob`), so overdiagnosis is reported
+for upper GI and other-site cancers in both screening arms. A test checks it
+equals the excess lifetime diagnoses versus usual care exactly.
+
+**False-positive burden.** For cancer-free people worked up after a Galleri
++ve, the model reports EGDs, ENT, PET CT, EUS and sampling, perforations,
+complication deaths, PET CT dose and radiation cancers, days in workup,
+workup and complication cost, and the QALYs lost. These follow the workup
+paths cancer-free people actually take (each path weighted by its
+cancer-free share). In the Kunzmann arm, every cancer-free person screened
+carries the EGD burden.
+
 **Calibrated to SEER.** For each subgroup (race/ethnicity × sex × Kunzmann
 group) the model solves the yearly onset of preclinical upper GI cancer so
 that, without screening, symptomatic diagnoses reproduce SEER 2013-2017
