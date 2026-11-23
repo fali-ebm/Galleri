@@ -1,13 +1,13 @@
-scenario,parameter,value
-Galleri test half price,c_galleri,474.5
-Galleri sensitivity at CCGA3 stage I-II level,sens_g_ugi,0.40
-Galleri sensitivity at CCGA3 all-stage level,sens_g_ugi,0.85
-Shorter sojourn time (lower 95% CI),sojourn_years,1.92
-Longer sojourn time (upper 95% CI),sojourn_years,2.96
-Higher EGD mortality (ASGE 1/10000),p_death_sae,0.5
-PET CT with diagnostic CT (24.4 mSv),msv_pet,24.4
-Late-stage continuing cost = early,c_fu_late,7141
-Lower procedure disutility,d_proc,0.002
-Missed after negative workup at NHS-Galleri 2-year rate,p_miss,0.178
-Incidental PET findings malignant at nationwide thyroid rate,p_incid_cancer,0.194
-EGD finds fewer (PPV 50%; lower NHS-Galleri round),p_egd_pos,0.39
+scenario,parameter,value,refs
+Galleri test half price,c_galleri,474.5,32
+Galleri sensitivity at CCGA3 stage I-II level,sens_g_ugi,0.40,4
+Galleri sensitivity at CCGA3 all-stage level,sens_g_ugi,0.85,4
+Shorter sojourn time (lower 95% CI),sojourn_years,1.92,7
+Longer sojourn time (upper 95% CI),sojourn_years,2.96,7
+"Higher perforation case fatality (EGD mortality 1/10,000, ASGE)",p_death_perf,0.5,10
+PET CT with diagnostic CT (24.4 mSv),msv_pet,24.4,12
+Late-stage continuing cost = early,c_fu_late,7141,14
+Lower procedure disutility,d_proc,0.002,
+Missed after negative workup at NHS-Galleri 2-year rate,p_miss,0.178,2
+Incidental PET findings malignant at nationwide thyroid rate,p_incid_cancer,0.194,21
+EGD finds fewer (PPV 50%; lower NHS-Galleri round),p_egd_pos,0.39,2

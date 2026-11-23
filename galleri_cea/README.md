@@ -10,10 +10,20 @@ three arms and **annual screening from the start age to 85**:
 1. **Usual care**: no screening. Cancers present with symptoms.
 2. **Kunzmann -> EGD**: the score is applied once; people with a score ≥ 8
    have an EGD every year. Everyone else follows usual care.
-3. **Galleri**: a test every year. A -ve result (or a signal pointing
-   elsewhere) follows usual care. A +ve esophagus/stomach signal goes to
-   the full flowchart workup (EGD, then ENT or PET CT, then EUS ± sampling,
-   then tumor board).
+3. **Galleri**: a test every year, scored against preclinical upper GI
+   cancer as a 2×2 table:
+   - **Galleri +ve** (esophagus/stomach signal) → EGD. **EGD +ve** is a true
+     positive. **EGD -ve** is treated as a false positive for upper GI
+     cancer and goes on to the rest of the workup (ENT or PET CT, then EUS ±
+     sampling, then tumor board). Any EGD can **perforate**
+     (`p_perf_egd`); a fatal perforation (`p_death_perf`) ends the workup.
+   - **Galleri -ve** → usual care. **True negatives** stay well and are
+     rescreened next round. **False negatives** keep their undiagnosed
+     cancer: they present with symptoms later (reported as
+     `fn_symptomatic_1y` for the first year) or are found at a later round.
+   - Outputs report true positives, false positives (and how many of those
+     had another cancer), true negatives and false negatives, summed over all
+     rounds. The Kunzmann arm reports the same table for its screening EGD.
 
 **Calibrated to SEER.** For each subgroup (race/ethnicity × sex × Kunzmann
 group) the model solves the yearly onset of preclinical upper GI cancer so
@@ -31,7 +41,7 @@ by 5 years), sex and race/ethnicity (all; non-Hispanic White, Black,
 Asian/Pacific Islander, American Indian/Alaska Native; Hispanic), each
 re-calibrated to its own SEER incidence and life table
 (`outputs/<analysis>/subgroups.csv` and `subgroups.png`). Change the grid,
-the stop age or the interval in `settings` in `R/model.R`.
+the stop age or the interval in `inputs/settings.csv` (defaults in `R/model.R`).
 
 Two analyses, both per 100,000 people:
 

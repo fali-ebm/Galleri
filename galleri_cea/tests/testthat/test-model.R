@@ -127,7 +127,8 @@ test_that("both analyses give the same usual care and Galleri results", {
 test_that("the Galleri arm runs each positive through the workup flowchart", {
   m <- ev("galleri")[, "Galleri"]; d <- E$workup_paths(p0)
   expect_equal(m[["egd"]], m[["investigated"]])                       # every positive has an EGD
-  expect_equal(m[["pet_ct"]], m[["investigated"]] * sum(d$prob * d$n_pet))
+  s_egd <- 1 - p0$p_perf_egd * p0$p_death_perf                          # a fatal perforation ends the workup
+  expect_equal(m[["pet_ct"]], m[["investigated"]] * s_egd * sum(d$prob * d$n_pet))
   p <- p0; p$p_miss <- 0.5                                              # follow-up counts matter
   expect_lt(ev("galleri", p)["screen_detected", "Galleri"], m[["screen_detected"]])
   expect_equal(m[["screen_detected"]] + m[["missed_investigated"]] + m[["free_investigated"]],
@@ -139,4 +140,36 @@ test_that("subgroup grid covers every age x sex x race/ethnicity and screening s
   g <- E$subgroup_grid(p0, D, s, E$ARMS)
   expect_equal(nrow(g), 2 * 2 * 2 * length(E$ARMS))
   expect_true(all(g$cancers_found[g$start_age == 90] == 0))
+})
+
+test_that("Galleri 2x2: every test is exactly one of TP, FP, TN, FN, and TP + FP are the people investigated", {
+  for (arm in c("Galleri", "Kunzmann -> EGD")) {
+    m <- ev("comparison")[, arm]
+    tested <- if (arm == "Galleri") m[["galleri_tests"]] else m[["investigated"]]
+    expect_equal(m[["screen_tp"]] + m[["screen_fp"]] + m[["screen_tn"]] + m[["screen_fn"]], tested, tolerance = 1e-10)
+    if (arm == "Galleri") expect_equal(m[["screen_tp"]] + m[["screen_fp"]], m[["investigated"]], tolerance = 1e-10)
+    expect_lte(m[["fn_symptomatic_1y"]], m[["screen_fn"]])
+  }
+  p <- p0; p$sens_g_ugi <- 1                                               # perfect sensitivity: no false negatives
+  expect_equal(unname(ev("galleri", p)["screen_fn", "Galleri"]), 0)
+  p <- p0; p$sens_g_other <- 0; p$fpr_g_es <- 0                            # perfect specificity: no false positives
+  expect_equal(unname(ev("galleri", p)["screen_fp", "Galleri"]), 0)
+  m <- ev("galleri")[, "Galleri"]                                          # EGD +ve / -ve split of those investigated
+  expect_equal(m[["egd_positive"]] + m[["egd_negative_workup"]],
+               m[["investigated"]] * (1 - p0$p_perf_egd * p0$p_death_perf), tolerance = 1e-10)
+})
+
+test_that("EGD perforation: counted on every EGD, fatal share follows p_death_perf, and it costs QALYs and money", {
+  for (arm in c("Galleri", "Kunzmann -> EGD")) {
+    m <- ev("comparison")[, arm]
+    expect_equal(m[["perforations"]], m[["egd"]] * p0$p_perf_egd, tolerance = 1e-10)
+    expect_equal(m[["perforation_deaths"]], m[["perforations"]] * p0$p_death_perf, tolerance = 1e-10)
+  }
+  p <- p0; p$p_perf_egd <- 0
+  m0 <- ev("comparison", p); m1 <- ev("comparison")
+  expect_equal(unname(m0["perforations", "Kunzmann -> EGD"]), 0)
+  expect_gt(m0["qaly_total", "Kunzmann -> EGD"], m1["qaly_total", "Kunzmann -> EGD"])
+  expect_lt(m0["cost_total", "Kunzmann -> EGD"], m1["cost_total", "Kunzmann -> EGD"])
+  p <- p0; p$p_death_perf <- 0.5                                           # deadlier perforation -> more procedure deaths
+  expect_gt(ev("comparison", p)["proc_deaths", "Kunzmann -> EGD"], m1["proc_deaths", "Kunzmann -> EGD"])
 })

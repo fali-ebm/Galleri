@@ -1,0 +1,63 @@
+Section,Metric,Unit,Usual care,Galleri
+1. Baseline burden,Preclinical upper GI cancers at the start age (calibrated),"per 100,000 (base case: 50-year-old non-Hispanic White men)",49.0 (41.7 to 58.4),49.0 (41.7 to 58.4)
+1. Baseline burden,People without preclinical upper GI cancer at the start,"per 100,000 (base case: 50-year-old non-Hispanic White men)","99,951 (99,942 to 99,958)","99,951 (99,942 to 99,958)"
+2. Screening & workup burden,Kunzmann scores,"per 100,000 (base case: 50-year-old non-Hispanic White men)",0 (0 to 0),0 (0 to 0)
+2. Screening & workup burden,Galleri tests (all screening rounds),"per 100,000 (base case: 50-year-old non-Hispanic White men)",0 (0 to 0),"2,822,805 (2,821,973 to 2,823,473)"
+2. Screening & workup burden,Screening rounds offered (per person),per person / ratio,0.0 (0.0 to 0.0),36.0 (36.0 to 36.0)
+2. Screening & workup burden,"Test result: true positive (upper GI cancer, test +ve)","per 100,000 (base case: 50-year-old non-Hispanic White men)",0.0 (0.0 to 0.0),"1,501.9 (1,379.1 to 1,645.8)"
+2. Screening & workup burden,"Test result: false positive (no upper GI cancer, test +ve)","per 100,000 (base case: 50-year-old non-Hispanic White men)",0 (0 to 0),"1,315 (863 to 1,781)"
+2. Screening & workup burden,  - of which another cancer present,"per 100,000 (base case: 50-year-old non-Hispanic White men)",0.0 (0.0 to 0.0),316.1 (131.1 to 554.1)
+2. Screening & workup burden,"Test result: true negative (no upper GI cancer, test -ve)","per 100,000 (base case: 50-year-old non-Hispanic White men)",0 (0 to 0),"2,819,133 (2,817,967 to 2,820,063)"
+2. Screening & workup burden,"Test result: false negative (upper GI cancer, test -ve)","per 100,000 (base case: 50-year-old non-Hispanic White men)",0.0 (0.0 to 0.0),"855.8 (633.7 to 1,092.8)"
+2. Screening & workup burden,  - false negatives presenting with symptoms within a year,"per 100,000 (base case: 50-year-old non-Hispanic White men)",0.0 (0.0 to 0.0),285.3 (202.4 to 379.0)
+2. Screening & workup burden,People investigated (EGD or more),"per 100,000 (base case: 50-year-old non-Hispanic White men)",0 (0 to 0),"2,817 (2,314 to 3,298)"
+2. Screening & workup burden,  - EGD +ve (cancer found at EGD),"per 100,000 (base case: 50-year-old non-Hispanic White men)",0.0 (0.0 to 0.0),"1,408.2 (937.6 to 1,715.3)"
+2. Screening & workup burden,"  - EGD -ve, sent on to further workup (Galleri) / EGD -ve (Kunzmann)","per 100,000 (base case: 50-year-old non-Hispanic White men)",0 (0 to 0),"1,408 (1,123 to 1,678)"
+2. Screening & workup burden,EGDs,"per 100,000 (base case: 50-year-old non-Hispanic White men)",0 (0 to 0),"2,817 (2,314 to 3,298)"
+2. Screening & workup burden,ENT evaluations,"per 100,000 (base case: 50-year-old non-Hispanic White men)",0 (0 to 0),422 (210 to 665)
+2. Screening & workup burden,PET CT scans,"per 100,000 (base case: 50-year-old non-Hispanic White men)",0 (0 to 0),"986 (806 to 1,163)"
+2. Screening & workup burden,EUS procedures,"per 100,000 (base case: 50-year-old non-Hispanic White men)",0 (0 to 0),86 (41 to 193)
+2. Screening & workup burden,EUS samplings,"per 100,000 (base case: 50-year-old non-Hispanic White men)",0 (0 to 0),77 (37 to 170)
+2. Screening & workup burden,Tumor board discussions,"per 100,000 (base case: 50-year-old non-Hispanic White men)",0 (0 to 0),"1,311 (1,071 to 1,520)"
+2. Screening & workup burden,Invasive procedures (EGD/EUS/sampling),"per 100,000 (base case: 50-year-old non-Hispanic White men)",0 (0 to 0),"2,979 (2,477 to 3,538)"
+2. Screening & workup burden,Mean days to resolution if investigated,per person / ratio,-,26 (21 to 35)
+2. Screening & workup burden,"Screening, workup and complication cost per person ($, discounted)",per person / ratio,0.00 (0.00 to 0.00),"18,842.96 (11,355.32 to 27,600.04)"
+2. Screening & workup burden,Lifetime cancer care cost per person ($),per person / ratio,"2,607.47 (2,089.52 to 3,249.25)","1,654.55 (1,281.28 to 2,028.32)"
+2. Screening & workup burden,Total lifetime cost per person ($),per person / ratio,"2,607.47 (2,089.52 to 3,249.25)","20,497.51 (13,383.64 to 29,244.09)"
+3. Benefit,Cancers found by screening/workup (all rounds),"per 100,000 (base case: 50-year-old non-Hispanic White men)",0.0 (0.0 to 0.0),"1,773.2 (1,563.1 to 2,019.1)"
+3. Benefit,  - upper GI (esophagus/stomach),"per 100,000 (base case: 50-year-old non-Hispanic White men)",0.0 (0.0 to 0.0),"1,464.9 (1,333.1 to 1,590.4)"
+3. Benefit,  - other sites,"per 100,000 (base case: 50-year-old non-Hispanic White men)",0.0 (0.0 to 0.0),308.3 (125.7 to 536.8)
+3. Benefit,Cancers diagnosed with symptoms over lifetime,"per 100,000 (base case: 50-year-old non-Hispanic White men)","1,790.1 (1,789.6 to 1,790.5)",190.4 (-18.5 to 366.2)
+3. Benefit,Late-stage diagnoses over lifetime,"per 100,000 (base case: 50-year-old non-Hispanic White men)","1,383.5 (1,340.6 to 1,433.9)","980.9 (776.4 to 1,054.1)"
+3. Benefit,Late-stage diagnoses averted vs reference,"per 100,000 (base case: 50-year-old non-Hispanic White men)",0.0 (0.0 to 0.0),402.6 (316.8 to 634.3)
+3. Benefit,Cancer deaths over lifetime,"per 100,000 (base case: 50-year-old non-Hispanic White men)","1,361.9 (1,328.3 to 1,396.1)","1,221.2 (1,118.5 to 1,279.6)"
+3. Benefit,Cancer deaths averted vs reference,"per 100,000 (base case: 50-year-old non-Hispanic White men)",0.0 (0.0 to 0.0),140.8 (96.9 to 234.4)
+3. Benefit,Other-cause deaths (competing risk),"per 100,000 (base case: 50-year-old non-Hispanic White men)","97,627 (97,594 to 97,660)","97,767 (97,709 to 97,868)"
+3. Benefit,Life years (undiscounted),"per 100,000 (base case: 50-year-old non-Hispanic White men)","2,992,298 (2,991,780 to 2,992,742)","2,994,465 (2,993,640 to 2,995,941)"
+3. Benefit,Life years gained vs reference,"per 100,000 (base case: 50-year-old non-Hispanic White men)",0.0 (0.0 to 0.0),"2,167.1 (1,514.7 to 3,534.0)"
+4. Harm,Cancer-free people investigated (false positives),"per 100,000 (base case: 50-year-old non-Hispanic White men)",0 (0 to 0),"999 (487 to 1,545)"
+4. Harm,Invasive procedures in cancer-free people,"per 100,000 (base case: 50-year-old non-Hispanic White men)",0 (0 to 0),"1,056 (509 to 1,657)"
+4. Harm,Serious procedure complications (incl. perforation),"per 100,000 (base case: 50-year-old non-Hispanic White men)",0.00 (0.00 to 0.00),1.12 (0.61 to 1.97)
+4. Harm,  - EGD perforations,"per 100,000 (base case: 50-year-old non-Hispanic White men)",0.00 (0.00 to 0.00),0.56 (0.21 to 1.17)
+4. Harm,  - fatal EGD perforations,"per 100,000 (base case: 50-year-old non-Hispanic White men)",0.000 (0.000 to 0.000),0.055 (0.021 to 0.104)
+4. Harm,  - in cancer-free people,"per 100,000 (base case: 50-year-old non-Hispanic White men)",0.00 (0.00 to 0.00),0.40 (0.16 to 0.79)
+4. Harm,Deaths from procedure complications,"per 100,000 (base case: 50-year-old non-Hispanic White men)",0.000 (0.000 to 0.000),0.110 (0.060 to 0.178)
+4. Harm,Collective PET CT dose (Sv),"per 100,000 (base case: 50-year-old non-Hispanic White men)",0.00 (0.00 to 0.00),13.80 (10.22 to 17.61)
+4. Harm,Radiation-induced cancers (lifetime),"per 100,000 (base case: 50-year-old non-Hispanic White men)",0.000 (0.000 to 0.000),0.566 (0.336 to 0.829)
+4. Harm,Cancers missed despite investigation (false reassurance),"per 100,000 (base case: 50-year-old non-Hispanic White men)",0.0 (0.0 to 0.0),44.7 (21.4 to 101.9)
+5. QALYs & DALYs,Lifetime QALYs (discounted),"per 100,000 (base case: 50-year-old non-Hispanic White men)","1,572,219 (1,572,011 to 1,572,427)","1,572,712 (1,572,353 to 1,573,274)"
+5. QALYs & DALYs,QALYs lost to procedure harms,"per 100,000 (base case: 50-year-old non-Hispanic White men)",0.0 (0.0 to 0.0),27.9 (12.2 to 45.8)
+5. QALYs & DALYs,Net QALYs gained vs reference,"per 100,000 (base case: 50-year-old non-Hispanic White men)",0.0 (0.0 to 0.0),"493.2 (252.3 to 1,013.4)"
+5. QALYs & DALYs,Cancer DALYs (YLL + YLD + harms),"per 100,000 (base case: 50-year-old non-Hispanic White men)","26,642 (26,037 to 27,433)","24,259 (22,152 to 25,558)"
+5. QALYs & DALYs,  - DALYs from procedure harms,"per 100,000 (base case: 50-year-old non-Hispanic White men)",0.0 (0.0 to 0.0),48.6 (22.4 to 78.6)
+5. QALYs & DALYs,Net DALYs averted vs reference,"per 100,000 (base case: 50-year-old non-Hispanic White men)",0.0 (0.0 to 0.0),"2,382.9 (1,314.6 to 4,312.5)"
+6. Efficiency,Cost per DALY averted vs reference ($),per person / ratio,-,"750,767"
+6. Efficiency,People tested/worked up per cancer death averted,per person / ratio,-,"710 (433 to 1,033)"
+6. Efficiency,People investigated per cancer found,per person / ratio,-,1.6 (1.3 to 2.0)
+6. Efficiency,False positives investigated per cancer found,per person / ratio,-,0.6 (0.2 to 0.9)
+6. Efficiency,Invasive procedures per cancer found,per person / ratio,-,1.7 (1.3 to 2.1)
+Cost-effectiveness,Incremental cost per person vs Usual care,per person / ratio,0.00 (0.00 to 0.00),"17,890.04 (10,637.05 to 26,339.63)"
+Cost-effectiveness,Incremental QALYs vs Usual care,"per 100,000 (base case: 50-year-old non-Hispanic White men)",0.00 (0.00 to 0.00),"493.17 (252.25 to 1,013.40)"
+Cost-effectiveness,ICER vs Usual care ($ per QALY),per person / ratio,-,"3,627,549"
+Cost-effectiveness,Net monetary benefit per person ($),per person / ratio,"1,569,611.49 (1,569,000.09 to 1,570,037.86)","1,552,214.62 (1,543,653.83 to 1,559,164.43)"
+Cost-effectiveness,Incremental net monetary benefit per person vs Usual care,per person / ratio,0.00 (0.00 to 0.00),"-17,396.87 (-25,660.08 to -10,260.33)"

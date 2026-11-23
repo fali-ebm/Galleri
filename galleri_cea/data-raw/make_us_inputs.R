@@ -1,4 +1,4 @@
-# Builds inputs/baseline_risks.csv and inputs/cohort.csv from published US data.
+# Builds inputs/baseline_risks.csv from published US data (data-raw/raw/).
 # Run from the project folder:  Rscript data-raw/make_us_inputs.R
 # Raw inputs (data-raw/raw/) and their sources are listed in inputs/SOURCES.md.
 #
@@ -58,8 +58,12 @@ late_for <- function(site_, g, s) stage$late[stage$site == site_ & stage$race ==
 eac <- raw("seer_eac_share_by_race.csv")
 
 # EQ-5D-5L US norms by age (Jiang 2021); WHO GHE 2019 standard YLL per death
-u_norm <- function(a) case_when(a < 55 ~ 0.816, a < 65 ~ 0.815, a < 75 ~ 0.824, TRUE ~ 0.811)
-yll <- c(`50` = 38.10, `55` = 33.33, `60` = 28.66, `65` = 24.12, `70` = 19.76, `75` = 15.65, `80` = 11.96, `85` = 7.05)
+# (data-raw/raw/eq5d_us_norms.csv, who_ghe_standard_yll.csv; 5-year bands, 85 = 85+)
+norms <- raw("eq5d_us_norms.csv")
+u_norm <- function(a) vapply(a, function(x) { i <- which(norms$age_from <= x & norms$age_to >= x)
+  if (length(i) != 1) stop("eq5d_us_norms.csv must cover each age 50-99 exactly once (age ", x, ")"); norms$utility[i] }, 0)
+yll_t <- raw("who_ghe_standard_yll.csv")
+yll <- setNames(yll_t$yll, yll_t$age)
 
 grid <- expand_grid(race_eth = names(RACES), sex = c("male", "female"))
 baseline <- bind_rows(lapply(seq_len(nrow(grid)), function(i) {
@@ -83,13 +87,7 @@ baseline <- bind_rows(lapply(seq_len(nrow(grid)), function(i) {
 stopifnot(!anyNA(baseline$mort_other), !anyNA(baseline$inc_eso), nrow(baseline) == 6 * 2 * length(ages))
 write_csv(baseline, "inputs/baseline_risks.csv", na = "")
 
-# ---- Base-case cohort: 50-year-old non-Hispanic White men --------------------
-# Split by Kunzmann score (29.5% score >= 8; Kunzmann 2018). The subgroup grid
-# (age x sex x race/ethnicity) is built by the model from settings$subgroups.
-k_share <- 0.295
-cohort <- tibble(population = "screening", race_eth = "nhw", sex = "male", start_age = 50,
-                 risk_group = c("kunzmann_high", "kunzmann_low"), share = c(k_share, 1 - k_share),
-                 kunzmann_scoped = c(1, 0), status = "ASSUMPTION",
-                 notes = "Base case: 50-year-old non-Hispanic White men; Kunzmann 29.5% flagged (same in every subgroup)")
-write_csv(cohort, "inputs/cohort.csv", na = "")
-message("wrote inputs/baseline_risks.csv (", nrow(baseline), " rows) and inputs/cohort.csv")
+# inputs/cohort.csv (base case: 50-year-old non-Hispanic White men split by
+# Kunzmann score) is a primary input edited directly or via the workbook
+# importer; it is no longer generated here.
+message("wrote inputs/baseline_risks.csv (", nrow(baseline), " rows)")

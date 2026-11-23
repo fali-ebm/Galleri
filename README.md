@@ -5,7 +5,7 @@ This repository holds two things:
 | Folder | What it is |
 |---|---|
 | [`ceakit/`](ceakit) | An R package with reusable tools for decision modelling and cost-effectiveness analysis: input tables and validation, decision-tree and Markov engines, PSA, one-way SA, scenarios, ICER frontier, CEAC, EVPI/EVPPI, tables, plots, a Shiny app, and a project template. |
-| [`galleri_cea/`](galleri_cea) | The Galleri upper GI model, built with ceakit. Three arms with annual screening to age 85 over a lifetime: usual care, Kunzmann score ≥ 8 → yearly EGD, and yearly Galleri (-ve → usual care, +ve → full workup). Natural history is calibrated to SEER incidence for every subgroup. Base case: 50-year-old non-Hispanic White men; sensitivity grid across age 50-90 × sex × race/ethnicity. |
+| [`galleri_cea/`](galleri_cea) | The Galleri upper GI model, built with ceakit. Three arms with annual screening to age 85 over a lifetime: usual care, Kunzmann score ≥ 8 → yearly EGD, and yearly Galleri (+ve → EGD: true positive, or false positive → further workup; EGD perforation modelled; -ve → true negative or false negative, then usual care). Natural history is calibrated to SEER incidence for every subgroup. Base case: 50-year-old non-Hispanic White men; sensitivity grid across age 50-90 × sex × race/ethnicity. |
 
 > **Inputs status.** US, payer-perspective inputs. Each input is marked
 > `SOURCED` (published data) or `ASSUMPTION` (reasoning documented). See

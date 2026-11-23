@@ -61,10 +61,11 @@ all of these.
 
 | Parameter | Value | Derivation |
 |---|---|---|
-| `sae_egd` | 0.0002 | Perforation 1/2,500-1/11,000. |
+| `p_perf_egd` | 0.0002 (0.00009-0.0004) | EGD perforation 1/2,500-1/11,000 diagnostic EGDs (ASGE 2012); 0.03% for EGD alone (Bhatia 2008, doi:10.1002/jhm.289). Applies to every EGD in both screening arms. |
+| `p_death_perf` | 0.0975 (0.059-0.136) | Pooled mortality of non-surgical iatrogenic esophageal perforation, 25 studies, 596 patients (Papaconstantinou 2026, doi:10.1007/s00464-026-12834-1); 13.2% for iatrogenic perforation in an earlier meta-analysis (Biancari 2013, doi:10.1007/s00268-013-1951-7). A fatal perforation ends the workup. |
 | `sae_eus` | 0.0004 | EUS perforation 0.02-0.06%. |
 | `sae_eus_samp` | 0.0062 | EUS-FNA bleeding (≈0.18%) + pancreatitis (0.44%). |
-| `p_death_sae` | 0.1 | **ASSUMPTION**. A scenario sets it to 0.5, which reproduces the quoted EGD mortality of about 1/10,000. |
+| `p_death_sae` | 0.1 | **ASSUMPTION**. Case fatality of the other serious adverse events (ENT, EUS, EUS sampling). A scenario sets `p_death_perf` to 0.5, which reproduces ASGE's quoted EGD mortality of about 1/10,000. |
 | `sae_ent` | 0.0001 | **ASSUMPTION** |
 | `msv_pet` | 14.0 (SE 1.3) | PET-CT with low-dose CT. A scenario uses 24.4 mSv (with diagnostic CT). |
 | `risk_per_sv` | 0.041 | ICRP 103 nominal risk coefficient for adults. |
@@ -84,6 +85,7 @@ all of these.
 | `c_eol` | 121,746 | Last-year-of-life cost. |
 | `c_tx_first_late` | 156,982 | First-year cost of stage IV stomach cancer. |
 | `c_fu_late` | 21,423 | 3 × the continuing-phase cost. **ASSUMPTION** |
+| `c_perf` | 30,000 (15,000-60,000) | **ASSUMPTION**. Managing an EGD perforation (admission, stent or surgical repair); mean stay after esophageal perforation is 32.9 days (Biancari 2013). No US cost estimate was found. |
 | `c_kunz`, `c_tb`, `c_symp_dx`, `c_sae` | | **ASSUMPTION** |
 
 Costs from different years are not yet inflated to a common year. To do that,

@@ -1,0 +1,16 @@
+setting,value,area,label,note,refs
+wtp,100000,Economic,Willingness to pay,USD per QALY,
+disc_cost,0.03,Economic,"Discount rate, costs",per year,
+disc_qaly,0.03,Economic,"Discount rate, QALYs",per year,
+disc_daly,0,Economic,"Discount rate, DALYs",per year (DALYs undiscounted),
+max_age,100,Model structure,Time horizon (maximum age),years of age (lifetime); at most 100,
+screen_stop_age,85,Screening,Screening stop age,last age screened,
+screen_interval,1,Screening,Screening interval,years between rounds (1 = annual),
+kunz_share,0.295,Kunzmann score,Share flagged (score >= 8),"of population, all subgroups",8
+kunz_capture,0.774,Kunzmann score,Share of esophageal adenocarcinoma in flagged group,Kunzmann 2018,8
+subgroup_ages,"50, 55, 60, 65, 70, 75, 80, 85, 90",Subgroup grid,Start ages,"comma-separated, 50-99",
+subgroup_sexes,"male, female",Subgroup grid,Sexes,"comma-separated: male, female",
+subgroup_races,"all, nhw, nhb, nhapi, nhaian, hisp",Subgroup grid,Race/ethnicity,"comma-separated codes: all, nhw, nhb, nhapi, nhaian, hisp",
+n_sim,1000,Uncertainty,PSA simulations,calibration re-solved in every draw,
+seed,2026,Uncertainty,Random seed,,
+owsa_pct,0.25,Uncertainty,One-way SA range where Low/High blank,+/- fraction of base value,

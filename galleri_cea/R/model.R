@@ -15,7 +15,9 @@
 
 project_title <- "Galleri upper GI screening & workup"
 
-settings <- ceakit::default_settings(
+# Defaults; inputs/settings.csv (written by the workbook importer or by hand)
+# overrides any of the scalar settings below when the project is loaded.
+SETTINGS_DEFAULTS <- list(
   wtp = 100000, n_sim = 1000, seed = 2026, owsa_pct = 0.25, evppi = TRUE,
   evppi_groups = list(
     `Galleri accuracy` = c("sens_g_ugi", "sens_g_other", "fpr_g_es"),
@@ -26,12 +28,38 @@ settings <- ceakit::default_settings(
   kunz_share = 0.295, kunz_capture = 0.774,           # Kunzmann score >= 8 (Kunzmann 2018)
   subgroups = list(ages = seq(50, 90, 5), sexes = c("male", "female"),
                    races = c("all", "nhw", "nhb", "nhapi", "nhaian", "hisp")))
+make_settings <- function(over = list()) do.call(ceakit::default_settings, utils::modifyList(SETTINGS_DEFAULTS, over))
+settings <- make_settings()
+
+# inputs/settings.csv: columns setting, value (other columns are documentation).
+read_settings_file <- function(dir) {
+  f <- file.path(dir, "settings.csv")
+  if (!file.exists(f)) return(list())
+  s <- utils::read.csv(f, colClasses = "character", check.names = FALSE)
+  v <- stats::setNames(trimws(s$value), trimws(s$setting))
+  lst <- function(k) trimws(strsplit(v[[k]], ",")[[1]])
+  out <- list(); sub <- SETTINGS_DEFAULTS$subgroups
+  for (k in names(v)) {
+    if (k == "subgroup_ages") sub$ages <- as.numeric(lst(k))
+    else if (k == "subgroup_sexes") sub$sexes <- tolower(lst(k))
+    else if (k == "subgroup_races") sub$races <- tolower(lst(k))
+    else if (k %in% names(SETTINGS_DEFAULTS)) out[[k]] <- as.numeric(v[[k]])
+    else stop("inputs/settings.csv: unknown setting '", k, "'", call. = FALSE)
+  }
+  bad <- names(out)[vapply(out, function(x) length(x) != 1 || is.na(x), TRUE)]
+  if (length(bad) || anyNA(sub$ages)) stop("inputs/settings.csv: non-numeric value for ",
+                                          paste(c(bad, if (anyNA(sub$ages)) "subgroup_ages"), collapse = ", "), call. = FALSE)
+  out$subgroups <- sub
+  out
+}
 
 load_data <- function(dir) {
   rd <- function(stem) ceakit::read_table(list.files(dir, paste0("^", stem, "\\.(csv|xlsx|xls)$"), full.names = TRUE)[1])
   B <- rd("baseline_risks"); C <- rd("cohort")
   B$sex <- tolower(trimws(B$sex)); C$sex <- tolower(trimws(C$sex)); C$population <- tolower(trimws(C$population))
   B$race_eth <- tolower(trimws(B$race_eth)); C$race_eth <- tolower(trimws(C$race_eth))
+  # settings.csv is read here because load_data is the hook that knows the inputs folder
+  settings <<- make_settings(read_settings_file(dir))
   list(baseline_risks = B, cohort = C)
 }
 
@@ -65,7 +93,15 @@ METRICS <- tibble::tribble(
   "kunz_scores", "2. Screening & workup burden", "Kunzmann scores", "count", 0,
   "galleri_tests", "2. Screening & workup burden", "Galleri tests (all screening rounds)", "count", 0,
   "screen_rounds", "2. Screening & workup burden", "Screening rounds offered (per person)", "person", 1,
+  "screen_tp", "2. Screening & workup burden", "Test result: true positive (upper GI cancer, test +ve)", "count", 1,
+  "screen_fp", "2. Screening & workup burden", "Test result: false positive (no upper GI cancer, test +ve)", "count", 0,
+  "screen_fp_other_cancer", "2. Screening & workup burden", "  - of which another cancer present", "count", 1,
+  "screen_tn", "2. Screening & workup burden", "Test result: true negative (no upper GI cancer, test -ve)", "count", 0,
+  "screen_fn", "2. Screening & workup burden", "Test result: false negative (upper GI cancer, test -ve)", "count", 1,
+  "fn_symptomatic_1y", "2. Screening & workup burden", "  - false negatives presenting with symptoms within a year", "count", 1,
   "investigated", "2. Screening & workup burden", "People investigated (EGD or more)", "count", 0,
+  "egd_positive", "2. Screening & workup burden", "  - EGD +ve (cancer found at EGD)", "count", 1,
+  "egd_negative_workup", "2. Screening & workup burden", "  - EGD -ve, sent on to further workup (Galleri) / EGD -ve (Kunzmann)", "count", 0,
   "egd", "2. Screening & workup burden", "EGDs", "count", 0,
   "ent", "2. Screening & workup burden", "ENT evaluations", "count", 0,
   "pet_ct", "2. Screening & workup burden", "PET CT scans", "count", 0,
@@ -90,7 +126,9 @@ METRICS <- tibble::tribble(
   "ly_gained", "3. Benefit", "Life years gained vs reference", "count", 1,
   "free_investigated", "4. Harm", "Cancer-free people investigated (false positives)", "count", 0,
   "invasive_free", "4. Harm", "Invasive procedures in cancer-free people", "count", 0,
-  "sae_total", "4. Harm", "Serious procedure complications", "count", 2,
+  "sae_total", "4. Harm", "Serious procedure complications (incl. perforation)", "count", 2,
+  "perforations", "4. Harm", "  - EGD perforations", "count", 2,
+  "perforation_deaths", "4. Harm", "  - fatal EGD perforations", "count", 3,
   "sae_free", "4. Harm", "  - in cancer-free people", "count", 2,
   "proc_deaths", "4. Harm", "Deaths from procedure complications", "count", 3,
   "dose_sv", "4. Harm", "Collective PET CT dose (Sv)", "count", 2,
@@ -110,11 +148,11 @@ METRICS <- tibble::tribble(
 
 ALL_PARAMS <- c("sens_g_ugi", "sens_g_other", "fpr_g_es", "sens_egd", "p_egd_pos",
   "p_ent_route", "p_ent_pos", "p_pet_pb", "p_pet_incid", "p_eus_pos", "p_eus_neg", "p_miss",
-  "p_incid_cancer", "p_late_screen", "or_late_clin", "sojourn_years", "m_early", "m_late", "sae_egd",
+  "p_incid_cancer", "p_late_screen", "or_late_clin", "sojourn_years", "m_early", "m_late", "p_perf_egd", "p_death_perf",
   "sae_ent", "sae_eus", "sae_eus_samp", "p_death_sae", "msv_pet", "risk_per_sv", "loss_rad_ca", "t_egd",
   "t_ent", "t_pet", "t_eus", "t_tb", "c_galleri", "c_kunz", "c_egd", "c_ent", "c_pet", "c_eus",
   "c_eus_samp", "c_tb", "c_symp_dx", "c_tx_first_early", "c_tx_first_late", "c_fu_early", "c_fu_late",
-  "c_eol", "c_sae", "u_mult_early", "u_mult_late", "d_proc", "d_sae", "dw_early", "dw_late")
+  "c_eol", "c_sae", "c_perf", "u_mult_early", "u_mult_late", "d_proc", "d_sae", "dw_early", "dw_late")
 
 keep_ordered <- function(q) {   # sampled values stay logically ordered
   q$u_mult_late <- min(q$u_mult_late, q$u_mult_early); q
