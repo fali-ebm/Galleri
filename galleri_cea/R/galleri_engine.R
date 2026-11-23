@@ -268,6 +268,8 @@ simulate_arm <- function(arm, row, curve, cal, p, settings, wk, V, q_od = overdx
   acc <- setNames(numeric(length(CHANNELS)), CHANNELS)
   cost0 <- 0; q_harm <- 0; d_harm <- 0
   trace <- matrix(0, n + 1, length(STATES), dimnames = list(NULL, STATES)); trace[1, ] <- x
+  ev_t <- matrix(0, n, length(EVENTS), dimnames = list(NULL, EVENTS))        # screening events by cycle
+  acc_t <- matrix(0, n, length(CHANNELS), dimnames = list(NULL, CHANNELS))   # undiscounted channel flows by cycle
   interval <- max(1, settings$screen_interval)
   for (t in seq_len(n)) {
     age <- row$start_age + t - 1
@@ -333,7 +335,7 @@ simulate_arm <- function(arm, row, curve, cal, p, settings, wk, V, q_od = overdx
       qaly_fp <- qaly_fp + df[["qaly"]] * (qh_free + e$deaths_free * V[[t]]["well", "qaly"])
       cost_fp <- cost_fp + df[["cost"]] * fp_cost
       e$proc_deaths <- pd; e$late_screen <- (fu + fo) * pls; e$rounds <- 1
-      for (k in names(e)) ev[k] <- ev[k] + e[[k]]
+      for (k in names(e)) { ev[k] <- ev[k] + e[[k]]; ev_t[t, k] <- e[[k]] }
       # move screen-detected upper GI cancers into lead time; procedure deaths out of well
       x["pre"] <- x["pre"] - fu - e$fn_persist; x["pre_m"] <- x["pre_m"] + e$fn_persist
       x["lead_early"] <- x["lead_early"] + fu * (1 - pls); x["lead_late"] <- x["lead_late"] + fu * pls
@@ -352,11 +354,12 @@ simulate_arm <- function(arm, row, curve, cal, p, settings, wk, V, q_od = overdx
       }
     }
     R <- cycle_rewards(P, curve, t, p)
-    acc <- acc + drop(x %*% R) * df
+    acc_t[t, ] <- drop(x %*% R)
+    acc <- acc + acc_t[t, ] * df
     x <- drop(x %*% P); trace[t + 1, ] <- x
   }
   list(ev = ev, acc = acc, cost0 = cost0, q_harm = q_harm, d_harm = d_harm, trace = trace,
-       pre0 = cal$x0[["pre"]], cost_fp = cost_fp, qaly_fp = qaly_fp)
+       pre0 = cal$x0[["pre"]], cost_fp = cost_fp, qaly_fp = qaly_fp, ev_t = ev_t, acc_t = acc_t)
 }
 
 `%||%` <- function(a, b) if (is.null(a)) b else a
