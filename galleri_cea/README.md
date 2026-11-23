@@ -32,6 +32,34 @@ the calibrated natural history (`overdx_prob`), so overdiagnosis is reported
 for upper GI and other-site cancers in both screening arms. A test checks it
 equals the excess lifetime diagnoses versus usual care exactly.
 
+**Other model features.**
+- Galleri sensitivity is lower in repeat rounds than in the first round
+  (`sens_g_rep_ratio`, NHS-Galleri).
+- Other-cause mortality is cause-deleted: SEER upper GI cancer deaths are
+  removed from the NCHS life tables.
+- Costs are in 2025 USD (CPI medical care; `data-raw/inflate_costs.R`).
+- The Kunzmann flagged share and capture differ by sex (59.7% of men, 3.5%
+  of women flagged).
+- Incidental PET findings are followed up (`c_incid_fu`), and symptomatic
+  diagnoses carry the EGD perforation risk.
+- Scenarios: missed cancers stay missed by Galleri (`p_fn_persist`), and the
+  Galleri price shared across all cancers it detects (`galleri_cost_share`).
+
+**Editing inputs in Excel.** `Galleri_model_inputs.xlsx` holds every input
+(parameters, settings, cohort, scenarios, workup counts, references and the
+raw SEER/NCHS/CPI tables). Edit the blue cells, save, then:
+
+```
+Rscript import_inputs_xlsx.R --check   # validate and list every change, write nothing
+Rscript import_inputs_xlsx.R           # back up, write the CSVs, re-inflate costs, rebuild the baseline
+Rscript run.R
+```
+
+The importer validates on a scratch copy (types, ranges, keys, complete raw
+tables, then a model load and calibration check) before touching anything,
+and backs up replaced files to `data-raw/import_backup/`. After editing the
+CSVs directly, refresh the workbook with `python3 tools/export_inputs_xlsx.py`.
+
 **False-positive burden.** For cancer-free people worked up after a Galleri
 +ve, the model reports EGDs, ENT, PET CT, EUS and sampling, perforations,
 complication deaths, PET CT dose and radiation cancers, days in workup,

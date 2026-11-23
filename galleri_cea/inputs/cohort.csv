@@ -1,3 +1,3 @@
 population,race_eth,sex,start_age,risk_group,share,kunzmann_scoped,status,notes
-screening,nhw,male,50,kunzmann_high,0.295,1,ASSUMPTION,Base case: 50-year-old non-Hispanic White men; Kunzmann 29.5% flagged (same in every subgroup)
-screening,nhw,male,50,kunzmann_low,0.7050000000000001,0,ASSUMPTION,Base case: 50-year-old non-Hispanic White men; Kunzmann 29.5% flagged (same in every subgroup)
+screening,nhw,male,50,kunzmann_high,0.597,1,ASSUMPTION,Base case: 50-year-old non-Hispanic White men; Kunzmann score >= 8 flags 59.7% of men (Kunzmann 2018)
+screening,nhw,male,50,kunzmann_low,0.403,0,ASSUMPTION,Base case: 50-year-old non-Hispanic White men; Kunzmann score >= 8 flags 59.7% of men (Kunzmann 2018)

@@ -20,12 +20,15 @@ project_title <- "Galleri upper GI screening & workup"
 SETTINGS_DEFAULTS <- list(
   wtp = 100000, n_sim = 1000, seed = 2026, owsa_pct = 0.25, evppi = TRUE,
   evppi_groups = list(
-    `Galleri accuracy` = c("sens_g_ugi", "sens_g_other", "fpr_g_es"),
+    `Galleri accuracy` = c("sens_g_ugi", "sens_g_other", "fpr_g_es", "sens_g_rep_ratio"),
     `Natural history` = c("sojourn_years", "m_early", "m_late", "or_late_clin", "p_late_screen"),
     `Utilities & harms` = c("u_mult_early", "u_mult_late", "d_proc", "d_sae")),
   max_age = 100, disc_cost = 0.03, disc_qaly = 0.03, disc_daly = 0,
   screen_stop_age = 85, screen_interval = 1,          # annual screening to age 85
-  kunz_share = 0.295, kunz_capture = 0.774,           # Kunzmann score >= 8 (Kunzmann 2018)
+  # Kunzmann score >= 8 by sex (Kunzmann 2018: 59.7% of men, 3.5% of women flagged;
+  # capture within sex derived assuming equal within-sex RR and 85% male cases)
+  kunz_share_male = 0.597, kunz_share_female = 0.035, kunz_capture_male = 0.881, kunz_capture_female = 0.153,
+  cost_year = 2025,                                    # costs in inputs are 2025 USD (data-raw/inflate_costs.R)
   subgroups = list(ages = seq(50, 90, 5), sexes = c("male", "female"),
                    races = c("all", "nhw", "nhb", "nhapi", "nhaian", "hisp")))
 make_settings <- function(over = list()) do.call(ceakit::default_settings, utils::modifyList(SETTINGS_DEFAULTS, over))
@@ -79,6 +82,13 @@ validate_data <- function(data, settings) {
     if (abs(s - 1) > 0.001) e <- c(e, sprintf("cohort: shares for '%s' sum to %.4f (must be 1)", pp, s))
   }
   if (!all(C$kunzmann_scoped %in% c(0, 1))) e <- c(e, "cohort: kunzmann_scoped must be 0 or 1")
+  for (i in which(C$risk_group %in% c("kunzmann_high", "kunzmann_low"))) {
+    k <- settings[[paste0("kunz_share_", C$sex[i])]]
+    want <- if (C$risk_group[i] == "kunzmann_high") k else 1 - k
+    if (is.null(k) || abs(C$share[i] - want) > 1e-6)
+      e <- c(e, sprintf("cohort row %d: %s share %.4f must equal settings kunz_share_%s (%s)", i, C$risk_group[i],
+                        C$share[i], C$sex[i], format(want)))
+  }
   if (any(C$start_age >= settings$max_age)) e <- c(e, "cohort: start_age must be below max_age")
   if (!length(e)) for (i in seq_len(nrow(C))) tryCatch(baseline_for(data, C[i, ], settings),
     error = function(err) e <<- c(e, sprintf("cohort row %d: %s", i, conditionMessage(err))))
@@ -99,6 +109,7 @@ METRICS <- tibble::tribble(
   "screen_tn", "2. Screening & workup burden", "Test result: true negative (no upper GI cancer, test -ve)", "count", 0,
   "screen_fn", "2. Screening & workup burden", "Test result: false negative (upper GI cancer, test -ve)", "count", 1,
   "fn_symptomatic_1y", "2. Screening & workup burden", "  - false negatives presenting with symptoms within a year", "count", 1,
+  "fn_persistent", "2. Screening & workup burden", "  - missed cancers Galleri keeps missing (scenario p_fn_persist)", "count", 1,
   "investigated", "2. Screening & workup burden", "People investigated (EGD or more)", "count", 0,
   "egd_positive", "2. Screening & workup burden", "  - EGD +ve (cancer found at EGD)", "count", 1,
   "egd_negative_workup", "2. Screening & workup burden", "  - EGD -ve, sent on to further workup (Galleri) / EGD -ve (Kunzmann)", "count", 0,
@@ -134,6 +145,7 @@ METRICS <- tibble::tribble(
   "pet_ct_free", "4. Harm", "  - PET CTs in cancer-free people", "count", 0,
   "eus_free", "4. Harm", "  - EUS in cancer-free people", "count", 1,
   "eus_sampling_free", "4. Harm", "  - EUS samplings in cancer-free people", "count", 1,
+  "incidental_followups_free", "4. Harm", "  - follow-ups of benign incidental PET findings", "count", 0,
   "perforations_free", "4. Harm", "  - EGD perforations in cancer-free people", "count", 2,
   "proc_deaths_free", "4. Harm", "  - deaths from complications in cancer-free people", "count", 3,
   "dose_sv_free", "4. Harm", "  - PET CT dose to cancer-free people (Sv)", "count", 2,
@@ -146,6 +158,8 @@ METRICS <- tibble::tribble(
   "sae_total", "4. Harm", "Serious procedure complications (incl. perforation)", "count", 2,
   "perforations", "4. Harm", "  - EGD perforations", "count", 2,
   "perforation_deaths", "4. Harm", "  - fatal EGD perforations", "count", 3,
+  "perforations_symptomatic", "4. Harm", "EGD perforations in the workup of symptomatic cancers", "count", 2,
+  "incidental_followups", "4. Harm", "Follow-ups of incidental PET findings", "count", 0,
   "sae_free", "4. Harm", "  - in cancer-free people", "count", 2,
   "proc_deaths", "4. Harm", "Deaths from procedure complications", "count", 3,
   "dose_sv", "4. Harm", "Collective PET CT dose (Sv)", "count", 2,
@@ -169,7 +183,7 @@ ALL_PARAMS <- c("sens_g_ugi", "sens_g_other", "fpr_g_es", "sens_egd", "p_egd_pos
   "sae_ent", "sae_eus", "sae_eus_samp", "p_death_sae", "msv_pet", "risk_per_sv", "loss_rad_ca", "t_egd",
   "t_ent", "t_pet", "t_eus", "t_tb", "c_galleri", "c_kunz", "c_egd", "c_ent", "c_pet", "c_eus",
   "c_eus_samp", "c_tb", "c_symp_dx", "c_tx_first_early", "c_tx_first_late", "c_fu_early", "c_fu_late",
-  "c_eol", "c_sae", "c_perf", "u_mult_early", "u_mult_late", "d_proc", "d_sae", "dw_early", "dw_late")
+  "c_eol", "c_sae", "c_perf", "c_incid_fu", "sens_g_rep_ratio", "p_fn_persist", "galleri_cost_share", "u_mult_early", "u_mult_late", "d_proc", "d_sae", "dw_early", "dw_late")
 
 keep_ordered <- function(q) {   # sampled values stay logically ordered
   q$u_mult_late <- min(q$u_mult_late, q$u_mult_early); q

@@ -3,7 +3,8 @@
 # Raw inputs (data-raw/raw/) and their sources are listed in inputs/SOURCES.md.
 #
 # baseline_risks.csv: one row per race/ethnicity x sex x single year of age 50-99
-#   mort_other  all-cause death probability qx (NCHS US life tables 2024)
+#   mort_other  other-cause death probability: NCHS 2024 qx with esophageal and
+#               stomach cancer deaths removed (mort_all = qx; mort_ugi = SEER US rate)
 #   inc_eso / inc_stom / inc_other  SEER clinical incidence per person-year
 #               (2013-2017). These are CALIBRATION TARGETS: the model fits
 #               cancer onset so that symptomatic presentation reproduces them.
@@ -30,21 +31,34 @@ single <- seer |> group_by(site, race, sex) |> reframe(age = ages, rate = interp
 # Age-specific rates exist only for all races, White and Black. Other groups
 # use a proportional assumption: the all-race (or White) age curve x the ratio
 # of age-adjusted rates.
-aa <- raw("seer_csr_age_adjusted_by_race.csv") |> pivot_longer(c(male, female), names_to = "sex", values_to = "aa")
-ratio <- function(site_, sex_, num, den) {
-  a <- aa[aa$site == site_ & aa$sex == sex_, ]
-  a$aa[a$race == num] / a$aa[a$race == den]
+make_curve <- function(single, aa_file) {
+  aa <- raw(aa_file) |> pivot_longer(c(male, female), names_to = "sex", values_to = "aa")
+  ratio <- function(site_, sex_, num, den) {
+    a <- aa[aa$site == site_ & aa$sex == sex_, ]
+    a$aa[a$race == num] / a$aa[a$race == den]
+  }
+  function(site_, sex_, g) {
+    base <- function(r) single$rate[single$site == site_ & single$race == r & single$sex == sex_]
+    switch(g,
+      all    = base("all"),
+      nhw    = base("white") * ratio(site_, sex_, "nhw", "white"),
+      nhb    = base("black"),                                   # Black (all ethnicities) as proxy
+      nhapi  = base("all") * ratio(site_, sex_, "api", "all"),
+      nhaian = base("all") * ratio(site_, sex_, "aian", "all"),
+      hisp   = base("all") * ratio(site_, sex_, "hispanic", "all"))
+  }
 }
-curve_for <- function(site_, sex_, g) {
-  base <- function(r) single$rate[single$site == site_ & single$race == r & single$sex == sex_]
-  switch(g,
-    all    = base("all"),
-    nhw    = base("white") * ratio(site_, sex_, "nhw", "white"),
-    nhb    = base("black"),                                   # Black (all ethnicities) as proxy
-    nhapi  = base("all") * ratio(site_, sex_, "api", "all"),
-    nhaian = base("all") * ratio(site_, sex_, "aian", "all"),
-    hisp   = base("all") * ratio(site_, sex_, "hispanic", "all"))
-}
+curve_for <- make_curve(single, "seer_csr_age_adjusted_by_race.csv")
+
+# ---- Cause-deleted other-cause mortality ---------------------------------------
+# The model kills upper GI cancer patients itself, so the life-table qx must not
+# also contain esophageal and stomach cancer deaths. US death rates 2013-2017
+# (CSR Tables 8.7 / 24.7, age-specific; 8.15 / 24.15 age-adjusted by race) are
+# interpolated and race-scaled like incidence, then removed from qx:
+# q_other = 1 - (1 - qx) / (1 - q_ugi).
+mort_single <- raw("seer_us_mortality_2013_2017.csv") |> group_by(site, race, sex) |>
+  reframe(age = ages, rate = interp(age_band, rate))
+mort_for <- make_curve(mort_single, "seer_us_mortality_age_adjusted_by_race.csv")
 
 lt <- raw("nchs_lifetables_2024_qx.csv")
 
@@ -71,9 +85,11 @@ baseline <- bind_rows(lapply(seq_len(nrow(grid)), function(i) {
   tibble(race_eth = g, sex = s, age_from = ages,
          inc_eso = curve_for("esophagus", s, g), inc_stom = curve_for("stomach", s, g),
          inc_all = curve_for("all_sites", s, g),
+         q_ugi = 1 - exp(-(mort_for("esophagus", s, g) + mort_for("stomach", s, g))),
          late_eso = late_for("esophagus", g, s), late_stom = late_for("stomach", g, s))
 })) |>
-  left_join(rename(lt, age_from = age, mort_other = qx), by = c("race_eth", "sex", "age_from")) |>
+  left_join(rename(lt, age_from = age, mort_all = qx), by = c("race_eth", "sex", "age_from")) |>
+  mutate(mort_other = 1 - (1 - mort_all) / (1 - q_ugi)) |>
   left_join(rename(eac, race_eth = race), by = "race_eth") |>
   mutate(age_to = age_from,
          inc_other = pmax(0, inc_all - inc_eso - inc_stom),
@@ -82,7 +98,7 @@ baseline <- bind_rows(lapply(seq_len(nrow(grid)), function(i) {
          status = "SOURCED",
          source = "SEER CSR 1975-2017 Tables 2.7/8.7/24.7 (+2.15/8.15/24.15 race ratios), 8.8/24.8 (stage); NCHS US Life Tables 2024") |>
   mutate(across(c(inc_eso, inc_stom, inc_other), ~ signif(.x, 5)), across(c(late_eso, late_stom), ~ round(.x, 4))) |>
-  select(race_eth, sex, age_from, age_to, mort_other, inc_eso, inc_stom, inc_other, eac_share, late_eso, late_stom,
+  select(race_eth, sex, age_from, age_to, mort_other, mort_all, mort_ugi = q_ugi, inc_eso, inc_stom, inc_other, eac_share, late_eso, late_stom,
          utility_well, daly_ref_le, status, source)
 stopifnot(!anyNA(baseline$mort_other), !anyNA(baseline$inc_eso), nrow(baseline) == 6 * 2 * length(ages))
 write_csv(baseline, "inputs/baseline_risks.csv", na = "")

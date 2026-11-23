@@ -11,3 +11,6 @@ Lower procedure disutility,d_proc,0.002,
 Missed after negative workup at NHS-Galleri 2-year rate,p_miss,0.178,2
 Incidental PET findings malignant at nationwide thyroid rate,p_incid_cancer,0.194,21
 EGD finds fewer (PPV 50%; lower NHS-Galleri round),p_egd_pos,0.39,2
+Missed cancers stay missed by Galleri,p_fn_persist,1,
+Galleri price shared across all cancers it detects,galleri_cost_share,0.077,2
+Same Galleri sensitivity in every round,sens_g_rep_ratio,1,2

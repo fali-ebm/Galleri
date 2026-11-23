@@ -50,9 +50,14 @@ test_that("calibration holds when natural-history inputs change (PSA draws re-ca
 })
 
 test_that("Kunzmann groups average back to the subgroup's SEER incidence", {
-  C <- E$subgroup_cohort(60, "male", "nhw", S); curve <- E$baseline_for(D, C[1, ], S)
-  t_hi <- E$target_ugi(curve, C[1, ], S); t_lo <- E$target_ugi(curve, C[2, ], S)
-  expect_equal(S$kunz_share * t_hi + (1 - S$kunz_share) * t_lo, curve$inc_eso + curve$inc_stom)
+  for (sx in c("male", "female")) {
+    C <- E$subgroup_cohort(60, sx, "nhw", S); curve <- E$baseline_for(D, C[1, ], S)
+    t_hi <- E$target_ugi(curve, C[1, ], S); t_lo <- E$target_ugi(curve, C[2, ], S)
+    k <- S[[paste0("kunz_share_", sx)]]
+    expect_equal(C$share, c(k, 1 - k))
+    expect_equal(k * t_hi + (1 - k) * t_lo, curve$inc_eso + curve$inc_stom)
+  }
+  expect_gt(S$kunz_share_male, S$kunz_share_female)
 })
 
 test_that("every arm's trace conserves the cohort", {
@@ -150,7 +155,7 @@ test_that("Galleri 2x2: every test is exactly one of TP, FP, TN, FN, and TP + FP
     if (arm == "Galleri") expect_equal(m[["screen_tp"]] + m[["screen_fp"]], m[["investigated"]], tolerance = 1e-10)
     expect_lte(m[["fn_symptomatic_1y"]], m[["screen_fn"]])
   }
-  p <- p0; p$sens_g_ugi <- 1                                               # perfect sensitivity: no false negatives
+  p <- p0; p$sens_g_ugi <- 1; p$sens_g_rep_ratio <- 1                     # perfect sensitivity: no false negatives
   expect_equal(unname(ev("galleri", p)["screen_fn", "Galleri"]), 0)
   p <- p0; p$sens_g_other <- 0; p$fpr_g_es <- 0                            # perfect specificity: no false positives
   expect_equal(unname(ev("galleri", p)["screen_fp", "Galleri"]), 0)
@@ -210,4 +215,82 @@ test_that("false-positive burden: counted only in cancer-free people and consist
     expect_equal(m0[[k]], 0)
   p <- p0; p$c_perf <- p0$c_perf * 2                                   # perforation cost feeds the FP cost
   expect_gt(ev("galleri", p)["cost_fp", "Galleri"], m[["cost_fp"]])
+})
+
+test_that("cause-deleted other-cause mortality removes SEER upper GI cancer deaths from the life table", {
+  B <- D$baseline_risks
+  expect_true(all(B$mort_other < B$mort_all))
+  expect_equal(B$mort_other, 1 - (1 - B$mort_all) / (1 - B$mort_ugi), tolerance = 1e-9)
+})
+
+test_that("costs are inflated to the cost year with CPI medical care", {
+  P <- read.csv(testthat::test_path("..", "..", "inputs", "parameters.csv"))
+  cpi <- read.csv(testthat::test_path("..", "..", "data-raw", "raw", "cpi_medical_care.csv"))
+  r <- P[!is.na(P$price_year), ]
+  f <- cpi$index[match(S$cost_year, cpi$year)] / cpi$index[match(pmin(r$price_year, S$cost_year), cpi$year)]
+  expect_equal(r$value, round(r$price_value * f))
+  expect_gt(nrow(r), 10)
+})
+
+test_that("repeat-round Galleri sensitivity: lower ratio finds fewer cancers; no effect with one round", {
+  p <- p0; p$sens_g_rep_ratio <- 1
+  expect_gt(ev("galleri", p)["screen_tp", "Galleri"], ev("galleri")["screen_tp", "Galleri"])
+  s1 <- S; s1$screen_stop_age <- 50
+  expect_equal(ev("galleri", p, s1)["screen_tp", "Galleri"], ev("galleri", s = s1)["screen_tp", "Galleri"])
+})
+
+test_that("scenario: missed cancers that stay missed are never found by later Galleri rounds", {
+  p <- p0; p$p_fn_persist <- 1
+  s <- sim("Galleri", p = p); s0 <- sim("Galleri")
+  expect_gt(s$ev[["fn_persist"]], 0); expect_equal(s0$ev[["fn_persist"]], 0)
+  expect_equal(unname(rowSums(s$trace)), rep(1, nrow(s$trace)), tolerance = 1e-12)
+  expect_lt(s$ev[["found_ugi"]], s0$ev[["found_ugi"]])
+  expect_equal(unname(s0$trace[, "pre_m"]), rep(0, nrow(s0$trace)))
+  m <- ev("galleri", p)[, "Galleri"]                                       # 2x2 still adds up
+  expect_equal(m[["screen_tp"]] + m[["screen_fp"]] + m[["screen_tn"]] + m[["screen_fn"]], m[["galleri_tests"]], tolerance = 1e-10)
+  # usual care is unchanged, so calibration still holds
+  expect_equal(ev("galleri", p)[, "Usual care"], ev("galleri")[, "Usual care"])
+})
+
+test_that("scenario: Galleri price sharing scales only the test cost", {
+  s1 <- S; s1$screen_stop_age <- 50                                         # one round: everyone tested once
+  p <- p0; p$galleri_cost_share <- 0.5
+  d <- ev("galleri", s = s1)["cost_total", "Galleri"] - ev("galleri", p, s1)["cost_total", "Galleri"]
+  expect_equal(unname(d), 0.5 * p0$c_galleri, tolerance = 1e-9)
+})
+
+test_that("incidental PET findings are followed up, and benign ones add false-positive burden", {
+  m <- ev("galleri")[, "Galleri"]; d <- E$workup_paths(p0); s_egd <- 1 - p0$p_perf_egd * p0$p_death_perf
+  expect_equal(m[["incidental_followups"]], m[["investigated"]] * s_egd * sum(d$prob * d$n_incid), tolerance = 1e-10)
+  expect_gt(m[["incidental_followups_free"]], 0)
+  p <- p0; p$c_incid_fu <- p0$c_incid_fu * 2
+  expect_gt(ev("galleri", p)["cost_fp", "Galleri"], m[["cost_fp"]])
+})
+
+test_that("symptomatic diagnoses carry EGD perforation risk in every arm", {
+  m <- ev("comparison")
+  expect_equal(unname(m["perforations_symptomatic", "Usual care"]),
+               unname(m["clin_dx_lifetime", "Usual care"]) * p0$p_perf_egd, tolerance = 1e-10)
+  p <- p0; p$p_perf_egd <- 0
+  expect_gt(ev("comparison", p)["qaly_total", "Usual care"], m["qaly_total", "Usual care"])
+})
+
+test_that("workbook importer: the committed workbook validates, and bad edits are rejected without writing", {
+  xl <- testthat::test_path("..", "..", "Galleri_model_inputs.xlsx")
+  skip_if_not(file.exists(xl), "no inputs workbook (python3 tools/export_inputs_xlsx.py)")
+  skip_if_not_installed("openxlsx")
+  source(testthat::test_path("..", "..", "tools", "import_inputs.R"), local = TRUE)
+  proj_dir <- testthat::test_path("..", "..")
+  r <- import_workbook(xl, proj_dir, apply = FALSE, quiet = TRUE)
+  expect_true(r$ok); expect_length(r$errors, 0)
+  if (length(r$changes)) skip(paste("workbook is out of date with the CSVs - re-export it:", r$changes[1]))
+  wb <- openxlsx::loadWorkbook(xl)
+  P <- openxlsx::read.xlsx(wb, "Parameters"); i <- which(P$Parameter == "p_egd_pos")
+  openxlsx::writeData(wb, "Parameters", 1.5, startCol = which(names(P) == "Value"), startRow = i + 1)
+  bad <- tempfile(fileext = ".xlsx"); openxlsx::saveWorkbook(wb, bad)
+  before <- tools::md5sum(file.path(proj_dir, "inputs", "parameters.csv"))
+  r2 <- import_workbook(bad, proj_dir, apply = TRUE, quiet = TRUE)
+  expect_false(r2$ok)
+  expect_true(any(grepl("p_egd_pos: proportions must be 0-1", r2$errors)))
+  expect_equal(tools::md5sum(file.path(proj_dir, "inputs", "parameters.csv")), before)
 })

@@ -78,7 +78,7 @@ lines = [
 ] + (IMPORT_STEPS if os.path.exists(os.path.join(ROOT, 'import_inputs_xlsx.R')) else NO_IMPORT) + [
     ("", ""),
     ("Model in one paragraph", "h"),
-    ("Annual-cycle cohort model, lifetime horizon (to age 100), US payer perspective, 3% discounting of costs and QALYs. Arms: usual care; Kunzmann score >= 8 -> EGD every year; Galleri every year: +ve -> EGD (EGD +ve = true positive; EGD -ve = false positive -> rest of the workup; any EGD can perforate), -ve -> true negative (stays well) or false negative (symptomatic cancer later or found at a later round), then usual care. Screening runs from the start age to 85. Natural history is calibrated to SEER for every subgroup: onset of preclinical upper GI cancer is solved so that, without screening, symptomatic diagnoses reproduce SEER incidence by age, sex and race/ethnicity, and their stage reproduces SEER stage at diagnosis. Base case: 50-year-old non-Hispanic White men.", ""),
+    ("Annual-cycle cohort model, lifetime horizon (to age 100), US payer perspective, 2025 USD, 3% discounting of costs and QALYs. Arms: usual care; Kunzmann score >= 8 -> EGD every year; Galleri every year: +ve -> EGD (EGD +ve = true positive; EGD -ve = false positive -> rest of the workup; any EGD can perforate), -ve -> true negative (stays well) or false negative (symptomatic cancer later or found at a later round), then usual care. Screening runs from the start age to 85. Natural history is calibrated to SEER for every subgroup: onset of preclinical upper GI cancer is solved so that, without screening, symptomatic diagnoses reproduce SEER incidence by age, sex and race/ethnicity, and their stage reproduces SEER stage at diagnosis. Base case: 50-year-old non-Hispanic White men.", ""),
     ("", ""),
     ("Sheets", "h"),
     ("Parameters - every scalar input with value, PSA distribution, range, status and source (one row per parameter).", ""),
@@ -88,7 +88,7 @@ lines = [
     ("Scenarios - deterministic scenario analyses (parameter overrides).", ""),
     ("Workup counts - template for local Galleri +ve workup counts; filled counts override the workup probabilities.", ""),
     ("Baseline (calibration) - life tables and SEER calibration targets by race/ethnicity x sex x single year of age 50-99 (600 rows).", ""),
-    ("SEER incidence, SEER race ratios, SEER stage, EAC share, NCHS life tables, EQ-5D norms, WHO standard YLL - the raw published tables the baseline is built from.", ""),
+    ("SEER incidence, SEER race ratios, SEER stage, EAC share, SEER mortality, SEER mortality ratios, NCHS life tables, EQ-5D norms, WHO standard YLL - the raw published tables the baseline is built from. CPI medical care - inflation index for costs.", ""),
     ("", ""),
     ("Status legend", "h"),
     ("SOURCED", "SOURCED"), ("ASSUMPTION", "ASSUMPTION"), ("DATA", "DATA"), ("DUMMY", "DUMMY"),
@@ -112,7 +112,7 @@ ws.column_dimensions["A"].width = 110; ws.column_dimensions["B"].width = 70
 
 # ---------------------------------------------------------------- Parameters
 CATS = [
-    ("Galleri test performance", ["sens_g_ugi", "sens_g_other", "fpr_g_es"]),
+    ("Galleri test performance", ["sens_g_ugi", "sens_g_other", "fpr_g_es", "sens_g_rep_ratio", "p_fn_persist"]),
     ("Endoscopy (Kunzmann arm)", ["sens_egd"]),
     ("Galleri +ve workup tree", ["p_egd_pos", "p_ent_route", "p_ent_pos", "p_pet_pb", "p_pet_incid", "p_eus_pos",
                                  "p_eus_neg", "p_miss", "p_incid_cancer"]),
@@ -120,15 +120,16 @@ CATS = [
     ("Procedure harms", ["p_perf_egd", "p_death_perf", "sae_ent", "sae_eus", "sae_eus_samp", "p_death_sae", "msv_pet", "risk_per_sv",
                          "loss_rad_ca"]),
     ("Time to workup steps", ["t_egd", "t_ent", "t_pet", "t_eus", "t_tb"]),
-    ("Costs (USD)", ["c_galleri", "c_kunz", "c_egd", "c_ent", "c_pet", "c_eus", "c_eus_samp", "c_tb", "c_symp_dx",
-                     "c_tx_first_early", "c_tx_first_late", "c_fu_early", "c_fu_late", "c_eol", "c_sae", "c_perf"]),
+    ("Costs (USD, inflated to the Settings cost year)", ["c_galleri", "galleri_cost_share", "c_kunz", "c_egd", "c_ent", "c_pet", "c_eus", "c_eus_samp", "c_tb", "c_symp_dx",
+                     "c_tx_first_early", "c_tx_first_late", "c_fu_early", "c_fu_late", "c_eol", "c_sae", "c_perf", "c_incid_fu"]),
     ("Utilities, disutilities and disability weights", ["u_mult_early", "u_mult_late", "d_proc", "d_sae",
                                                         "dw_early", "dw_late"]),
 ]
 P = {r["parameter"]: r for r in rd("inputs/parameters.csv")}
 assert sorted(sum((v for _, v in CATS), [])) == sorted(P), set(P) ^ set(sum((v for _, v in CATS), []))
 hdr = ["Category", "Parameter", "Label", "Value", "Unit", "Status", "PSA distribution", "SE", "n (beta/Dirichlet)",
-       "Dirichlet group", "Low (OWSA)", "High (OWSA)", "Description", "Source / derivation", "Refs (see References)", "Used in"]
+       "Dirichlet group", "Low (OWSA)", "High (OWSA)", "Description", "Source / derivation", "Refs (see References)", "Used in",
+       "Price as published (USD)", "Price year"]
 ws = wb.create_sheet("Parameters"); ws.append(hdr)
 for c in ws[1]:
     c.font = H_FONT; c.fill = H_FILL; c.alignment = Alignment(vertical="center", wrap_text=True)
@@ -139,11 +140,16 @@ for cat, keys in CATS:
     for k in keys:
         p = P[k]
         ws.append([None, k, p["label"], num(p["value"]), p["unit"], p["status"], p["dist"], num(p["se"]), num(p["n"]),
-                   p["group"] or None, num(p["low"]), num(p["high"]), p["description"], p["source"], p.get("refs") or NONE_REF, {"both": "Both analyses", "comparison": "Comparison (Kunzmann arm)"}.get(p["analysis"], p["analysis"])])
+                   p["group"] or None, num(p["low"]), num(p["high"]), p["description"], p["source"], p.get("refs") or NONE_REF, {"both": "Both analyses", "comparison": "Comparison (Kunzmann arm)"}.get(p["analysis"], p["analysis"]),
+                   num(p.get("price_value") or ""), num(p.get("price_year") or "")])
         r = ws.max_row
         for c in ws[r]:
             c.font = BASE; c.alignment = Alignment(vertical="top", wrap_text=c.column in (3, 13, 14))
+        if p.get("price_value"):
+            ws.cell(r, 17).font = BLUE; ws.cell(r, 18).font = BLUE; ws.cell(r, 17).number_format = "$#,##0"
+            ws.cell(r, 4).font = BASE    # value is computed from the published price on import
         for col in (4, 11, 12):
+            if col == 4 and p.get("price_value"): continue
             ws.cell(r, col).font = BLUE
             u = p["unit"]
             fmt = ("0.0%" if u == "proportion" and float(p["value"] or 0) >= 0.01 else
@@ -152,15 +158,16 @@ for cat, keys in CATS:
             if u == "per year" and k.startswith("m_"): fmt = "0.0%"
             ws.cell(r, col).number_format = fmt
         ws.cell(r, 6).fill = PatternFill("solid", fgColor=STATUS_FILL.get(p["status"], "FFFFFF"))
-widths = [24, 18, 30, 12, 13, 13, 13, 9, 10, 10, 11, 11, 48, 60, 14, 12]
+widths = [24, 18, 30, 12, 13, 13, 13, 9, 10, 10, 11, 11, 48, 60, 14, 12, 14, 10]
 for i, w in enumerate(widths, 1): ws.column_dimensions[get_column_letter(i)].width = w
 ws.freeze_panes = "C2"; ws.row_dimensions[1].height = 30
-ws.auto_filter.ref = f"A1:P{ws.max_row}"
+ws.auto_filter.ref = f"A1:R{ws.max_row}"
 n0 = ws.max_row + 2
 ws.cell(n0, 2, "Notes").font = BOLD
 for j, t in enumerate([
     "Value = base case. SE / n define the probabilistic (PSA) distribution: beta and Dirichlet use n as the effective sample size; gamma, normal and lognormal use SE.",
     "Low/High are one-way sensitivity bounds; where blank the model uses +/-25% (owsa_pct) of the base value.",
+    "Costs with a published price: edit the blue 'Price as published' and 'Price year' columns; on import Value, SE, Low and High are recomputed in Settings cost-year USD with CPI medical care (CPI sheet). Black Value cells are not imported for those rows.",
     "EGD perforation (p_perf_egd, p_death_perf, c_perf) applies to every EGD in both screening arms; a fatal perforation ends the Galleri workup. p_death_sae, c_sae and d_sae now cover the other serious adverse events (ENT, EUS, sampling); d_sae is also the QALY loss of a non-fatal perforation.",
     "Stage at symptomatic diagnosis is no longer a single parameter: it is calibrated to SEER by site, race and sex (Baseline sheet, late_eso / late_stom). or_late_clin = 1 reproduces SEER; it carries the PSA uncertainty.",
     "Workup tree probabilities are literature values (PubMed/Consensus, Nov 2026); counts entered on the Workup counts sheet (inputs/counts.csv) override them."], 1):
@@ -170,8 +177,9 @@ for j, t in enumerate([
 
 # ---------------------------------------------------------------- Settings
 ST = rd("inputs/settings.csv")
-FMT = {"wtp": "$#,##0", "disc_cost": "0.0%", "disc_qaly": "0.0%", "disc_daly": "0.0%", "kunz_share": "0.0%",
-       "kunz_capture": "0.0%", "owsa_pct": "0%", "n_sim": "#,##0"}
+FMT = {"wtp": "$#,##0", "disc_cost": "0.0%", "disc_qaly": "0.0%", "disc_daly": "0.0%", "kunz_share_male": "0.0%",
+       "kunz_share_female": "0.0%", "kunz_capture_male": "0.0%", "kunz_capture_female": "0.0%", "owsa_pct": "0%",
+       "n_sim": "#,##0", "cost_year": "0"}
 ws = wb.create_sheet("Settings")
 ws.append(["Area", "Setting", "Key", "Value", "Note", "Refs"])
 for c in ws[1]:
@@ -183,11 +191,13 @@ for r in ST:
     for c in ws[i]: c.font = BASE; c.alignment = Alignment(vertical="top", wrap_text=c.column in (2, 4, 5))
     ws.cell(i, 4).font = BLUE; ws.cell(i, 4).alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
     if r["setting"] in FMT: ws.cell(i, 4).number_format = FMT[r["setting"]]
-ks, kc = row_of["kunz_share"], row_of["kunz_capture"]
+ksm, kcm, ksf, kcf = (row_of[k] for k in ("kunz_share_male", "kunz_capture_male", "kunz_share_female", "kunz_capture_female"))
 lst = lambda k: f'(LEN(D{row_of[k]})-LEN(SUBSTITUTE(D{row_of[k]},",",""))+1)'
 derived = [
-    ("Kunzmann score", "Implied relative risk, flagged", f"=D{kc}/D{ks}", "applied to EAC share of esophageal cancer", "8, 9", "0.00"),
-    ("Kunzmann score", "Implied relative risk, not flagged", f"=(1-D{kc})/(1-D{ks})", "applied to EAC share of esophageal cancer", "8, 9", "0.00"),
+    ("Kunzmann score", "Implied relative risk, flagged, men", f"=D{kcm}/D{ksm}", "within-sex; applied to EAC share of esophageal cancer", "8, 9", "0.00"),
+    ("Kunzmann score", "Implied relative risk, not flagged, men", f"=(1-D{kcm})/(1-D{ksm})", "within-sex", "8, 9", "0.00"),
+    ("Kunzmann score", "Implied relative risk, flagged, women", f"=D{kcf}/D{ksf}", "within-sex", "8, 9", "0.00"),
+    ("Kunzmann score", "Implied relative risk, not flagged, women", f"=(1-D{kcf})/(1-D{ksf})", "within-sex", "8, 9", "0.00"),
     ("Subgroup grid", "Number of subgroups", f"={lst('subgroup_ages')}*{lst('subgroup_sexes')}*{lst('subgroup_races')}", "deterministic runs, each re-calibrated", None, "0"),
     ("Model structure", "Cycle length", 1, "year (fixed in model code)", None, "0"),
     ("Model structure", "Half-cycle correction", "Yes", "mid-cycle alive fraction (fixed in model code)", None, None),
@@ -212,10 +222,11 @@ C = rd("inputs/cohort.csv")
 ws = sheet("Cohort", list(C[0].keys()), [[num(v) for v in r.values()] for r in C],
            [12, 10, 8, 10, 16, 10, 16, 13, 80], fmts={6: "0.0%"}, value_cols=(2, 3, 4), wrap_cols=(9,))
 for i, r in enumerate(C, 2):
-    link = {"kunzmann_high": f"=Settings!D{ks}", "kunzmann_low": f"=1-Settings!D{ks}"}.get(r["risk_group"])
+    kr = row_of.get("kunz_share_" + r["sex"])
+    link = {"kunzmann_high": f"=Settings!D{kr}", "kunzmann_low": f"=1-Settings!D{kr}"}.get(r["risk_group"]) if kr else None
     if link: ws.cell(i, 6).value = link
     else: ws.cell(i, 6).font = BLUE
-ws.cell(len(C) + 3, 1, "Shares of the Kunzmann groups are linked to Settings (kunz_share) and set from it on import. Ref [8].").font = Font(name=F, size=9, italic=True)
+ws.cell(len(C) + 3, 1, "Shares of the Kunzmann groups are linked to Settings (kunz_share_male / kunz_share_female) and set from it on import. Ref [8].").font = Font(name=F, size=9, italic=True)
 
 # ---------------------------------------------------------------- Scenarios
 SC = rd("inputs/scenarios.csv")
@@ -244,21 +255,22 @@ RL = {"all": "All races/ethnicities", "nhw": "Non-Hispanic White", "nhb": "Non-H
       "hisp": "Hispanic"}
 rows = []
 for r in B:
-    rows.append([r["race_eth"], RL[r["race_eth"]], r["sex"], int(r["age_from"]), float(r["mort_other"]),
+    rows.append([r["race_eth"], RL[r["race_eth"]], r["sex"], int(r["age_from"]), float(r["mort_other"]), float(r["mort_all"]), float(r["mort_ugi"]),
                  float(r["inc_eso"]) * 1e5, float(r["inc_stom"]) * 1e5, None, float(r["inc_other"]) * 1e5,
                  float(r["eac_share"]), float(r["late_eso"]), float(r["late_stom"]), float(r["utility_well"]),
                  float(r["daly_ref_le"])])
-hdr = ["race_eth", "Race/ethnicity", "Sex", "Age", "Other-cause death prob. qx (NCHS 2024) [30]",
+hdr = ["race_eth", "Race/ethnicity", "Sex", "Age", "Other-cause death prob. (cause-deleted) [30, 26, 27]",
+       "All-cause qx (NCHS 2024) [30]", "Upper GI cancer death prob. (SEER US mortality) [26, 27]",
        "SEER esophagus incidence per 100,000 [26]", "SEER stomach incidence per 100,000 [27]",
        "Upper GI target per 100,000 (formula)", "Other cancers incidence per 100,000 [26-28]",
        "Adenocarcinoma share of esophageal [26]", "Late-stage share at dx, esophagus [26]",
        "Late-stage share at dx, stomach [27]", "Utility, general population [17] (EQ-5D norms sheet)",
        "Standard YLL per death [19] (WHO standard YLL sheet)"]
-ws = sheet("Baseline (calibration)", hdr, rows, [9, 30, 8, 6, 14, 14, 14, 14, 14, 13, 13, 13, 12, 12],
-           fmts={5: "0.000000", 6: "0.00", 7: "0.00", 8: "0.00", 9: "0.0", 10: "0.0%", 11: "0.0%", 12: "0.0%",
-                 13: "0.000", 14: "0.00"}, value_cols=(5, 6, 7, 9, 10, 11, 12, 13, 14), freeze="E2")
+ws = sheet("Baseline (calibration)", hdr, rows, [9, 30, 8, 6, 14, 12, 14, 14, 14, 14, 14, 13, 13, 13, 12, 12],
+           fmts={5: "0.000000", 6: "0.000000", 7: "0.000000", 8: "0.00", 9: "0.00", 10: "0.00", 11: "0.0", 12: "0.0%",
+                 13: "0.0%", 14: "0.0%", 15: "0.000", 16: "0.00"}, value_cols=(), freeze="E2")
 for i in range(2, len(rows) + 2):
-    ws.cell(i, 8).value = f"=F{i}+G{i}"; ws.cell(i, 8).font = BASE
+    ws.cell(i, 10).value = f"=H{i}+I{i}"; ws.cell(i, 10).font = BASE
 ws.row_dimensions[1].height = 66
 ws.cell(len(rows) + 4, 1, "DERIVED SHEET - not imported. Rebuilt from the raw-data sheets by data-raw/make_us_inputs.R on import; edit those sheets instead.").font = Font(name=F, size=10, bold=True, color="C00000")
 ws.cell(len(rows) + 3, 1, "Numbers in [ ] refer to the References sheet. Race/ethnicity groups without SEER age-specific rates are scaled by age-adjusted ratios [26-28]; stage for groups other than White/Black uses all races.").font = Font(name=F, size=9, italic=True)
@@ -292,6 +304,18 @@ ws = sheet("NCHS life tables", hdr, rows, [6] + [16] * len(groups),
            fmts={i: "0.000000" for i in range(2, len(groups) + 2)}, value_cols=tuple(range(2, len(groups) + 2)),
            freeze="B2", table=False)
 ws.row_dimensions[1].height = 54
+R8 = raw("seer_us_mortality_2013_2017.csv")
+sheet("SEER mortality", ["Site", "Race", "Sex", "Age band (start)", "US death rate per 100,000"],
+      [[r["site"], r["race"], r["sex"], f'{r["age_band"]}{"+" if r["age_band"] == "85" else "-" + str(int(r["age_band"]) + 4)}',
+        float(r["rate"])] for r in R8], [12, 10, 10, 16, 18], fmts={5: "#,##0.0"}, value_cols=(5,))
+R9 = raw("seer_us_mortality_age_adjusted_by_race.csv")
+sheet("SEER mortality ratios", ["Site", "Race/ethnicity", "Male, age-adjusted death rate per 100,000", "Female, age-adjusted death rate per 100,000"],
+      [[r["site"], r["race"], float(r["male"]), float(r["female"])] for r in R9], [12, 14, 20, 20],
+      fmts={3: "#,##0.0", 4: "#,##0.0"}, value_cols=(3, 4))
+R10 = raw("cpi_medical_care.csv")
+sheet("CPI medical care", ["Year", "Annual average (index)", "First half", "Second half"],
+      [[int(r["year"]), float(r["index"]), float(r["h1"]), float(r["h2"])] for r in R10], [8, 20, 12, 12],
+      fmts={2: "0.000", 3: "0.000", 4: "0.000"}, value_cols=(2,))
 R6 = raw("eq5d_us_norms.csv")
 sheet("EQ-5D norms", ["Age from", "Age to", "EQ-5D-5L utility"], [[int(r["age_from"]), int(r["age_to"]), float(r["utility"])] for r in R6],
       [10, 10, 16], fmts={3: "0.000"}, value_cols=(1, 2, 3))
@@ -302,6 +326,9 @@ src = {"SEER incidence": "[26, 27, 28] SEER Cancer Statistics Review 1975-2017, 
        "SEER race ratios": "[26, 27, 28] SEER CSR 1975-2017 Tables 2.15, 8.15, 24.15: age-adjusted SEER 21 incidence 2013-2017 by race/ethnicity and sex.",
        "SEER stage": "[26, 27] SEER CSR 1975-2017 Tables 8.8, 24.8: stage distribution 2010-2016 (SEER Summary Stage 2000).",
        "EAC share": "[26] SEER CSR 1975-2017 Table 8.22: histology by race, 2013-2017 (White used for NH White, Black for NH Black).",
+       "SEER mortality": "[26, 27] SEER CSR 1975-2017 Tables 8.7, 24.7: U.S. age-specific death rates 2013-2017. Used to remove upper GI cancer deaths from the life tables (cause-deleted other-cause mortality).",
+       "SEER mortality ratios": "[26, 27] SEER CSR 1975-2017 Tables 8.15, 24.15: U.S. age-adjusted death rates 2013-2017 by race/ethnicity; scale the all-races/White curves like incidence.",
+       "CPI medical care": "[36] BLS CPI-U Medical Care, U.S. city average (CUUS0000SAM, semiannual; annual = mean of halves), via FRED. Annual average is the column used.",
        "EQ-5D norms": "[17] Jiang R, Janssen MFB, Pickard AS. Qual Life Res 2021;30:803-16 (US EQ-5D-5L norms by age band). Bands must cover ages 50-99 once each.",
        "WHO standard YLL": "[19] WHO GHE 2019 DALY methods, Table 2.1 standard life table: remaining life expectancy at the start of each 5-year band.",
        "NCHS life tables": "[30] Arias E, Xu JQ, Tejada-Vera B. United States Life Tables, 2024. NVSR vol 75 no 5 (Tables 2-3, 5-6, 8-9, 11-12, 14-15, 17-18)."}
@@ -318,7 +345,9 @@ extra = {8: ["Kunzmann split (Settings, Cohort)"], 9: ["Kunzmann RR on EAC share
          17: ["utility_well (EQ-5D norms)"], 19: ["daly_ref_le (WHO standard YLL)"], 21: ["scenario: p_incid_cancer"],
          26: ["inc_eso, eac_share, late_eso (Baseline); SEER incidence/stage sheets"],
          27: ["inc_stom, late_stom (Baseline); SEER incidence/stage sheets"],
-         28: ["inc_other (Baseline); SEER incidence/race-ratio sheets"], 30: ["mort_other (Baseline); NCHS life tables sheet"]}
+         28: ["inc_other (Baseline); SEER incidence/race-ratio sheets"], 30: ["mort_other (Baseline); NCHS life tables sheet"],
+         36: ["cost inflation (CPI medical care sheet; Settings cost_year)"], 37: ["repeat-round positivity (context)"]}
+extra[26].append("mort_ugi (SEER mortality sheets)"); extra[27].append("mort_ugi (SEER mortality sheets)")
 for n, v in extra.items(): used.setdefault(n, []).extend(v)
 ws = wb.create_sheet("References", 1)
 ws.append(["#", "Reference", "DOI / URL", "PMID", "Used for (derived, not imported)"])

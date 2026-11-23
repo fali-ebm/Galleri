@@ -1,0 +1,15 @@
+site,race,male,female
+esophagus,all,7.0,1.4
+esophagus,white,7.4,1.4
+esophagus,nhw,7.8,1.5
+esophagus,black,5.3,1.6
+esophagus,api,2.8,0.7
+esophagus,aian,4.4,0.9
+esophagus,hispanic,3.7,0.7
+stomach,all,4.1,2.2
+stomach,white,3.6,1.9
+stomach,nhw,3.2,1.6
+stomach,black,7.8,3.6
+stomach,api,6.7,4.1
+stomach,aian,4.3,2.4
+stomach,hispanic,6.4,4.0

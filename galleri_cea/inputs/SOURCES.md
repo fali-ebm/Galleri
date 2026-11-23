@@ -18,6 +18,8 @@ The `status` column in each table means:
 |---|---|---|
 | `sens_g_ugi` | 0.637 (range 0.40-0.85) | PATHFINDER 2 episode sensitivity for the 12 deadly cancers (69.8%) × cancer signal origin (CSO) accuracy (91.3%). The range runs from CCGA3 stage I-II sensitivity (esophagus 12/25, stomach 4/12) to CCGA3 all-stage sensitivity (esophagus 84/99, stomach 20/29). **ASSUMPTION**: the 12-cancer figure applies to esophagus and stomach. |
 | `sens_g_other` | 0.0068 | Overall episode sensitivity 39.3% × CSO error 8.7% × an assumed 20% of wrong CSOs that are called esophagus/stomach. **ASSUMPTION** |
+| `sens_g_rep_ratio` | 0.775 (0.67-0.90) | Multiplier on Galleri sensitivity (upper GI and other cancers) in every round after the first. NHS-Galleri episode sensitivity for the 12 prespecified cancers was 63.4% in round 1 and 47.6% / 50.7% in rounds 2-3 (Neal 2026, doi:10.1038/s41591-026-04652-8): 49.2 / 63.4 = 0.775. The model already depletes the prevalent pool; this captures lower detectability of newly arisen cancers. Stage of MCED-detected cancers did not improve in repeat rounds (stage I-II 39.6%, 40.2%, 37.0%), so `p_late_screen` is the same in every round. |
+| `p_fn_persist` | 0 (scenario 1) | **ASSUMPTION**. Share of cancers missed by Galleri that stay undetectable by Galleri at later rounds (non-shedding tumours). They move to a `pre_m` state that progresses like any undiagnosed cancer but cannot test +ve. Base case 0 = each round independent; the scenario "Missed cancers stay missed" sets 1. |
 | `fpr_g_es` | 0.00036 | False-positive rate 0.36% (specificity 99.64%) × an assumed 10% of false positives with an esophagus/stomach CSO. **ASSUMPTION** |
 | Workup yield | from your counts | Galleri accuracy sets how many people test +ve and how many of them have cancer. Your workup counts set the procedures per person worked up and the share of those cancers the workup finds: found ÷ (found + missed despite workup). |
 | `p_late_screen` | 0.47 | 53% of PATHFINDER 2 screen-detected cancers were stage I-II. |
@@ -51,11 +53,11 @@ all of these.
 | Calibration targets `inc_eso`, `inc_stom` | by race/ethnicity, sex and single year of age | SEER 21 age-specific incidence 2013-2017 (CSR Tables 8.7, 24.7) for all races, White and Black, interpolated log-linearly from 5-year bands to single years (85+ held flat). Non-Hispanic White = White × NHW/White age-adjusted ratio; non-Hispanic Black = Black (all ethnicities, proxy); Asian/Pacific Islander, American Indian/Alaska Native and Hispanic = all races × the group's age-adjusted ratio (CSR Tables 8.15, 24.15). **ASSUMPTION**: the age pattern is proportional across these groups. |
 | Onset of preclinical cancer | calibrated | Solved year by year so that symptomatic presentation without screening equals the SEER target at every age (exact fit; checked in tests). Preclinical prevalence at the start age follows from the first year's target. Re-solved in every PSA draw. |
 | `inc_other` | by race/ethnicity, sex, age | All-site incidence (Table 2.7, race ratios Table 2.15) minus esophagus and stomach. Cancers elsewhere available to the Galleri workup: incidence × sojourn time at the first screen, incidence × interval at later screens. **ASSUMPTION**. |
-| `mort_other` | qx by single year, race/ethnicity and sex | NCHS United States Life Tables, 2024 (NVSR 75-5), Tables 2-3, 5-6, 8-9, 11-12, 14-15, 17-18. Extracted values reproduce the published life expectancy at 50 exactly. All-cause mortality (slightly overstates competing mortality). |
+| `mort_other` | qx by single year, race/ethnicity and sex | NCHS United States Life Tables, 2024 (NVSR 75-5), Tables 2-3, 5-6, 8-9, 11-12, 14-15, 17-18. Extracted values reproduce the published life expectancy at 50 exactly. **Cause-deleted**: esophageal and stomach cancer deaths are removed, q_other = 1 - (1 - qx) / (1 - q_ugi), with q_ugi from SEER U.S. death rates 2013-2017 by age, sex and race (CSR Tables 8.7, 24.7; race-scaled with Tables 8.15, 24.15 like incidence). Upper GI cancer is about 2% of deaths at 50-65 and under 1% after 85. |
 | `eac_share` | by race/ethnicity | Adenocarcinoma share of esophageal cancer, SEER 2013-2017 (CSR Table 8.22): all 64.3%, White 71.4% (used for NHW), Black 20.4%, API 26.3%, AI/AN 57.4%, Hispanic 56.7%. |
-| Kunzmann groups | RR 2.62 (high) / 0.32 (low) | 29.5% of people score ≥ 8, and they contain 77.4% of esophageal adenocarcinoma (EAC). The RR is applied to the EAC share of esophageal cancer only (race-specific, above). Stomach risk is unchanged. **ASSUMPTION**: the 29.5% share is the same in every age-sex group (in reality the score rises with age and with male sex). |
-| `cohort.csv` | base case | 50-year-old non-Hispanic White men, split 29.5% / 70.5% by Kunzmann score. The subgroup grid uses the same split. |
-| Screening schedule | settings | Annual Galleri, and annual EGD for Kunzmann ≥ 8, from the start age to 85. **ASSUMPTION**: per-round Galleri sensitivity and screen-detected stage mix are the prevalence-round values in every round (later rounds likely find earlier, harder-to-detect cancers). |
+| Kunzmann groups (settings) | men: 59.7% flagged, RR 1.48 / 0.30; women: 3.5% flagged, RR 4.37 / 0.88 | Kunzmann 2018 (accepted manuscript): a score ≥ 8 flags 59.7% of men and 3.5% of women aged 50+ (sex carries 4 points), 29.5% overall, capturing 77.4% of EAC. Capture within each sex is not reported; **ASSUMPTION**: derived assuming the flagged/unflagged RR is the same in both sexes (≈5) and 85% of EAC cases are men, giving capture 88.1% (men) and 15.3% (women), which reproduces 170 of 220 cases. RRs are within-sex (sex is already in SEER incidence) and act on the EAC share of esophageal cancer only. **ASSUMPTION**: the share does not vary with age within sex. |
+| `cohort.csv` | base case | 50-year-old non-Hispanic White men, split 59.7% / 40.3% by Kunzmann score (linked to settings). The subgroup grid uses each sex's split. |
+| Screening schedule | settings | Annual Galleri, and annual EGD for Kunzmann ≥ 8, from the start age to 85. Galleri sensitivity is lower after the first round (`sens_g_rep_ratio`); screen-detected stage mix is the same in every round (NHS-Galleri). |
 
 ## Harms
 
@@ -70,7 +72,15 @@ all of these.
 | `msv_pet` | 14.0 (SE 1.3) | PET-CT with low-dose CT. A scenario uses 24.4 mSv (with diagnostic CT). |
 | `risk_per_sv` | 0.041 | ICRP 103 nominal risk coefficient for adults. |
 
-## Costs (USD, Medicare rates as the payer proxy)
+## Costs (2025 USD, Medicare rates as the payer proxy)
+
+Every cost is stored with its published price and price year (`price_value`,
+`price_year` in `parameters.csv`) and inflated to `cost_year` (settings,
+2025) with the CPI-U medical care index (BLS CUUS0000SAM annual averages,
+`data-raw/raw/cpi_medical_care.csv`) by `data-raw/inflate_costs.R`; SE and
+ranges scale with the value. Factors to 2025: 2019 ×1.165, 2023 ×1.057,
+2024 ×1.030. Prices dated 2026 (ENT) are used as 2025 (no index yet).
+Values below are as published.
 
 | Parameter | Value | Derivation |
 |---|---|---|
@@ -86,10 +96,15 @@ all of these.
 | `c_tx_first_late` | 156,982 | First-year cost of stage IV stomach cancer. |
 | `c_fu_late` | 21,423 | 3 × the continuing-phase cost. **ASSUMPTION** |
 | `c_perf` | 30,000 (15,000-60,000) | **ASSUMPTION**. Managing an EGD perforation (admission, stent or surgical repair); mean stay after esophageal perforation is 32.9 days (Biancari 2013). No US cost estimate was found. |
-| `c_kunz`, `c_tb`, `c_symp_dx`, `c_sae` | | **ASSUMPTION** |
+| `c_incid_fu` | 1,200 (500-3,000) | **ASSUMPTION**. Follow-up of an incidental (non-GI, non-pancreatobiliary) PET finding, benign or malignant: targeted imaging and/or biopsy (e.g. thyroid ultrasound + FNA, colonoscopy). Also counts as one diagnostic procedure (QALY loss `d_proc`). Benign ones are part of the false-positive burden. |
+| `galleri_cost_share` | 1 (scenario 0.077) | **ASSUMPTION**. Share of the Galleri price charged to upper GI screening. Base case: full price. Scenario: upper GI share of MCED-detected cancers, esophagus 42/937 = 4.5% in NHS-Galleri (Neal 2026) × 1.7 for stomach (assumed stomach:esophagus ratio 0.7). |
+| `c_tx_first_late` price year | 2019 | Reddy 2022 used SEER-Medicare 2012-2016 and does not state the price year in the abstract; 2019 is assumed. |
+| `c_kunz`, `c_tb`, `c_symp_dx`, `c_sae` | | **ASSUMPTION** (2025 USD) |
 
-Costs from different years are not yet inflated to a common year. To do that,
-use the medical care component of the CPI.
+Symptomatic diagnosis includes an EGD, so every symptomatic diagnosis (all
+arms) carries the EGD perforation risk (`p_perf_egd`): cost `c_perf` and
+QALY/DALY loss `d_sae` for non-fatal perforations. Fatal perforations in the
+symptomatic workup are not modelled (about 0.1 per 100,000 people).
 
 ## Utilities and DALYs
 
