@@ -1,7 +1,12 @@
 # Galleri model verification tests (run by run.R). Add one for every bug fixed.
 proj <- ceakit::load_project(testthat::test_path("..", ".."))
 E <- proj$env; p0 <- ceakit::param_list(proj$params); S <- proj$settings; D <- proj$data
-ev <- function(name, p = p0) ceakit::evaluate(proj$analyses[[name]], p, D, S)
+ev <- function(name, p = p0, s = S) ceakit::evaluate(proj$analyses[[name]], p, D, s)
+row1 <- D$cohort[1, ]
+sim <- function(arm, row = row1, p = p0, s = S) {
+  prep <- E$prepare_row(row, D, p, s)
+  E$simulate_arm(arm, row, prep$curve, prep$cal, p, s, E$workup_summary(p), prep$V)
+}
 
 test_that("inputs are valid", {
   expect_length(ceakit::check_project(proj)$errors, 0)
@@ -15,59 +20,98 @@ test_that("workup tree probabilities sum to 1 and procedures are counted per pat
   expect_equal(d$n_tb[d$leaf == "egd_pos"], 0)
 })
 
-test_that("every cohort row's Markov trace conserves the cohort", {
-  for (i in seq_len(nrow(D$cohort))) {
-    curve <- E$baseline_for(D, D$cohort[i, ], S); mk <- E$markov_parts(curve, p0)
-    expect_silent(ceakit::check_trace(ceakit::markov_trace(mk$n, mk$transition, setNames(as.numeric(E$STATES == "well"), E$STATES))))
+test_that("calibration: usual care reproduces SEER incidence at every age, for every subgroup", {
+  for (race in S$subgroups$races) for (sex in S$subgroups$sexes) for (age in c(50, 70, 90)) {
+    C <- E$subgroup_cohort(age, sex, race, S)
+    ct <- E$calibration_table(p0, D, S, "Usual care", C)
+    expect_equal(ct$model_clinical, ct$seer, tolerance = 1e-8, label = paste(race, sex, age))
+    expect_equal(unique(ct$clipped), 0)
   }
 })
 
-test_that("regression: no further DALYs accrue after death (fixed double counting)", {
-  curve <- E$baseline_for(D, D$cohort[1, ], S)
-  V <- E$galleri_markov_values(curve, p0, S)
-  expect_equal(unname(V[c("dead_cancer", "dead_other"), c("daly", "qaly", "cost", "ly")]), matrix(0, 2, 4))
+test_that("stage calibration: symptomatic late-stage share matches SEER by site mix, race and sex", {
+  for (race in c("nhw", "nhb", "hisp")) for (sex in S$subgroups$sexes) {
+    C <- E$subgroup_cohort(55, sex, race, S)
+    ct <- E$calibration_table(p0, D, S, "Usual care", C)
+    expect_equal(ct$model_late_share, ct$seer_late_share, tolerance = 1e-10)
+    curve <- E$baseline_for(D, C[1, ], S)
+    expect_true(all(ct$seer_late_share >= pmin(curve$late_eso, curve$late_stom) - 1e-12 &
+                    ct$seer_late_share <= pmax(curve$late_eso, curve$late_stom) + 1e-12))
+  }
+  p <- p0; p$or_late_clin <- 2
+  expect_gt(mean(E$calibration_table(p, D, S, "Usual care")$model_late_share),
+            mean(E$calibration_table(p0, D, S, "Usual care")$model_late_share))
 })
 
-test_that("regression: no lead-time penalty - detecting a cancer with no stage shift changes no deaths", {
-  # Screen detection with the same stage mix as symptomatic presentation must not
-  # change cancer deaths (survival is measured from clinical diagnosis).
-  curve <- E$baseline_for(D, D$cohort[1, ], S)
-  p <- p0; p$p_late_screen <- p$p_late_clin
-  V <- E$galleri_markov_values(curve, p, S)
-  pre <- setNames(as.numeric(E$STATES == "pre"), E$STATES)
-  det <- setNames(c(0, 0, 1 - p$p_late_clin, p$p_late_clin, 0, 0, 0, 0), E$STATES)
-  expect_equal(drop(det %*% V)[["ca_death"]], drop(pre %*% V)[["ca_death"]], tolerance = 1e-10)
+test_that("calibration holds when natural-history inputs change (PSA draws re-calibrate)", {
+  p <- p0; p$sojourn_years <- 4; p$m_late <- 0.5
+  ct <- E$calibration_table(p, D, S, "Usual care")
+  expect_equal(ct$model_clinical, ct$seer, tolerance = 1e-8)
+})
+
+test_that("Kunzmann groups average back to the subgroup's SEER incidence", {
+  C <- E$subgroup_cohort(60, "male", "nhw", S); curve <- E$baseline_for(D, C[1, ], S)
+  t_hi <- E$target_ugi(curve, C[1, ], S); t_lo <- E$target_ugi(curve, C[2, ], S)
+  expect_equal(S$kunz_share * t_hi + (1 - S$kunz_share) * t_lo, curve$inc_eso + curve$inc_stom)
+})
+
+test_that("every arm's trace conserves the cohort", {
+  for (a in E$ARMS) {
+    tr <- sim(a)$trace
+    expect_equal(rowSums(tr), rep(1, nrow(tr)), tolerance = 1e-10)
+    expect_true(all(tr >= -1e-12))
+  }
+})
+
+test_that("screening stops at the stop age and repeats at the interval", {
+  s <- S; s$screen_stop_age <- 60
+  expect_equal(unname(sim("Galleri", s = s)$ev[["rounds"]]), 11)           # ages 50-60
+  s$screen_interval <- 2
+  expect_equal(unname(sim("Galleri", s = s)$ev[["rounds"]]), 6)            # 50, 52, ..., 60
+  row90 <- E$subgroup_cohort(90, "male", "nhw", S)[1, ]
+  expect_equal(unname(sim("Galleri", row = row90)$ev[["rounds"]]), 0)      # no screening after 85
+})
+
+test_that("regression: no lead-time penalty - detection with no stage shift changes no deaths", {
+  D2 <- D; D2$baseline_risks$late_eso <- 0.6; D2$baseline_risks$late_stom <- 0.6   # constant clinical mix
+  p <- p0; p$p_late_screen <- 0.6; p$sens_g_other <- 0
+  m <- ceakit::evaluate(proj$analyses$galleri, p, D2, S)
+  expect_equal(unname(m["ca_deaths", "Galleri"]), unname(m["ca_deaths", "Usual care"]), tolerance = 1e-6)
 })
 
 test_that("stage shift at screening reduces cancer deaths", {
-  curve <- E$baseline_for(D, D$cohort[1, ], S)
-  V <- E$galleri_markov_values(curve, p0, S)
-  pre <- setNames(as.numeric(E$STATES == "pre"), E$STATES)
-  det <- setNames(c(0, 0, 1 - p0$p_late_screen, p0$p_late_screen, 0, 0, 0, 0), E$STATES)
-  expect_lt(drop(det %*% V)[["ca_death"]], drop(pre %*% V)[["ca_death"]])
+  m <- ev("galleri")
+  expect_lt(m["ca_deaths", "Galleri"], m["ca_deaths", "Usual care"])
+})
+
+test_that("regression: no further DALYs or QALYs accrue after death", {
+  prep <- E$prepare_row(row1, D, p0, S)
+  for (V in prep$V) expect_equal(unname(V[c("dead_cancer", "dead_other"), c("daly", "qaly", "cost", "ly")]), matrix(0, 2, 4))
 })
 
 test_that("the usual care arm has no procedures or harms", {
   for (n in names(proj$analyses)) {
     m <- ev(n)
-    expect_equal(unname(m[c("egd", "sae_total", "free_investigated", "screen_detected"), 1]), c(0, 0, 0, 0))
+    expect_equal(unname(m[c("egd", "sae_total", "free_investigated", "screen_detected", "galleri_tests"), 1]),
+                 c(0, 0, 0, 0, 0))
   }
 })
 
-test_that("a Galleri test with zero sensitivity and zero false positives only adds cost", {
+test_that("a Galleri test with zero sensitivity and zero false positives only adds test costs", {
   p <- p0; p$sens_g_ugi <- 0; p$sens_g_other <- 0; p$fpr_g_es <- 0
-  for (n in names(proj$analyses)) {
-    m <- ev(n, p)
-    expect_equal(unname(m["qaly_total", "Galleri"]), unname(m["qaly_total", 1]))
-    expect_equal(unname(m["cost_total", "Galleri"] - m["cost_total", 1]), p$c_galleri)
-  }
+  m <- ev("galleri", p)
+  expect_equal(unname(m["qaly_total", "Galleri"]), unname(m["qaly_total", 1]))
+  expect_equal(unname(m["ca_deaths", "Galleri"]), unname(m["ca_deaths", 1]))
+  expect_gt(m["cost_total", "Galleri"], m["cost_total", 1])
+  # one-off test: the extra cost is exactly the test price
+  s <- S; s$screen_stop_age <- 50
+  m1 <- ev("galleri", p, s)
+  expect_equal(unname(m1["cost_total", "Galleri"] - m1["cost_total", 1]), p$c_galleri)
 })
 
-test_that("same total cancers in every arm (cancers are only moved between found and missed)", {
-  for (n in names(proj$analyses)) {
-    m <- ev(n)
-    expect_equal(unname(m["screen_detected", ] + m["missed_total", ]), rep(unname(m["total_cancers", 1]), ncol(m)))
-  }
+test_that("more screening rounds find more cancers", {
+  s <- S; s$screen_stop_age <- 50
+  expect_gt(ev("galleri")["screen_detected", "Galleri"], ev("galleri", s = s)["screen_detected", "Galleri"])
 })
 
 test_that("worse late-stage survival increases cancer deaths", {
@@ -84,8 +128,15 @@ test_that("the Galleri arm runs each positive through the workup flowchart", {
   m <- ev("galleri")[, "Galleri"]; d <- E$workup_paths(p0)
   expect_equal(m[["egd"]], m[["investigated"]])                       # every positive has an EGD
   expect_equal(m[["pet_ct"]], m[["investigated"]] * sum(d$prob * d$n_pet))
-  p <- p0; p$p_miss <- 0.5                                              # your follow-up counts matter
+  p <- p0; p$p_miss <- 0.5                                              # follow-up counts matter
   expect_lt(ev("galleri", p)["screen_detected", "Galleri"], m[["screen_detected"]])
   expect_equal(m[["screen_detected"]] + m[["missed_investigated"]] + m[["free_investigated"]],
                m[["investigated"]], tolerance = 1e-12)
+})
+
+test_that("subgroup grid covers every age x sex x race/ethnicity and screening stops at 85", {
+  s <- S; s$subgroups <- list(ages = c(50, 90), sexes = c("male", "female"), races = c("nhw", "hisp"))
+  g <- E$subgroup_grid(p0, D, s, E$ARMS)
+  expect_equal(nrow(g), 2 * 2 * 2 * length(E$ARMS))
+  expect_true(all(g$cancers_found[g$start_age == 90] == 0))
 })

@@ -2,12 +2,15 @@
 # PROJECT CONTRACT - Galleri upper GI screening & workup
 # (engine in galleri_engine.R, figures in galleri_plots.R)
 #
-# Both analyses use the same screening cohort (adults 50-79). In the Galleri
-# arm a -ve result follows usual care and a +ve result goes to the full workup.
+# Annual screening (Galleri every year; EGD every year for people with a
+# Kunzmann score >= 8) from the start age to settings$screen_stop_age, lifetime
+# horizon. Natural history is calibrated to SEER incidence for each subgroup and
+# drives every arm. Base case: 50-year-old non-Hispanic White men (cohort.csv).
 #   analyses$galleri     usual care vs Galleri: benefits and harms per 100,000
-#   analyses$comparison  usual care vs Kunzmann score >= 8 -> EGD vs Galleri
-# Inputs: inputs/parameters.csv, baseline_risks.csv (competing risks by
-# risk_group x sex x age), cohort.csv, counts.csv (observed workup counts).
+#   analyses$comparison  usual care vs Kunzmann -> EGD vs Galleri
+# Subgroup sensitivity grid: start age x sex x race/ethnicity (settings$subgroups).
+# Inputs: inputs/parameters.csv, baseline_risks.csv (race/ethnicity x sex x
+# age: life tables + SEER targets), cohort.csv, counts.csv (workup counts).
 # =============================================================
 
 project_title <- "Galleri upper GI screening & workup"
@@ -16,27 +19,33 @@ settings <- ceakit::default_settings(
   wtp = 100000, n_sim = 1000, seed = 2026, owsa_pct = 0.25, evppi = TRUE,
   evppi_groups = list(
     `Galleri accuracy` = c("sens_g_ugi", "sens_g_other", "fpr_g_es"),
-    `Natural history` = c("sojourn_years", "m_early", "m_late", "p_late_clin", "p_late_screen"),
+    `Natural history` = c("sojourn_years", "m_early", "m_late", "or_late_clin", "p_late_screen"),
     `Utilities & harms` = c("u_mult_early", "u_mult_late", "d_proc", "d_sae")),
-  max_age = 100, disc_cost = 0.03, disc_qaly = 0.03, disc_daly = 0)
+  max_age = 100, disc_cost = 0.03, disc_qaly = 0.03, disc_daly = 0,
+  screen_stop_age = 85, screen_interval = 1,          # annual screening to age 85
+  kunz_share = 0.295, kunz_capture = 0.774,           # Kunzmann score >= 8 (Kunzmann 2018)
+  subgroups = list(ages = seq(50, 90, 5), sexes = c("male", "female"),
+                   races = c("all", "nhw", "nhb", "nhapi", "nhaian", "hisp")))
 
 load_data <- function(dir) {
   rd <- function(stem) ceakit::read_table(list.files(dir, paste0("^", stem, "\\.(csv|xlsx|xls)$"), full.names = TRUE)[1])
   B <- rd("baseline_risks"); C <- rd("cohort")
   B$sex <- tolower(trimws(B$sex)); C$sex <- tolower(trimws(C$sex)); C$population <- tolower(trimws(C$population))
+  B$race_eth <- tolower(trimws(B$race_eth)); C$race_eth <- tolower(trimws(C$race_eth))
   list(baseline_risks = B, cohort = C)
 }
 
 validate_data <- function(data, settings) {
   e <- character(0); w <- character(0); B <- data$baseline_risks; C <- data$cohort
-  need_b <- c("risk_group", "sex", "age_from", "age_to", "mort_other", "inc_ugi", "prev_ugi", "prev_other",
-              "utility_well", "daly_ref_le")
-  need_c <- c("population", "risk_group", "sex", "start_age", "share", "kunzmann_scoped")
+  need_b <- c("race_eth", "sex", "age_from", "age_to", "mort_other", "inc_eso", "inc_stom", "inc_other",
+              "eac_share", "late_eso", "late_stom", "utility_well", "daly_ref_le")
+  need_c <- c("population", "race_eth", "risk_group", "sex", "start_age", "share", "kunzmann_scoped")
   if (length(m <- setdiff(need_b, names(B)))) return(list(errors = paste("baseline_risks: missing", paste(m, collapse = ", ")), warnings = w))
   if (length(m <- setdiff(need_c, names(C)))) return(list(errors = paste("cohort: missing", paste(m, collapse = ", ")), warnings = w))
-  for (cc in c("mort_other", "inc_ugi", "prev_ugi", "prev_other", "utility_well"))
+  for (cc in c("mort_other", "inc_eso", "inc_stom", "inc_other", "eac_share", "late_eso", "late_stom", "utility_well"))
     if (any(is.na(B[[cc]]) | B[[cc]] < 0 | B[[cc]] > 1)) e <- c(e, sprintf("baseline_risks: %s must be 0-1", cc))
-  if (any(B$prev_ugi + B$prev_other > 1, na.rm = TRUE)) e <- c(e, "baseline_risks: prev_ugi + prev_other > 1")
+  miss <- setdiff(settings$subgroups$races, unique(B$race_eth))
+  if (length(miss)) e <- c(e, paste("baseline_risks: no rows for subgroup race/ethnicity", paste(miss, collapse = ", ")))
   for (pp in POPULATION) {
     s <- sum(C$share[C$population == pp])
     if (abs(s - 1) > 0.001) e <- c(e, sprintf("cohort: shares for '%s' sum to %.4f (must be 1)", pp, s))
@@ -51,10 +60,11 @@ validate_data <- function(data, settings) {
 
 METRICS <- tibble::tribble(
   ~key, ~section, ~label, ~type, ~digits,
-  "total_cancers", "1. Baseline burden", "Prevalent cancers at screening (same in every arm)", "count", 1,
-  "cancer_free", "1. Baseline burden", "Cancer-free people", "count", 0,
+  "total_cancers", "1. Baseline burden", "Preclinical upper GI cancers at the start age (calibrated)", "count", 1,
+  "cancer_free", "1. Baseline burden", "People without preclinical upper GI cancer at the start", "count", 0,
   "kunz_scores", "2. Screening & workup burden", "Kunzmann scores", "count", 0,
-  "galleri_tests", "2. Screening & workup burden", "Galleri tests", "count", 0,
+  "galleri_tests", "2. Screening & workup burden", "Galleri tests (all screening rounds)", "count", 0,
+  "screen_rounds", "2. Screening & workup burden", "Screening rounds offered (per person)", "person", 1,
   "investigated", "2. Screening & workup burden", "People investigated (EGD or more)", "count", 0,
   "egd", "2. Screening & workup burden", "EGDs", "count", 0,
   "ent", "2. Screening & workup burden", "ENT evaluations", "count", 0,
@@ -64,11 +74,10 @@ METRICS <- tibble::tribble(
   "tumor_board", "2. Screening & workup burden", "Tumor board discussions", "count", 0,
   "invasive_total", "2. Screening & workup burden", "Invasive procedures (EGD/EUS/sampling)", "count", 0,
   "mean_days", "2. Screening & workup burden", "Mean days to resolution if investigated", "ratio", 0,
-  "cost_tests", "2. Screening & workup burden", "Screening test cost per person ($)", "person", 2,
-  "cost_dx", "2. Screening & workup burden", "Diagnostic workup cost per person ($)", "person", 2,
-  "cost_tx", "2. Screening & workup burden", "Lifetime treatment & care cost per person ($)", "person", 2,
+  "cost_tests", "2. Screening & workup burden", "Screening, workup and complication cost per person ($, discounted)", "person", 2,
+  "cost_tx", "2. Screening & workup burden", "Lifetime cancer care cost per person ($)", "person", 2,
   "cost_total", "2. Screening & workup burden", "Total lifetime cost per person ($)", "person", 2,
-  "screen_detected", "3. Benefit", "Cancers found by screening/workup", "count", 1,
+  "screen_detected", "3. Benefit", "Cancers found by screening/workup (all rounds)", "count", 1,
   "found_upper_gi", "3. Benefit", "  - upper GI (esophagus/stomach)", "count", 1,
   "found_other", "3. Benefit", "  - other sites", "count", 1,
   "clin_dx_lifetime", "3. Benefit", "Cancers diagnosed with symptoms over lifetime", "count", 1,
@@ -86,8 +95,7 @@ METRICS <- tibble::tribble(
   "proc_deaths", "4. Harm", "Deaths from procedure complications", "count", 3,
   "dose_sv", "4. Harm", "Collective PET CT dose (Sv)", "count", 2,
   "radiation_cancers", "4. Harm", "Radiation-induced cancers (lifetime)", "count", 3,
-  "missed_total", "4. Harm", "Prevalent cancers missed at screening", "count", 1,
-  "missed_investigated", "4. Harm", "  - missed despite investigation (false reassurance)", "count", 1,
+  "missed_investigated", "4. Harm", "Cancers missed despite investigation (false reassurance)", "count", 1,
   "qaly_total", "5. QALYs & DALYs", "Lifetime QALYs (discounted)", "count", 0,
   "qaly_harms", "5. QALYs & DALYs", "QALYs lost to procedure harms", "count", 1,
   "qaly_net", "5. QALYs & DALYs", "Net QALYs gained vs reference", "count", 1,
@@ -95,7 +103,6 @@ METRICS <- tibble::tribble(
   "daly_harms", "5. QALYs & DALYs", "  - DALYs from procedure harms", "count", 1,
   "daly_averted", "5. QALYs & DALYs", "Net DALYs averted vs reference", "count", 1,
   "cost_per_daly", "6. Efficiency", "Cost per DALY averted vs reference ($)", "ratio", 0,
-  "nn_per_found", "6. Efficiency", "People tested/worked up per cancer found", "ratio", 1,
   "nn_per_ca_death_averted", "6. Efficiency", "People tested/worked up per cancer death averted", "ratio", 0,
   "investigated_per_found", "6. Efficiency", "People investigated per cancer found", "ratio", 1,
   "fp_per_found", "6. Efficiency", "False positives investigated per cancer found", "ratio", 1,
@@ -103,7 +110,7 @@ METRICS <- tibble::tribble(
 
 ALL_PARAMS <- c("sens_g_ugi", "sens_g_other", "fpr_g_es", "sens_egd", "p_egd_pos",
   "p_ent_route", "p_ent_pos", "p_pet_pb", "p_pet_incid", "p_eus_pos", "p_eus_neg", "p_miss",
-  "p_incid_cancer", "p_late_screen", "p_late_clin", "sojourn_years", "m_early", "m_late", "sae_egd",
+  "p_incid_cancer", "p_late_screen", "or_late_clin", "sojourn_years", "m_early", "m_late", "sae_egd",
   "sae_ent", "sae_eus", "sae_eus_samp", "p_death_sae", "msv_pet", "risk_per_sv", "loss_rad_ca", "t_egd",
   "t_ent", "t_pet", "t_eus", "t_tb", "c_galleri", "c_kunz", "c_egd", "c_ent", "c_pet", "c_eus",
   "c_eus_samp", "c_tb", "c_symp_dx", "c_tx_first_early", "c_tx_first_late", "c_fu_early", "c_fu_late",
@@ -124,14 +131,16 @@ make_analysis <- function(name, title, arms, owsa, cohort_n, unit, required, plo
     metrics = METRICS, derive = derive_galleri, required = required, cohort_n = cohort_n, unit = unit,
     owsa = owsa, key_metrics = KEY, constraints = keep_ordered, plots = plots)
 
+UNIT <- "per 100,000 (base case: 50-year-old non-Hispanic White men)"
 analyses <- list(
   galleri = make_analysis(
-    "galleri", "Galleri: benefits and harms", c("Usual care", "Galleri"), c("Galleri", "Usual care"), 100000,
-    "per 100,000 screened", setdiff(ALL_PARAMS, c("c_kunz", "sens_egd")),
+    "galleri", "Galleri: benefits and harms (annual screening)", c("Usual care", "Galleri"),
+    c("Galleri", "Usual care"), 100000, UNIT, setdiff(ALL_PARAMS, c("c_kunz", "sens_egd")),
     list(workup_tree = plot_workup_tree, benefit_harm = plot_balance, icon_array = plot_icons,
-         markov_trace = plot_trace, cancer_states = plot_cancer_states, subgroups = plot_subgroups)),
+         calibration = plot_calibration, markov_trace = plot_trace, cancer_states = plot_cancer_states,
+         subgroups = plot_subgroups)),
   comparison = make_analysis(
-    "comparison", "Usual care vs Kunzmann vs Galleri", ARMS, c("Galleri", "Kunzmann -> EGD"), 100000,
-    "per 100,000 screened", ALL_PARAMS,
-    list(strategy_tree = plot_strategy_tree, benefit_harm = plot_balance, markov_trace = plot_trace,
-         cancer_states = plot_cancer_states, subgroups = plot_subgroups)))
+    "comparison", "Usual care vs Kunzmann vs Galleri (annual screening)", ARMS,
+    c("Galleri", "Kunzmann -> EGD"), 100000, UNIT, ALL_PARAMS,
+    list(strategy_tree = plot_strategy_tree, benefit_harm = plot_balance, calibration = plot_calibration,
+         markov_trace = plot_trace, cancer_states = plot_cancer_states, subgroups = plot_subgroups)))

@@ -1,33 +1,75 @@
 # =============================================================
-# Galleri model engine (project-specific). Uses ceakit engines:
-#   ceakit::tree_paths()     - Galleri +ve workup decision tree
-#   ceakit::markov_values()  - lifetime Markov with competing risks
-#   ceakit::lookup_by_age()  - baseline risks by risk group x sex x age
+# Galleri model engine (project-specific)
+#
+# Annual-cycle cohort simulation over a lifetime horizon (to max_age):
+#   1. NATURAL HISTORY is calibrated to SEER. For each subgroup (race/
+#      ethnicity x sex x Kunzmann group) the yearly onset of preclinical
+#      upper GI cancer is solved so that, without screening, symptomatic
+#      presentation reproduces SEER age-specific incidence exactly, and the
+#      stage at symptomatic diagnosis reproduces SEER's stage distribution
+#      (esophagus and stomach separately, weighted by the subgroup's site mix
+#      at each age). The same calibrated natural history drives every arm.
+#   2. SCREENING happens at the start of each screening year until
+#      settings$screen_stop_age:
+#        Kunzmann -> EGD : people flagged by the score have an EGD;
+#        Galleri         : everyone undiagnosed is tested; a +ve esophagus/
+#                          stomach signal goes through the full workup tree.
+#      Screen-detected cancers enter lead-time states (no cancer deaths until
+#      they would have presented), so benefit comes from stage shift only.
+#   3. Cancers elsewhere found by the Galleri workup are valued as the
+#      difference between detection now and symptomatic presentation later,
+#      using the same natural history (backward induction).
 # =============================================================
 
-# lead_early / lead_late: screen-detected cancers during their lead time (the
-# time until they would have presented with symptoms). No cancer deaths occur
-# in lead time, so screening is credited only for stage shift, not for the
-# lead time itself (stage-specific survival is measured from clinical diagnosis).
 STATES <- c("well", "pre", "lead_early", "lead_late", "early", "late", "dead_cancer", "dead_other")
 DEAD <- c("dead_cancer", "dead_other")
 CHANNELS <- c("cost", "qaly", "daly", "ly", "clin_dx", "clin_late", "ca_death", "oc_death")
-# Arms. Every analysis runs on the same screening cohort (cohort.csv) and
-# picks the arms it compares from ARMS.
 ARMS <- c("Usual care", "Kunzmann -> EGD", "Galleri")
 POPULATION <- "screening"
+RACE_LABELS <- c(all = "All races/ethnicities", nhw = "Non-Hispanic White", nhb = "Non-Hispanic Black",
+                 nhapi = "Non-Hispanic Asian/Pacific Islander",
+                 nhaian = "Non-Hispanic American Indian/Alaska Native", hisp = "Hispanic")
 
-# ---- Markov model ---------------------------------------------------------
-baseline_for <- function(data, row, settings)
-  ceakit::lookup_by_age(data$baseline_risks, list(risk_group = row$risk_group, sex = row$sex),
-                        row$start_age:(settings$max_age - 1))
+# ---- Baseline data and calibration targets ---------------------------------
+baseline_for <- function(data, row, settings) {
+  B <- data$baseline_risks
+  ages <- row$start_age:(settings$max_age - 1)
+  d <- B[B$race_eth == row$race_eth & B$sex == row$sex, ]
+  d <- d[match(ages, d$age_from), ]
+  if (anyNA(d$age_from)) stop(sprintf("no baseline rows for %s %s age %d-%d", row$race_eth, row$sex,
+                                     min(ages), max(ages)))
+  d
+}
 
-transition_matrix <- function(mo, inc, p) {
-  pp <- 1 - exp(-1 / p$sojourn_years); pl <- p$p_late_clin; s <- 1 - mo
+kunz_rr <- function(risk_group, settings) {
+  s <- settings$kunz_share; k <- settings$kunz_capture
+  switch(risk_group, kunzmann_high = k / s, kunzmann_low = (1 - k) / (1 - s), 1)
+}
+
+# SEER clinical incidence of upper GI cancer for this subgroup (per person-year).
+# The Kunzmann relative risk acts on the adenocarcinoma share of esophageal cancer.
+target_ugi <- function(curve, row, settings) {
+  rr <- kunz_rr(row$risk_group, settings)
+  curve$inc_eso * (curve$eac_share * rr + 1 - curve$eac_share) + curve$inc_stom
+}
+
+# SEER stage at symptomatic diagnosis for this subgroup, by age: share
+# regional/distant, weighted by the esophagus vs stomach mix of the target.
+# or_late_clin (default 1) shifts the odds for probabilistic analysis.
+target_late <- function(curve, row, settings, p) {
+  rr <- kunz_rr(row$risk_group, settings)
+  eso <- curve$inc_eso * (curve$eac_share * rr + 1 - curve$eac_share); stom <- curve$inc_stom
+  pl <- (eso * curve$late_eso + stom * curve$late_stom) / (eso + stom)
+  or <- p$or_late_clin %||% 1
+  pl * or / (1 - pl + pl * or)
+}
+
+transition_matrix <- function(mo, onset, p, pl) {
+  pp <- 1 - exp(-1 / p$sojourn_years); s <- 1 - mo
   n <- length(STATES)
   P <- matrix(0, n, n, dimnames = list(STATES, STATES))
   P[, "dead_other"] <- mo
-  P["well", c("well", "pre")] <- s * c(1 - inc, inc)
+  P["well", c("well", "pre")] <- s * c(1 - onset, onset)
   P["pre", c("pre", "early", "late")] <- s * c(1 - pp, pp * (1 - pl), pp * pl)
   P["lead_early", c("lead_early", "early")] <- s * c(1 - pp, pp)
   P["lead_late", c("lead_late", "late")] <- s * c(1 - pp, pp)
@@ -37,39 +79,71 @@ transition_matrix <- function(mo, inc, p) {
   P
 }
 
-markov_parts <- function(curve, p) {
-  transition <- function(t) transition_matrix(curve$mort_other[t], curve$inc_ugi[t], p)
-  rewards <- function(t, P) {
-    alive <- setNames(ceakit::alive_fraction(P, DEAD), STATES)
-    live <- !STATES %in% DEAD
-    R <- matrix(0, length(STATES), length(CHANNELS), dimnames = list(STATES, CHANNELS))
-    u <- c(well = 1, pre = 1, lead_early = p$u_mult_early, lead_late = p$u_mult_late,
-           early = p$u_mult_early, late = p$u_mult_late, dead_cancer = 0, dead_other = 0)
-    dw <- c(well = 0, pre = 0, lead_early = p$dw_early, lead_late = p$dw_late,
-            early = p$dw_early, late = p$dw_late, dead_cancer = 0, dead_other = 0)
-    R[, "ly"] <- alive
-    R[, "qaly"] <- alive * curve$utility_well[t] * u[STATES]
-    R["lead_early", "cost"] <- alive[["lead_early"]] * p$c_fu_early
-    R["lead_late", "cost"]  <- alive[["lead_late"]] * p$c_fu_late
-    R["early", "cost"] <- alive[["early"]] * p$c_fu_early + P["early", "dead_cancer"] * p$c_eol
-    R["late", "cost"]  <- alive[["late"]] * p$c_fu_late  + P["late", "dead_cancer"]  * p$c_eol
-    R["pre", "cost"]   <- P["pre", "early"] * (p$c_symp_dx + p$c_tx_first_early) +
-                          P["pre", "late"]  * (p$c_symp_dx + p$c_tx_first_late)
-    R[, "daly"] <- alive * dw[STATES] +                                       # YLD
-                   P[, "dead_cancer"] * curve$daly_ref_le[t] * live           # YLL, new deaths only
-    R["pre", "clin_dx"] <- P["pre", "early"] + P["pre", "late"]
-    R["pre", "clin_late"] <- P["pre", "late"]
-    R[, "ca_death"] <- P[, "dead_cancer"] * live
-    R[, "oc_death"] <- P[, "dead_other"] * live
-    R
+# Solve yearly onset so that modelled symptomatic incidence per living person
+# equals the SEER target at every age (closed form, one year at a time).
+# Returns the onset vector, the starting state (preclinical prevalence implied
+# by the target) and the fit.
+calibrate <- function(curve, target, p, pl) {
+  n <- nrow(curve); pp <- 1 - exp(-1 / p$sojourn_years); s <- 1 - curve$mort_other
+  x <- setNames(numeric(length(STATES)), STATES)
+  x["pre"] <- min(0.5, target[1] / (s[1] * pp)); x["well"] <- 1 - x["pre"]
+  x0 <- x; onset <- numeric(n); clipped <- 0
+  for (t in seq_len(n)) {
+    if (t < n) {
+      P0 <- transition_matrix(curve$mort_other[t], 0, p, pl[t])
+      nxt <- drop(x %*% P0)                       # next state with no new onset
+      alive_next <- sum(nxt[!STATES %in% DEAD])
+      pre_goal <- target[t + 1] * alive_next / (s[t + 1] * pp)
+      o <- (pre_goal - nxt[["pre"]]) / max(1e-12, nxt[["well"]])
+      if (o < 0 || o > 1) clipped <- clipped + 1
+      onset[t] <- min(1, max(0, o))
+    } else onset[t] <- onset[max(1, t - 1)]
+    x <- drop(x %*% transition_matrix(curve$mort_other[t], onset[t], p, pl[t]))
   }
-  list(n = nrow(curve), transition = transition, rewards = rewards)
+  list(onset = onset, x0 = x0, clipped = clipped, pl = pl)
 }
 
-galleri_markov_values <- function(curve, p, settings) {
-  mk <- markov_parts(curve, p)
-  ceakit::markov_values(mk$n, mk$transition, mk$rewards,
-                        disc = c(cost = settings$disc_cost, qaly = settings$disc_qaly, daly = settings$disc_daly))
+# ---- Rewards per cycle (as before; onset now comes from calibration) --------
+cycle_rewards <- function(P, curve, t, p) {
+  alive <- setNames(ceakit::alive_fraction(P, DEAD), STATES)
+  live <- !STATES %in% DEAD
+  R <- matrix(0, length(STATES), length(CHANNELS), dimnames = list(STATES, CHANNELS))
+  u <- c(well = 1, pre = 1, lead_early = p$u_mult_early, lead_late = p$u_mult_late,
+         early = p$u_mult_early, late = p$u_mult_late, dead_cancer = 0, dead_other = 0)
+  dw <- c(well = 0, pre = 0, lead_early = p$dw_early, lead_late = p$dw_late,
+          early = p$dw_early, late = p$dw_late, dead_cancer = 0, dead_other = 0)
+  R[, "ly"] <- alive
+  R[, "qaly"] <- alive * curve$utility_well[t] * u[STATES]
+  R["lead_early", "cost"] <- alive[["lead_early"]] * p$c_fu_early
+  R["lead_late", "cost"]  <- alive[["lead_late"]] * p$c_fu_late
+  R["early", "cost"] <- alive[["early"]] * p$c_fu_early + P["early", "dead_cancer"] * p$c_eol
+  R["late", "cost"]  <- alive[["late"]] * p$c_fu_late  + P["late", "dead_cancer"]  * p$c_eol
+  R["pre", "cost"]   <- P["pre", "early"] * (p$c_symp_dx + p$c_tx_first_early) +
+                        P["pre", "late"]  * (p$c_symp_dx + p$c_tx_first_late)
+  R[, "daly"] <- alive * dw[STATES] + P[, "dead_cancer"] * curve$daly_ref_le[t] * live
+  R["pre", "clin_dx"] <- P["pre", "early"] + P["pre", "late"]
+  R["pre", "clin_late"] <- P["pre", "late"]
+  R[, "ca_death"] <- P[, "dead_cancer"] * live
+  R[, "oc_death"] <- P[, "dead_other"] * live
+  R
+}
+
+disc_vec <- function(settings, t) {   # discount factors for cycle t (t = 1 is year 0)
+  r <- c(cost = settings$disc_cost, qaly = settings$disc_qaly, daly = settings$disc_daly)
+  d <- setNames(rep(1, length(CHANNELS)), CHANNELS)
+  d[names(r)] <- (1 + r)^-(t - 1)
+  d
+}
+
+# Backward induction: value (discounted to the start of cycle t) of being in
+# each state at the start of cycle t, under usual care. Used to value cancers
+# elsewhere that the Galleri workup finds.
+values_by_cycle <- function(Ps, Rs, settings) {
+  n <- length(Ps); V <- vector("list", n + 1)
+  V[[n + 1]] <- matrix(0, length(STATES), length(CHANNELS), dimnames = list(STATES, CHANNELS))
+  d1 <- disc_vec(settings, 2)
+  for (t in n:1) V[[t]] <- Rs[[t]] + (Ps[[t]] %*% V[[t + 1]]) * rep(d1, each = length(STATES))
+  V[seq_len(n)]
 }
 
 # ---- Galleri +ve workup decision tree (flowchart) --------------------------
@@ -112,102 +186,130 @@ add_path_details <- function(d, p) {
   d
 }
 
-# ---- Ledgers: events at time 0, per person ---------------------------------
-ledger <- function(total) list(
-  total = total, found = 0, found_ugi = 0, missed = total, missed_inv = 0, investigated = 0,
-  free_inv = 0, kunz = 0, galleri = 0, n_egd = 0, n_ent = 0, n_pet = 0, n_eus = 0, n_samp = 0,
-  n_tb = 0, n_invasive = 0, invasive_free = 0, sae = 0, sae_free = 0, rad_ca = 0,
-  cost_tests = 0, cost_dx = 0, days = 0)
-
-ledger_from_paths <- function(d, total, scale = 1, galleri = 0, test_cost = 0) {
-  s <- function(x) scale * sum(d$prob * x)
-  l <- ledger(total)
-  l$found <- s(d$found); l$found_ugi <- s(d$found * (d$site %in% "Upper GI"))
-  l$missed <- total - l$found; l$missed_inv <- s(d$missed)
-  l$investigated <- scale; l$free_inv <- s(d$free)
-  for (k in c("n_egd", "n_ent", "n_pet", "n_eus", "n_samp", "n_tb", "n_invasive", "sae", "rad_ca",
-              "cost_dx", "days")) l[[k]] <- s(d[[k]])
-  l$invasive_free <- s(d$free * d$n_invasive); l$sae_free <- s(d$free * d$sae)
-  l$galleri <- galleri; l$cost_tests <- test_cost
-  l
+# Per-positive averages of the workup tree, plus the share of cancers among
+# positives that the workup finds: found / (found + missed).
+workup_summary <- function(p) {
+  d <- workup_paths(p); s <- function(x) sum(d$prob * x)
+  yf <- s(d$found); ym <- s(d$missed)
+  c(n_egd = s(d$n_egd), n_ent = s(d$n_ent), n_pet = s(d$n_pet), n_eus = s(d$n_eus), n_samp = s(d$n_samp),
+    n_tb = s(d$n_tb), n_invasive = s(d$n_invasive), sae = s(d$sae), rad_ca = s(d$rad_ca), days = s(d$days),
+    cost_dx = s(d$cost_dx), det = if (yf + ym > 0) yf / (yf + ym) else 0)
 }
 
-arms_all <- function(p, row, curve0) {
-  pu <- curve0$prev_ugi; po <- curve0$prev_other; total <- pu + po; free <- 1 - total
-  a_u <- pu * p$sens_g_ugi; a_o <- po * p$sens_g_other; a_f <- free * p$fpr_g_es; gp <- a_u + a_o + a_f
-  # Galleri: -ve -> usual care; +ve -> the full workup flowchart (workup_paths).
-  # Galleri accuracy sets how many people test +ve (gp) and how many of them
-  # have cancer (a_u + a_o) or not (a_f). The workup counts set the procedures,
-  # costs, harms and days per person worked up, and the share of the cancers
-  # among positives that the workup finds (the rest are missed despite workup).
-  galleri <- function() {
-    d <- workup_paths(p)
-    yf <- sum(d$prob * d$found); ym <- sum(d$prob * d$missed)
-    det <- if (yf + ym > 0) yf / (yf + ym) else 0
-    l <- ledger_from_paths(d, total, scale = gp, galleri = 1, test_cost = p$c_galleri)
-    fr <- if (gp > 0) a_f / gp else 0
-    l$found <- (a_u + a_o) * det; l$found_ugi <- a_u * det
-    l$missed_inv <- (a_u + a_o) - l$found; l$missed <- total - l$found
-    l$free_inv <- a_f; l$invasive_free <- fr * l$n_invasive; l$sae_free <- fr * l$sae
-    l
+# ---- One cohort row, one arm: annual simulation -----------------------------
+EVENTS <- c("kunz", "tests", "investigated", "egd", "ent", "pet", "eus", "samp", "tb", "invasive",
+            "invasive_free", "free_inv", "sae", "sae_free", "proc_deaths", "rad_ca", "days", "found_ugi",
+            "found_other", "missed_inv", "late_screen", "rounds")
+
+simulate_arm <- function(arm, row, curve, cal, p, settings, wk, V) {
+  n <- nrow(curve); pls <- p$p_late_screen; x <- cal$x0
+  ev <- setNames(numeric(length(EVENTS)), EVENTS)
+  acc <- setNames(numeric(length(CHANNELS)), CHANNELS)
+  cost0 <- 0; q_harm <- 0; d_harm <- 0
+  trace <- matrix(0, n + 1, length(STATES), dimnames = list(NULL, STATES)); trace[1, ] <- x
+  interval <- max(1, settings$screen_interval)
+  for (t in seq_len(n)) {
+    age <- row$start_age + t - 1
+    df <- disc_vec(settings, t)
+    P <- transition_matrix(curve$mort_other[t], cal$onset[t], p, cal$pl[t])
+    if (arm == "Kunzmann -> EGD" && t == 1) { ev["kunz"] <- 1; cost0 <- cost0 + df[["cost"]] * p$c_kunz }
+    screen <- arm != "Usual care" && age <= settings$screen_stop_age && (t - 1) %% interval == 0 &&
+              (arm == "Galleri" || isTRUE(row$kunzmann_scoped == 1))
+    if (screen) {
+      W <- x[["well"]]; U <- x[["pre"]]; e <- list()
+      if (arm == "Galleri") {
+        pool_o <- W * curve$inc_other[t] * (if (t == 1) p$sojourn_years else interval)
+        a_u <- U * p$sens_g_ugi; a_o <- pool_o * p$sens_g_other; a_f <- (W - pool_o) * p$fpr_g_es
+        gp <- a_u + a_o + a_f
+        e$found_ugi <- a_u * wk[["det"]]; e$found_other <- a_o * wk[["det"]]
+        e$missed_inv <- (a_u + a_o) - e$found_ugi - e$found_other
+        e$tests <- W + U; e$investigated <- gp; e$free_inv <- a_f
+        for (k in c("egd", "ent", "pet", "eus", "samp", "tb")) e[[k]] <- gp * wk[[paste0("n_", k)]]
+        e$invasive <- gp * wk[["n_invasive"]]; e$invasive_free <- a_f * wk[["n_invasive"]]
+        e$sae <- gp * wk[["sae"]]; e$sae_free <- a_f * wk[["sae"]]; e$rad_ca <- gp * wk[["rad_ca"]]
+        e$days <- gp * wk[["days"]]
+        cost_t <- (W + U) * p$c_galleri + gp * wk[["cost_dx"]]
+      } else {
+        egd <- W + U
+        e$found_ugi <- U * p$sens_egd; e$found_other <- 0; e$missed_inv <- U - e$found_ugi
+        e$tests <- 0; e$investigated <- egd; e$free_inv <- W
+        e$egd <- egd; e$invasive <- egd; e$invasive_free <- W
+        e$sae <- egd * p$sae_egd; e$sae_free <- W * p$sae_egd; e$rad_ca <- 0; e$days <- egd * p$t_egd
+        cost_t <- egd * p$c_egd
+      }
+      fu <- e$found_ugi; fo <- e$found_other
+      pd <- min(W * 0.5, e$sae * p$p_death_sae)
+      e$proc_deaths <- pd; e$late_screen <- (fu + fo) * pls; e$rounds <- 1
+      for (k in names(e)) ev[k] <- ev[k] + e[[k]]
+      # move screen-detected upper GI cancers into lead time; procedure deaths out of well
+      x["pre"] <- x["pre"] - fu
+      x["lead_early"] <- x["lead_early"] + fu * (1 - pls); x["lead_late"] <- x["lead_late"] + fu * pls
+      x["well"] <- x["well"] - pd; x["dead_other"] <- x["dead_other"] + pd
+      tx_first <- (fu + fo) * ((1 - pls) * p$c_tx_first_early + pls * p$c_tx_first_late)
+      cost0 <- cost0 + df[["cost"]] * (cost_t + tx_first + e$sae * p$c_sae)
+      n_proc <- e$egd + (e$ent %||% 0) + (e$pet %||% 0) + (e$eus %||% 0)
+      qh <- n_proc * p$d_proc + (e$sae - pd) * p$d_sae + e$rad_ca * p$loss_rad_ca
+      q_harm <- q_harm + df[["qaly"]] * qh
+      d_harm <- d_harm + df[["daly"]] * (qh + pd * curve$daly_ref_le[t])
+      # cancers elsewhere found now vs presenting with symptoms later
+      if (fo > 0) {
+        v_det <- (1 - pls) * V[[t]]["lead_early", ] + pls * V[[t]]["lead_late", ]
+        delta <- (v_det - V[[t]]["pre", ]) * df
+        acc <- acc + fo * delta
+      }
+    }
+    R <- cycle_rewards(P, curve, t, p)
+    acc <- acc + drop(x %*% R) * df
+    x <- drop(x %*% P); trace[t + 1, ] <- x
   }
-  k <- ledger(total); k$kunz <- 1; k$cost_tests <- p$c_kunz
-  if (isTRUE(row$kunzmann_scoped == 1)) {
-    k$found <- k$found_ugi <- pu * p$sens_egd; k$missed <- total - k$found
-    k$missed_inv <- total - k$found; k$investigated <- 1; k$free_inv <- free
-    k$n_egd <- k$n_invasive <- 1; k$invasive_free <- free
-    k$sae <- p$sae_egd; k$sae_free <- free * p$sae_egd; k$cost_dx <- p$c_egd; k$days <- p$t_egd
-  }
-  stats::setNames(list(ledger(total), k, galleri()), ARMS)
+  list(ev = ev, acc = acc, cost0 = cost0, q_harm = q_harm, d_harm = d_harm, trace = trace,
+       pre0 = cal$x0[["pre"]])
 }
 
-# ---- Outcomes per cohort row and per population ----------------------------
-ADDITIVE <- c("total_cancers", "cancer_free", "kunz_scores", "galleri_tests", "investigated",
+`%||%` <- function(a, b) if (is.null(a)) b else a
+
+# ---- Outcomes per cohort row ------------------------------------------------
+ADDITIVE <- c("total_cancers", "cancer_free", "kunz_scores", "galleri_tests", "screen_rounds", "investigated",
   "egd", "ent", "pet_ct", "eus", "eus_sampling", "tumor_board", "invasive_total", "days_x_inv",
-  "cost_tests", "cost_dx", "cost_total", "screen_detected", "found_upper_gi", "found_other",
+  "cost_tests", "cost_total", "screen_detected", "found_upper_gi", "found_other",
   "late_lifetime", "clin_dx_lifetime", "ca_deaths", "oc_deaths", "ly_total", "free_investigated",
   "invasive_free", "sae_total", "sae_free", "proc_deaths", "dose_sv", "radiation_cancers",
-  "missed_total", "missed_investigated", "qaly_total", "qaly_harms", "daly_total", "daly_harms")
+  "missed_investigated", "qaly_total", "qaly_harms", "daly_total", "daly_harms")
 
-initial_state <- function(l, p) {
-  fl <- l$found * p$p_late_screen; pd <- l$sae * p$p_death_sae
-  c(well = max(0, 1 - l$total - pd), pre = l$missed, lead_early = l$found - fl, lead_late = fl,
-    early = 0, late = 0, dead_cancer = 0, dead_other = pd)
+prepare_row <- function(row, data, p, settings) {
+  curve <- baseline_for(data, row, settings)
+  cal <- calibrate(curve, target_ugi(curve, row, settings), p, target_late(curve, row, settings, p))
+  Ps <- lapply(seq_len(nrow(curve)), function(t) transition_matrix(curve$mort_other[t], cal$onset[t], p, cal$pl[t]))
+  Rs <- lapply(seq_len(nrow(curve)), function(t) cycle_rewards(Ps[[t]], curve, t, p))
+  list(curve = curve, cal = cal, V = values_by_cycle(Ps, Rs, settings))
 }
 
-row_outcomes <- function(row, data, p, settings, arms) {
-  curve <- baseline_for(data, row, settings)
-  V <- galleri_markov_values(curve, p, settings)
-  ledgers <- arms_all(p, row, curve[1, ])[arms]
-  one <- function(l) {
-    init <- initial_state(l, p); life <- drop(init %*% V)
-    fl <- init[["lead_late"]]; pd <- init[["dead_other"]]
-    n_proc <- l$n_egd + l$n_ent + l$n_pet + l$n_eus
-    q_harm <- n_proc * p$d_proc + (l$sae - pd) * p$d_sae + l$rad_ca * p$loss_rad_ca
-    d_harm <- q_harm + pd * curve$daly_ref_le[1]
-    cost0 <- l$cost_tests + l$cost_dx + (l$found - fl) * p$c_tx_first_early + fl * p$c_tx_first_late + l$sae * p$c_sae
-    c(total_cancers = l$total, cancer_free = 1 - l$total, kunz_scores = l$kunz, galleri_tests = l$galleri,
-      investigated = l$investigated, egd = l$n_egd, ent = l$n_ent, pet_ct = l$n_pet, eus = l$n_eus,
-      eus_sampling = l$n_samp, tumor_board = l$n_tb, invasive_total = l$n_invasive, days_x_inv = l$days,
-      cost_tests = l$cost_tests, cost_dx = l$cost_dx, cost_total = cost0 + life[["cost"]],
-      screen_detected = l$found, found_upper_gi = l$found_ugi, found_other = l$found - l$found_ugi,
-      late_lifetime = fl + life[["clin_late"]], clin_dx_lifetime = life[["clin_dx"]],
-      ca_deaths = life[["ca_death"]], oc_deaths = life[["oc_death"]], ly_total = life[["ly"]],
-      free_investigated = l$free_inv, invasive_free = l$invasive_free, sae_total = l$sae,
-      sae_free = l$sae_free, proc_deaths = pd, dose_sv = l$n_pet * p$msv_pet / 1000,
-      radiation_cancers = l$rad_ca, missed_total = l$missed, missed_investigated = l$missed_inv,
-      qaly_total = life[["qaly"]] - q_harm, qaly_harms = q_harm,
-      daly_total = life[["daly"]] + d_harm, daly_harms = d_harm)[ADDITIVE]
+row_outcomes <- function(row, data, p, settings, arms, prep = prepare_row(row, data, p, settings)) {
+  wk <- workup_summary(p)
+  one <- function(a) {
+    s <- simulate_arm(a, row, prep$curve, prep$cal, p, settings, wk, prep$V); e <- s$ev; l <- s$acc
+    c(total_cancers = s$pre0, cancer_free = 1 - s$pre0, kunz_scores = e[["kunz"]], galleri_tests = e[["tests"]],
+      screen_rounds = e[["rounds"]], investigated = e[["investigated"]], egd = e[["egd"]], ent = e[["ent"]],
+      pet_ct = e[["pet"]], eus = e[["eus"]], eus_sampling = e[["samp"]], tumor_board = e[["tb"]],
+      invasive_total = e[["invasive"]], days_x_inv = e[["days"]],
+      cost_tests = s$cost0, cost_total = s$cost0 + l[["cost"]],
+      screen_detected = e[["found_ugi"]] + e[["found_other"]], found_upper_gi = e[["found_ugi"]],
+      found_other = e[["found_other"]], late_lifetime = e[["late_screen"]] + l[["clin_late"]],
+      clin_dx_lifetime = l[["clin_dx"]], ca_deaths = l[["ca_death"]], oc_deaths = l[["oc_death"]],
+      ly_total = l[["ly"]], free_investigated = e[["free_inv"]], invasive_free = e[["invasive_free"]],
+      sae_total = e[["sae"]], sae_free = e[["sae_free"]], proc_deaths = e[["proc_deaths"]],
+      dose_sv = e[["pet"]] * p$msv_pet / 1000, radiation_cancers = e[["rad_ca"]],
+      missed_investigated = e[["missed_inv"]], qaly_total = l[["qaly"]] - s$q_harm, qaly_harms = s$q_harm,
+      daly_total = l[["daly"]] + s$d_harm, daly_harms = s$d_harm)[ADDITIVE]
   }
-  sapply(ledgers, one)
+  sapply(stats::setNames(arms, arms), one)
 }
 
 cohort_rows <- function(data, population = POPULATION) data$cohort[data$cohort$population == population, ]
 
-run_population <- function(p, data, settings, arms) {
-  C <- cohort_rows(data)
-  mats <- lapply(seq_len(nrow(C)), function(i) row_outcomes(C[i, ], data, p, settings, arms))
-  list(cohort = C, rows = mats, total = Reduce(`+`, Map(`*`, mats, C$share)))
+run_population <- function(p, data, settings, arms, cohort = cohort_rows(data)) {
+  mats <- lapply(seq_len(nrow(cohort)), function(i) row_outcomes(cohort[i, ], data, p, settings, arms))
+  list(cohort = cohort, rows = mats, total = Reduce(`+`, Map(`*`, mats, cohort$share)))
 }
 
 # Galleri-specific derived metrics (ceakit adds inc_cost, inc_effect, icer, nmb)
@@ -216,44 +318,88 @@ derive_galleri <- function(A, settings) {
   r <- A[, 1]; not_ref <- seq_len(ncol(A)) != 1
   d_av <- r["daly_total"] - A["daly_total", ]; ca_av <- r["ca_deaths"] - A["ca_deaths", ]
   rbind(mean_days = per(A["days_x_inv", ], A["investigated", ]),
-        cost_tx = A["cost_total", ] - A["cost_tests", ] - A["cost_dx", ],
+        cost_tx = A["cost_total", ] - A["cost_tests", ],
         late_averted = r["late_lifetime"] - A["late_lifetime", ],
         ca_deaths_averted = ca_av, ly_gained = A["ly_total", ] - r["ly_total"],
         qaly_net = A["qaly_total", ] - r["qaly_total"], daly_averted = d_av,
         cost_per_daly = ifelse(not_ref, (A["cost_total", ] - r["cost_total"]) / d_av, NA),
-        nn_per_found = per(1, A["screen_detected", ]),
         nn_per_ca_death_averted = ifelse(not_ref, per(1, ca_av), NA),
         investigated_per_found = per(A["investigated", ], A["screen_detected", ]),
         fp_per_found = per(A["free_investigated", ], A["screen_detected", ]),
         invasive_per_found = per(A["invasive_total", ], A["screen_detected", ]))
 }
 
-# Subgroup (cohort row) results, base case
-subgroup_table <- function(p, data, settings, arms, cohort_n) {
-  pop <- run_population(p, data, settings, arms)
-  purrr::map_dfr(seq_along(pop$rows), function(i) {
-    m <- rbind(pop$rows[[i]], derive_galleri(pop$rows[[i]], settings)); r <- pop$cohort[i, ]
-    tibble::tibble(risk_group = r$risk_group, sex = r$sex, start_age = r$start_age, share = r$share,
-                   arm = colnames(m), prevalent_cancers = m["total_cancers", ] * cohort_n,
+# ---- Subgroup grid: start age x sex x race/ethnicity (deterministic) --------
+subgroup_cohort <- function(age, sex, race, settings) data.frame(
+  population = POPULATION, race_eth = race, sex = sex, start_age = age,
+  risk_group = c("kunzmann_high", "kunzmann_low"), share = c(settings$kunz_share, 1 - settings$kunz_share),
+  kunzmann_scoped = c(1, 0), stringsAsFactors = FALSE)
+
+subgroup_grid <- function(p, data, settings, arms, cohort_n = 1e5) {
+  g <- expand.grid(start_age = settings$subgroups$ages, sex = settings$subgroups$sexes,
+                   race_eth = settings$subgroups$races, stringsAsFactors = FALSE)
+  purrr::map_dfr(seq_len(nrow(g)), function(i) {
+    C <- subgroup_cohort(g$start_age[i], g$sex[i], g$race_eth[i], settings)
+    A <- run_population(p, data, settings, arms, C)$total
+    m <- rbind(A, derive_galleri(A, settings)); ref <- m[, 1]
+    tibble::tibble(start_age = g$start_age[i], sex = g$sex[i], race_eth = g$race_eth[i],
+                   race_label = unname(RACE_LABELS[g$race_eth[i]]), arm = colnames(m),
                    cancers_found = m["screen_detected", ] * cohort_n,
                    false_positives = m["free_investigated", ] * cohort_n,
+                   cancer_deaths = m["ca_deaths", ] * cohort_n,
                    cancer_deaths_averted = m["ca_deaths_averted", ] * cohort_n,
                    net_qalys = m["qaly_net", ] * cohort_n, net_dalys_averted = m["daly_averted", ] * cohort_n,
-                   incremental_cost_per_person = m["cost_total", ] - m["cost_total", 1])
+                   cost_per_person = m["cost_total", ], qaly_per_person = m["qaly_total", ],
+                   inc_cost = m["cost_total", ] - ref[["cost_total"]],
+                   inc_qaly = m["qaly_total", ] - ref[["qaly_total"]],
+                   icer_vs_usual_care = ifelse(colnames(m) == arms[1], NA,
+                                               (m["cost_total", ] - ref[["cost_total"]]) /
+                                                 (m["qaly_total", ] - ref[["qaly_total"]])),
+                   nmb_vs_usual_care = settings$wtp * (m["qaly_total", ] - ref[["qaly_total"]]) -
+                     (m["cost_total", ] - ref[["cost_total"]]))
   })
 }
 
-# Cohort-weighted Markov trace by arm
+# ---- Calibration check: model vs SEER incidence by age ----------------------
+# For each subgroup row of the cohort: SEER target, modelled symptomatic
+# incidence under usual care (should match), and total incidence (symptomatic
+# + screen-detected) in each screening arm.
+calibration_table <- function(p, data, settings, arms = ARMS, cohort = cohort_rows(data)) {
+  wk <- workup_summary(p)
+  purrr::map_dfr(seq_len(nrow(cohort)), function(i) {
+    row <- cohort[i, ]; prep <- prepare_row(row, data, p, settings); curve <- prep$curve
+    target <- target_ugi(curve, row, settings)
+    purrr::map_dfr(arms, function(a) {
+      s <- simulate_arm(a, row, curve, prep$cal, p, settings, wk, prep$V)
+      tr <- s$trace[seq_len(nrow(curve)), , drop = FALSE]
+      alive <- rowSums(tr[, !STATES %in% DEAD, drop = FALSE])
+      pp <- 1 - exp(-1 / p$sojourn_years)
+      flows <- t(vapply(seq_len(nrow(curve)), function(t) {
+        P <- transition_matrix(curve$mort_other[t], prep$cal$onset[t], p, prep$cal$pl[t])
+        tr[t, "pre"] * c(P["pre", "early"] + P["pre", "late"], P["pre", "late"])
+      }, numeric(2)))
+      tibble::tibble(race_eth = row$race_eth, sex = row$sex, risk_group = row$risk_group, share = row$share,
+                     arm = a, age = curve$age_from, seer = target, onset = prep$cal$onset,
+                     model_clinical = flows[, 1] / alive, clipped = prep$cal$clipped,
+                     seer_late_share = prep$cal$pl, model_late_share = flows[, 2] / pmax(flows[, 1], 1e-300))
+    })
+  })
+}
+
+# Cohort-weighted trace by arm
 trace_table <- function(p, data, settings, arms) {
-  C <- cohort_rows(data)
+  C <- cohort_rows(data); wk <- workup_summary(p)
   purrr::map_dfr(seq_len(nrow(C)), function(i) {
-    row <- C[i, ]; curve <- baseline_for(data, row, settings); mk <- markov_parts(curve, p)
-    purrr::imap_dfr(arms_all(p, row, curve[1, ])[arms], function(l, a) ceakit::markov_trace(mk$n, mk$transition, initial_state(l, p)) |>
-      dplyr::mutate(arm = a, share = row$share))
+    row <- C[i, ]; prep <- prepare_row(row, data, p, settings)
+    purrr::map_dfr(arms, function(a) {
+      tr <- simulate_arm(a, row, prep$curve, prep$cal, p, settings, wk, prep$V)$trace
+      tibble::as_tibble(tr) |> dplyr::mutate(cycle = seq_len(nrow(tr)) - 1, arm = a, share = row$share)
+    })
   }) |>
     tidyr::pivot_longer(dplyr::all_of(STATES), names_to = "state", values_to = "prop") |>
     dplyr::mutate(state = sub("^lead_", "", state)) |>
     dplyr::group_by(arm, cycle, state) |> dplyr::summarise(prop = sum(prop * share), .groups = "drop") |>
-    dplyr::mutate(state = factor(state, setdiff(STATES, c("lead_early", "lead_late")), c("Well", "Undiagnosed cancer", "Early-stage dx",
-                                                   "Late-stage dx", "Cancer death", "Other-cause death")))
+    dplyr::mutate(state = factor(state, setdiff(STATES, c("lead_early", "lead_late")),
+                                 c("Well", "Undiagnosed cancer", "Early-stage dx", "Late-stage dx",
+                                   "Cancer death", "Other-cause death")))
 }

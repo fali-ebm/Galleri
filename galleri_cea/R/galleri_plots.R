@@ -44,6 +44,8 @@ plot_workup_tree <- function(res, p, data, cohort = 1000) {
 
 plot_strategy_tree <- function(res, p, data) {
   b <- res$base; a <- res$arms
+  cb <- calibration_table(p, data, res$settings, a[1])
+  pl_clin <- sum(cb$seer_late_share * cb$seer * cb$share) / sum(cb$seer * cb$share)
   pk <- b["investigated", a[2]]; pg <- b["investigated", a[3]]
   pk_pos <- if (pk > 0) b["screen_detected", a[2]] / pk else 0
   cols <- ceakit::arm_colours(a)
@@ -51,7 +53,7 @@ plot_strategy_tree <- function(res, p, data) {
     id = c("root", "s1", "s2", "s3", "uc", "uc_late", "uc_early", "k_hi", "k_lo", "k_egd", "k_pos", "k_neg",
            "g_pos", "g_neg", "g_wk", "mk"),
     label = c("Cohort eligible for upper GI cancer screening", a,
-              "Prevalent cancers stay undiagnosed until symptoms", "Late stage", "Early stage",
+              "Cancers present with symptoms (SEER-calibrated)", "Late stage", "Early stage",
               "Kunzmann high-risk group(s)", "Other groups: usual care", "Upper GI endoscopy",
               "EGD +ve: screen-detected", "EGD -ve",
               "Galleri +ve (esophagus/ stomach signal)", "Galleri -ve: usual care", "Full workup (see the Galleri analysis workup tree)",
@@ -68,7 +70,7 @@ plot_strategy_tree <- function(res, p, data) {
     from = c("root", "root", "root", "s1", "uc", "uc", "s2", "s2", "k_hi", "k_egd", "k_egd", "s3", "s3", "g_pos"),
     to = c("s1", "s2", "s3", "uc", "uc_late", "uc_early", "k_hi", "k_lo", "k_egd", "k_pos", "k_neg",
            "g_pos", "g_neg", "g_wk"),
-    prob = c(NA, NA, NA, NA, p$p_late_clin, 1 - p$p_late_clin, pk, 1 - pk, NA, pk_pos, 1 - pk_pos,
+    prob = c(NA, NA, NA, NA, pl_clin, 1 - pl_clin, pk, 1 - pk, NA, pk_pos, 1 - pk_pos,
              pg, 1 - pg, NA))
   ceakit::draw_tree(nodes, edges, paste0("Screening strategies compared (cohort-weighted)", dummy_note(res)),
                     xlim = c(0, 24), ylim = c(1.6, 9.5), wrap = 7.2, cex = 0.76, pcex = 0.66)
@@ -122,7 +124,7 @@ plot_trace <- function(res, p, data) {
   ggplot2::ggplot(d, ggplot2::aes(cycle, prop, fill = state)) + ggplot2::geom_area(colour = NA) +
     ggplot2::facet_wrap(~arm) + ggplot2::scale_fill_manual(values = STATE_COLS, name = NULL) +
     ggplot2::scale_y_continuous(labels = scales::percent) +
-    ggplot2::labs(x = "Years after screening", y = "Share of cohort",
+    ggplot2::labs(x = "Years after first screen", y = "Share of cohort",
                   title = "Markov state occupancy over the lifetime (competing risks)") + ceakit::theme_cea()
 }
 
@@ -134,21 +136,57 @@ plot_cancer_states <- function(res, p, data) {
     ggplot2::geom_line(linewidth = 1) + ggplot2::facet_wrap(~state, scales = "free_y") +
     ggplot2::scale_colour_manual(values = ceakit::arm_colours(res$arms), name = NULL) +
     ggplot2::scale_y_continuous(labels = scales::comma) +
-    ggplot2::labs(x = "Years after screening", y = res$analysis$unit, title = "Cancer states over time by arm") +
+    ggplot2::labs(x = "Years after first screen", y = res$analysis$unit, title = "Cancer states over time by arm") +
     ceakit::theme_cea()
 }
 
+# Subgroup sensitivity grid: start age x sex x race/ethnicity (deterministic)
 plot_subgroups <- function(res, p, data) {
-  d <- subgroup_table(p, data, res$settings, res$arms, res$analysis$cohort_n)
+  d <- subgroup_grid(p, data, res$settings, res$arms, res$analysis$cohort_n)
   d <- d[d$arm != res$arms[1], ]
-  d$subgroup <- sprintf("%s, %s, %s", d$risk_group, d$sex, d$start_age)
-  d <- tidyr::pivot_longer(d, c(cancers_found, false_positives, cancer_deaths_averted, net_qalys),
-                           names_to = "metric", values_to = "value")
-  d$metric <- factor(d$metric, c("cancers_found", "false_positives", "cancer_deaths_averted", "net_qalys"),
-                     c("Cancers found", "False positives", "Cancer deaths averted", "Net QALYs"))
-  ggplot2::ggplot(d, ggplot2::aes(value, subgroup, fill = factor(arm, res$arms))) +
-    ggplot2::geom_col(position = "dodge", width = 0.75) + ggplot2::facet_wrap(~metric, scales = "free_x") +
-    ggplot2::scale_fill_manual(values = ceakit::arm_colours(res$arms), name = NULL) +
-    ggplot2::labs(x = res$analysis$unit, y = NULL, title = "Results by subgroup (cohort row), vs reference") +
+  icer <- d$icer_vs_usual_care
+  d$band <- dplyr::case_when(
+    d$start_age > res$settings$screen_stop_age ~ "Not screened (past stop age)",
+    d$inc_qaly <= 0 ~ "Dominated (fewer QALYs)",
+    icer < 1e5 ~ "< $100k", icer < 5e5 ~ "$100k-$500k", icer < 1e6 ~ "$500k-$1M",
+    icer < 5e6 ~ "$1M-$5M", TRUE ~ "> $5M")
+  d$band <- factor(d$band, c("< $100k", "$100k-$500k", "$500k-$1M", "$1M-$5M", "> $5M",
+                             "Dominated (fewer QALYs)", "Not screened (past stop age)"))
+  d$label <- ifelse(d$band %in% c("Dominated (fewer QALYs)", "Not screened (past stop age)"), "",
+                    ifelse(icer < 1e6, scales::dollar(icer, scale = 1e-3, accuracy = 1, suffix = "k"),
+                           scales::dollar(icer, scale = 1e-6, accuracy = 0.1, suffix = "M")))
+  d$race_label <- factor(d$race_label, rev(unname(RACE_LABELS)))
+  d$sex <- factor(d$sex, c("male", "female"), c("Men", "Women"))
+  ggplot2::ggplot(d, ggplot2::aes(factor(start_age), race_label, fill = band)) +
+    ggplot2::geom_tile(colour = "white") +
+    ggplot2::geom_text(ggplot2::aes(label = label), size = 2.5) +
+    ggplot2::facet_grid(arm ~ sex) +
+    ggplot2::scale_fill_manual(values = c("< $100k" = "#1A9850", "$100k-$500k" = "#91CF60",
+                                          "$500k-$1M" = "#D9EF8B", "$1M-$5M" = "#FEE08B", "> $5M" = "#FC8D59",
+                                          "Dominated (fewer QALYs)" = "#D73027",
+                                          "Not screened (past stop age)" = "grey85"),
+                               drop = FALSE, name = "Cost per QALY vs usual care") +
+    ggplot2::labs(x = "Age at first screen", y = NULL,
+                  title = "Subgroup sensitivity analysis: cost per QALY gained vs usual care",
+                  subtitle = sprintf("Annual screening to age %d; natural history calibrated to SEER for each subgroup",
+                                     res$settings$screen_stop_age)) +
+    ceakit::theme_cea() + ggplot2::theme(legend.position = "bottom") +
+    ggplot2::guides(fill = ggplot2::guide_legend(nrow = 2))
+}
+
+# Calibration: modelled symptomatic incidence vs SEER target, by age
+plot_calibration <- function(res, p, data) {
+  d <- calibration_table(p, data, res$settings, res$arms)
+  d <- d |> dplyr::group_by(arm, age) |>
+    dplyr::summarise(seer = sum(seer * share), model = sum(model_clinical * share), .groups = "drop")
+  d$arm <- factor(d$arm, res$arms)
+  ggplot2::ggplot(d, ggplot2::aes(age)) +
+    ggplot2::geom_point(ggplot2::aes(y = seer * 1e5, shape = "SEER 2013-2017 (target)"), colour = "grey30", size = 1.6) +
+    ggplot2::geom_line(ggplot2::aes(y = model * 1e5, colour = arm), linewidth = 1) +
+    ggplot2::scale_colour_manual(values = ceakit::arm_colours(res$arms), name = "Model: symptomatic diagnoses") +
+    ggplot2::scale_shape_manual(values = 16, name = NULL) +
+    ggplot2::labs(x = "Age", y = "Upper GI cancers per 100,000 per year",
+                  title = "Calibration to SEER: esophagus + stomach incidence",
+                  subtitle = "Usual care reproduces SEER; screening arms divert cancers to screen detection") +
     ceakit::theme_cea()
 }

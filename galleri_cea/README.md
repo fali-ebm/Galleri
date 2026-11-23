@@ -4,29 +4,46 @@ Decision model and cost-effectiveness analysis built with **ceakit**.
 
 ## This project
 
-One decision tree at time 0 for a screening population (US adults 50-79),
-followed by a lifetime Markov model with competing risks. The tree has
-three arms:
+An annual-cycle cohort model over a lifetime horizon (to age 100), with
+three arms and **annual screening from the start age to 85**:
 
 1. **Usual care**: no screening. Cancers present with symptoms.
-2. **Kunzmann -> EGD**: people with a Kunzmann score ≥ 8 have an EGD.
-   Everyone else follows usual care.
-3. **Galleri**: a -ve result (or a signal pointing elsewhere) follows
-   usual care. A +ve esophagus/stomach signal goes to the full flowchart
-   workup (EGD, then ENT or PET CT, then EUS ± sampling, then tumor board).
+2. **Kunzmann -> EGD**: the score is applied once; people with a score ≥ 8
+   have an EGD every year. Everyone else follows usual care.
+3. **Galleri**: a test every year. A -ve result (or a signal pointing
+   elsewhere) follows usual care. A +ve esophagus/stomach signal goes to
+   the full flowchart workup (EGD, then ENT or PET CT, then EUS ± sampling,
+   then tumor board).
 
-Two analyses use this tree. Both report results per 100,000 screened.
+**Calibrated to SEER.** For each subgroup (race/ethnicity × sex × Kunzmann
+group) the model solves the yearly onset of preclinical upper GI cancer so
+that, without screening, symptomatic diagnoses reproduce SEER 2013-2017
+age-specific incidence (esophagus + stomach) exactly, and their stage
+reproduces SEER's stage distribution (esophagus and stomach separately, by
+race and sex, weighted by the subgroup's site mix at each age). That calibrated
+natural history is the baseline risk in every arm, so screening can only
+move cancers from symptomatic to screen-detected. The fit is checked in
+the test suite and written to `outputs/<analysis>/calibration.csv`.
 
-- **`galleri`**: usual care vs Galleri. It gives the benefits and harms of
+**Base case:** 50-year-old non-Hispanic White men (`inputs/cohort.csv`).
+**Sensitivity analysis:** every combination of age at first screen (50-90
+by 5 years), sex and race/ethnicity (all; non-Hispanic White, Black,
+Asian/Pacific Islander, American Indian/Alaska Native; Hispanic), each
+re-calibrated to its own SEER incidence and life table
+(`outputs/<analysis>/subgroups.csv` and `subgroups.png`). Change the grid,
+the stop age or the interval in `settings` in `R/model.R`.
+
+Two analyses, both per 100,000 people:
+
+- **`galleri`**: usual care vs Galleri, giving the benefits and harms of
   Galleri, the workup tree and what happens to each 1,000 people worked up.
 - **`comparison`**: all three arms, with the incremental analysis that
   ranks them.
 
 In the Galleri arm, Galleri accuracy (sensitivity and false-positive rate)
-sets how many people test +ve and how many of them have cancer. Your workup
-counts set the procedures, costs, harms and days for each person worked
-up, and the share of those cancers the workup finds. The rest are missed
-despite the workup.
+sets how many people test +ve each round and how many of them have cancer.
+The workup inputs set the procedures, costs, harms and days for each
+person worked up, and the share of those cancers the workup finds.
 
 Screen-detected cancers enter lead-time states (`lead_early`, `lead_late`)
 and have no cancer deaths until they would have presented with symptoms.
@@ -36,8 +53,8 @@ checks this: detection without a stage shift leaves cancer deaths
 unchanged.
 
 **Code:**
-- `R/galleri_engine.R`: the tree (`ceakit::tree_paths`), the Markov model
-  (`ceakit::markov_values`), the time-0 event ledgers and the derived
+- `R/galleri_engine.R`: the workup tree (`ceakit::tree_paths`), SEER
+  calibration, the annual screening simulation, the subgroup grid and the derived
   metrics.
 - `R/galleri_plots.R`: project figures.
 - `R/model.R`: the ceakit contract (settings, data loading and validation,
@@ -54,11 +71,12 @@ unchanged.
 - `scenarios.csv`: deterministic scenarios.
 
 `data-raw/make_us_inputs.R` builds `baseline_risks.csv` and `cohort.csv`
-from published US data: the SSA 2022 life table, SEER incidence, Census 2024
-population and the Kunzmann score capture. `inputs/SOURCES.md` lists the
-source or reasoning for every input. Inputs are marked `SOURCED`,
-`ASSUMPTION` or `DUMMY`. The workup branch probabilities are still `DUMMY`
-until local counts are added to `inputs/counts.csv`.
+from the raw published tables in `data-raw/raw/`: SEER 2013-2017
+incidence by age, sex and race/ethnicity, and NCHS 2024 life tables by
+race/ethnicity and sex. `inputs/SOURCES.md` lists the source or reasoning
+for every input. Inputs are marked `SOURCED` or `ASSUMPTION`. The workup
+branch probabilities come from the literature until local counts are
+added to `inputs/counts.csv`.
 
 ## Workflow
 

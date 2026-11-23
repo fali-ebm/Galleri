@@ -1,4 +1,4 @@
-# Input sources (US, payer perspective, adults 50-79)
+# Input sources (US, payer perspective; base case 50-year-old non-Hispanic White men)
 
 The `status` column in each table means:
 
@@ -9,7 +9,7 @@ The `status` column in each table means:
   probabilities now come from the literature (below) until local counts
   are entered in `inputs/counts.csv`, which then overrides them.
 
-`baseline_risks.csv` and `cohort.csv` are built by
+`baseline_risks.csv` and `cohort.csv` are built from the raw tables in `data-raw/raw/` by
 `data-raw/make_us_inputs.R`. Edit the script, not the CSVs.
 
 ## Galleri test performance (`parameters.csv`)
@@ -44,16 +44,18 @@ all of these.
 | Parameter | Value | Derivation |
 |---|---|---|
 | `sojourn_years` | 2.37 (SE 0.27) | Mean sojourn time of gastric cancer, 2.37 years (95% CI 1.92-2.96). The same value is used for esophageal cancer (**ASSUMPTION**). |
-| `p_late_clin` | 0.703 | SEER share of staged cases that are regional or distant: esophagus 71/90, stomach 58/90. Weighted by 2013-17 incidence at ages 50-79 (esophagus 40.5%). |
+| Stage at symptomatic diagnosis (`late_eso`, `late_stom`, `or_late_clin`) | calibrated by site, race, sex and age | SEER 2010-2016 stage distribution (CSR Tables 8.8, 24.8): share regional or distant among staged cases, esophagus and stomach separately, by sex for all races, White (used for NHW) and Black (used for NHB); other groups use all races. At each age the model's late-stage share is the site-weighted mix for that subgroup (Kunzmann groups shift it toward esophagus), so symptomatic diagnoses reproduce SEER stage exactly (checked in tests). `or_late_clin` (odds ratio, 1 in the base case) carries uncertainty in PSA. **ASSUMPTION**: no within-group variation of stage by age. |
 | `m_early` | 0.079 | SEER 5-year relative survival for localized disease (esophagus 48.6%, stomach 78.1%; weighted 66.1%), converted to a constant annual risk: 1 − S^(1/5). |
 | `m_late` | 0.286 | The same conversion for regional and distant disease (esophagus 29.1% / 5.3%, stomach 39.0% / 8.1%; stage-weighted 18.6%). A constant annual risk understates deaths in the first years. |
 | `sens_egd` | 0.887 | 11.3% of upper GI cancers were missed at an EGD within the previous 3 years. |
-| `inc_ugi` | by age and sex | SEER 21 age-specific incidence, 2013-2017: esophagus (Table 8.7) + stomach (Table 24.7). |
-| `prev_ugi` | inc × 2.37 | Preclinical prevalence = incidence × mean sojourn time (steady state). |
-| `prev_other` | (all-site − UGI) × 2.37 | All-site incidence (Table 2.7) minus esophagus and stomach. **ASSUMPTION**: same sojourn time, and every other cancer counts as findable by the downstream workup (generous; this matters only through `sens_g_other`). |
-| `mort_other` | qx by single year | SSA 2022 period life table (2025 Trustees Report). This is **all-cause** mortality, which slightly overstates competing mortality because cancer deaths are included. |
-| Kunzmann groups | RR 2.62 (high) / 0.32 (low) | 29.5% of people score ≥ 8, and they contain 77.4% of esophageal adenocarcinoma (EAC). The RR is applied to the EAC share of esophageal cancer only (63.1%, SEER 2004-15). Stomach risk is unchanged. **ASSUMPTION**: the 29.5% share is the same in every age-sex group (in reality the score rises with age and with male sex). |
-| `cohort.csv` | shares | Census Vintage 2024 resident population ages 50-79 by 5-year band and sex, entered at the band midpoint. Both analyses use this cohort. |
+| Calibration targets `inc_eso`, `inc_stom` | by race/ethnicity, sex and single year of age | SEER 21 age-specific incidence 2013-2017 (CSR Tables 8.7, 24.7) for all races, White and Black, interpolated log-linearly from 5-year bands to single years (85+ held flat). Non-Hispanic White = White × NHW/White age-adjusted ratio; non-Hispanic Black = Black (all ethnicities, proxy); Asian/Pacific Islander, American Indian/Alaska Native and Hispanic = all races × the group's age-adjusted ratio (CSR Tables 8.15, 24.15). **ASSUMPTION**: the age pattern is proportional across these groups. |
+| Onset of preclinical cancer | calibrated | Solved year by year so that symptomatic presentation without screening equals the SEER target at every age (exact fit; checked in tests). Preclinical prevalence at the start age follows from the first year's target. Re-solved in every PSA draw. |
+| `inc_other` | by race/ethnicity, sex, age | All-site incidence (Table 2.7, race ratios Table 2.15) minus esophagus and stomach. Cancers elsewhere available to the Galleri workup: incidence × sojourn time at the first screen, incidence × interval at later screens. **ASSUMPTION**. |
+| `mort_other` | qx by single year, race/ethnicity and sex | NCHS United States Life Tables, 2024 (NVSR 75-5), Tables 2-3, 5-6, 8-9, 11-12, 14-15, 17-18. Extracted values reproduce the published life expectancy at 50 exactly. All-cause mortality (slightly overstates competing mortality). |
+| `eac_share` | by race/ethnicity | Adenocarcinoma share of esophageal cancer, SEER 2013-2017 (CSR Table 8.22): all 64.3%, White 71.4% (used for NHW), Black 20.4%, API 26.3%, AI/AN 57.4%, Hispanic 56.7%. |
+| Kunzmann groups | RR 2.62 (high) / 0.32 (low) | 29.5% of people score ≥ 8, and they contain 77.4% of esophageal adenocarcinoma (EAC). The RR is applied to the EAC share of esophageal cancer only (race-specific, above). Stomach risk is unchanged. **ASSUMPTION**: the 29.5% share is the same in every age-sex group (in reality the score rises with age and with male sex). |
+| `cohort.csv` | base case | 50-year-old non-Hispanic White men, split 29.5% / 70.5% by Kunzmann score. The subgroup grid uses the same split. |
+| Screening schedule | settings | Annual Galleri, and annual EGD for Kunzmann ≥ 8, from the start age to 85. **ASSUMPTION**: per-round Galleri sensitivity and screen-detected stage mix are the prevalence-round values in every round (later rounds likely find earlier, harder-to-detect cancers). |
 
 ## Harms
 
@@ -116,11 +118,10 @@ use the medical care component of the CPI.
 - Klein EA, et al. Clinical validation of a targeted methylation-based multi-cancer early detection test (CCGA3). *Ann Oncol* 2021;32:1167-77.
 - Menon S, Trudgill N. How commonly is upper gastrointestinal cancer missed at endoscopy? A meta-analysis. *Endosc Int Open* 2014;2:E46-50.
 - Bae JM, et al. Sojourn time of gastric cancer. 2014.
-- SEER Cancer Statistics Review 1975-2017, Tables 2.7, 8.7 and 24.7, and SEER stage distribution and 5-year relative survival (seer.cancer.gov).
+- SEER Cancer Statistics Review 1975-2017: Tables 2.7, 8.7, 24.7 (age-specific incidence by race and sex), 2.15, 8.15, 24.15 (age-adjusted incidence by race/ethnicity), 8.22 (histology by race), and SEER stage distribution and 5-year relative survival (seer.cancer.gov).
+- Arias E, Xu JQ, Tejada-Vera B. United States Life Tables, 2024. National Vital Statistics Reports vol 75 no 5. 2026.
 - Then EO, et al. Esophageal cancer: an updated SEER database analysis. *World J Oncol* 2020;11:55-64.
 - Kunzmann AT, et al. Model for identifying individuals at risk for esophageal adenocarcinoma. *Clin Gastroenterol Hepatol* 2018.
-- Social Security Administration. Period Life Table, 2022 (2025 Trustees Report). https://www.ssa.gov/oact/STATS/table4c6_2022_TR2025.html
-- US Census Bureau. NC-EST2024-SYASEXN, resident population by single year of age and sex, July 1, 2024.
 - ASGE Standards of Practice Committee. Adverse events of upper GI endoscopy. *Gastrointest Endosc* 2012;76:707-18.
 - Forbes N, et al. Adverse events associated with EUS and EUS-guided procedures (ASGE). *Gastrointest Endosc* 2022;95:16-26.
 - Quinn B, et al. Radiation dosimetry of 18F-FDG PET/CT. *J Nucl Med Technol* 2016.

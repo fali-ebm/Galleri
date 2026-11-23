@@ -1,0 +1,13 @@
+site,race,sex,localized,regional,distant,unstaged
+esophagus,all,male,17,33,41,9
+esophagus,all,female,21,33,33,14
+esophagus,white,male,18,33,41,8
+esophagus,white,female,22,33,32,14
+esophagus,black,male,14,33,43,10
+esophagus,black,female,20,33,34,13
+stomach,all,male,25,28,39,8
+stomach,all,female,33,23,33,12
+stomach,white,male,24,28,40,8
+stomach,white,female,33,22,33,12
+stomach,black,male,25,26,41,8
+stomach,black,female,35,24,31,11

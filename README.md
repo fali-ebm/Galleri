@@ -5,13 +5,12 @@ This repository holds two things:
 | Folder | What it is |
 |---|---|
 | [`ceakit/`](ceakit) | An R package with reusable tools for decision modelling and cost-effectiveness analysis: input tables and validation, decision-tree and Markov engines, PSA, one-way SA, scenarios, ICER frontier, CEAC, EVPI/EVPPI, tables, plots, a Shiny app, and a project template. |
-| [`galleri_cea/`](galleri_cea) | The Galleri upper GI model, built with ceakit. One screening decision tree with three arms: usual care, Kunzmann score ≥ 8 → EGD, and Galleri (-ve → usual care, +ve → full workup). The `galleri` analysis reports the benefits and harms of Galleri per 100,000 screened. The `comparison` analysis ranks all three arms. |
+| [`galleri_cea/`](galleri_cea) | The Galleri upper GI model, built with ceakit. Three arms with annual screening to age 85 over a lifetime: usual care, Kunzmann score ≥ 8 → yearly EGD, and yearly Galleri (-ve → usual care, +ve → full workup). Natural history is calibrated to SEER incidence for every subgroup. Base case: 50-year-old non-Hispanic White men; sensitivity grid across age 50-90 × sex × race/ethnicity. |
 
-> **Inputs status.** The model uses US, payer-perspective inputs for
-> adults aged 50-79. Each input is marked `SOURCED` (published data) or
-> `ASSUMPTION` (reasoning documented). See
+> **Inputs status.** US, payer-perspective inputs. Each input is marked
+> `SOURCED` (published data) or `ASSUMPTION` (reasoning documented). See
 > [`galleri_cea/inputs/SOURCES.md`](galleri_cea/inputs/SOURCES.md).
-> The workup branch probabilities in the Galleri arm are still `DUMMY` until local
+> The workup branch probabilities come from the literature until local
 > workup counts are added to `inputs/counts.csv`.
 
 ## Install the toolkit
