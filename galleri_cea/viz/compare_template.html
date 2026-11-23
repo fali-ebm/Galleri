@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Galleri or Usual Care</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300;1,9..144,400&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>__CSS__
+.herogrid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 40px; align-items: center; }
+@media (max-width: 860px) { .herogrid { grid-template-columns: 1fr; } }
+.tags { display: grid; gap: 0; border-top: 1px solid var(--rule); }
+.tag { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: baseline; padding: 16px 0; border-bottom: 1px solid var(--rule); }
+.tag .k { color: var(--mute); font-size: 14.5px; }
+.tag .v { font: 300 34px/1 var(--display); font-variant-numeric: tabular-nums; text-align: right; }
+.tag.hot .v { color: var(--alarm); }
+.tag.good .v { color: var(--found); }
+.sw.uc { background: var(--paper); opacity: .32; }
+.sw.band { background: var(--found); opacity: .25; border-radius: 2px; width: 18px; }
+.ramp { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--mute); align-items: center; }
+.ramp i { display: inline-block; width: 22px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -2px; }
+.strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0; border: 1px solid var(--rule); border-radius: 12px; overflow: hidden; background: var(--ink-2); }
+.strip div { padding: 18px; display: grid; gap: 6px; box-shadow: inset -1px 0 0 var(--rule); }
+.strip .v { font: 300 32px/1 var(--display); font-variant-numeric: tabular-nums; }
+.strip .k { font-size: 13px; color: var(--mute); }
+.strip .v.hot { color: var(--alarm); }
+#price text, #sc text, #cum text, #deaths text { paint-order: stroke; stroke: var(--ink); stroke-width: 4px; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+<header class="hero">
+  <span class="eyebrow">Yearly Galleri test vs usual care · upper GI cancer · 100,000 US men from age 50</span>
+  <h1><span id="h-lives"></span> lives, <em id="h-cost"></em></h1>
+  <p class="dek">Without screening, <b id="h-uc"></b> of 100,000 men would die of esophageal or stomach cancer. A Galleri test every year from 50 to 85 prevents <b id="h-ugi"></b> of those deaths, and <b id="h-oth"></b> more from other cancers its workup finds along the way.</p>
+  <div class="herogrid">
+    <div class="fig" id="deaths-wrap">
+      <div class="key" style="margin-bottom:14px"><span><i class="sw uc"></i>upper GI cancer death, usual care</span><span><i class="sw found"></i>death prevented by Galleri</span></div>
+      <svg id="deaths" role="img" aria-label="One dot per upper GI cancer death without screening; the deaths a yearly Galleri test prevents are highlighted"></svg>
+    </div>
+    <div class="tags" id="tags"></div>
+  </div>
+</header>
+
+<section class="chapter" aria-labelledby="c1">
+  <span class="num">01 · THE BENEFIT</span>
+  <h2 id="c1">Deaths prevented arrive <em>slowly</em>, decades after the first test</h2>
+  <p class="text note">Cumulative upper GI cancer deaths by age. The gap between the lines is the benefit of finding cancers earlier.</p>
+  <div class="key"><span><i class="sw uc"></i>usual care</span><span><i class="sw found"></i>yearly Galleri</span><span><i class="sw band"></i>deaths prevented</span></div>
+  <div class="fig" id="cum-wrap"><svg id="cum" role="img" aria-label="Cumulative upper GI cancer deaths by age under usual care and with yearly Galleri"></svg></div>
+</section>
+
+<section class="chapter" aria-labelledby="c2">
+  <span class="num">02 · THE VERDICT, 1,000 TIMES</span>
+  <h2 id="c2">Not one of 1,000 simulations comes in under <em>$1 million</em> per QALY</h2>
+  <p class="text note" id="psa-intro"></p>
+  <div class="fig" id="psa-wrap"><canvas id="psa" role="img" aria-label="Scatter of 1,000 probabilistic results, extra cost against QALYs gained, with lines for $100,000, $1 million and $10 million per QALY"></canvas></div>
+</section>
+
+<section class="chapter" aria-labelledby="c3">
+  <span class="num">03 · THE PRICE</span>
+  <h2 id="c3">To be worth it, the test would have to cost about <em id="h-price"></em></h2>
+  <p class="text note" id="price-intro"></p>
+  <div class="fig" id="price-wrap"><svg id="price" role="img" aria-label="Cost per QALY against Galleri test price, on a log scale, with the $100,000 to $150,000 threshold band"></svg></div>
+</section>
+
+<section class="chapter" aria-labelledby="c4">
+  <span class="num">04 · WHAT IF WE ARE WRONG</span>
+  <h2 id="c4">Only the <em>price of the test</em> moves the answer</h2>
+  <p class="text note">Each dot is the cost per QALY with one assumption changed. The scale is logarithmic: each gridline is ten times the last.</p>
+  <div class="fig" id="sc-wrap"><svg id="sc" role="img" aria-label="Cost per QALY under each scenario, log scale, against the threshold band"></svg></div>
+</section>
+
+<section class="chapter" aria-labelledby="c5">
+  <span class="num">05 · EVERY KIND OF PATIENT</span>
+  <h2 id="c5">No age, sex or race comes <em>close</em></h2>
+  <p class="text note">108 groups, each recalibrated to its own SEER cancer rates and life table. Cells show cost per QALY gained, in millions of dollars.</p>
+  <div class="ramp" id="ramp"></div>
+  <div class="fig" id="mo-wrap" style="overflow-x:auto"><svg id="mosaic" role="img" aria-label="Cost per QALY for every combination of start age, sex and race or ethnicity"></svg></div>
+</section>
+
+<section class="chapter" aria-labelledby="c6">
+  <span class="num">06 · THE OTHER OPTION</span>
+  <h2 id="c6">A risk score and a yearly endoscopy <em>does harm</em></h2>
+  <p class="text note">The Kunzmann score flags 59.7% of men for an endoscopy every year. It prevents deaths, but the endoscopies take away more healthy life than the cancers they catch give back.</p>
+  <div class="strip" id="kunz"></div>
+</section>
+
+<p class="text"><a class="next" href="https://claude.ai/artifact/KSek511vhqrfmtnnSmC3ui">← Before this: the burden of 2.8 million blood tests</a></p>
+<footer class="foot">
+  <p>Source: Galleri upper GI screening model (github.com/fali-ebm/Galleri, galleri_cea). Base case: non-Hispanic White men screened every year from 50 to 85 and followed to 100; costs in 2025 US dollars, costs and QALYs discounted at 3%. Natural history calibrated to SEER; Galleri accuracy from PATHFINDER 2 and NHS-Galleri; NCHS 2024 life tables. Uncertainty from 1,000 probabilistic runs.</p>
+  <p>Deaths prevented include other cancers found during the workup of a Galleri positive. The price line holds everything else at the base case; the model's cost per QALY is linear in the test price.</p>
+</footer>
+</main>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script>
+const DATA = __DATA__;
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { found: css('--found'), overdx: css('--overdx'), alarm: css('--alarm'), paper: css('--paper'), mute: css('--mute'), faint: css('--faint'), rule: css('--rule'), ink: css('--ink'), ink2: css('--ink-2') };
+const fmt = d3.format(','), money = v => v >= 1e9 ? '$' + (v / 1e9).toFixed(2) + ' billion' : v >= 1e6 ? '$' + (v / 1e6).toFixed(v >= 1e7 ? 1 : 2) + 'M' : v >= 1e3 ? '$' + fmt(Math.round(v / 1e3)) + 'k' : '$' + v.toFixed(0);
+const tip = document.getElementById('tip');
+function showTip(html, ev) { tip.innerHTML = html; tip.style.opacity = 1; const r = tip.getBoundingClientRect(); let x = ev.clientX + 16, y = ev.clientY + 16;
+  if (x + r.width > innerWidth - 8) x = ev.clientX - r.width - 16; if (y + r.height > innerHeight - 8) y = ev.clientY - r.height - 16; tip.style.left = x + 'px'; tip.style.top = y + 'px'; }
+const hideTip = () => tip.style.opacity = 0;
+const ugiSaved = Math.round(DATA.ugi_deaths_uc - DATA.ugi_deaths_g), othSaved = Math.round(DATA.other_deaths_averted), ucDeaths = Math.round(DATA.ugi_deaths_uc);
+const priceAt = icer => (icer - DATA.price_icpt) / DATA.price_slope, icerAt = p => DATA.price_icpt + DATA.price_slope * p;
+document.getElementById('h-lives').textContent = Math.round(DATA.deaths_averted);
+document.getElementById('h-cost').textContent = money(DATA.d_cost_total).replace(' billion', ' billion');
+document.getElementById('h-uc').textContent = fmt(ucDeaths);
+document.getElementById('h-ugi').textContent = ugiSaved;
+document.getElementById('h-oth').textContent = othSaved;
+document.getElementById('h-price').textContent = '$' + Math.round(priceAt(100000)) + ', not $' + fmt(DATA.price);
+
+/* hero: one dot per death */
+function drawDeaths() {
+  const wrap = document.getElementById('deaths-wrap'), W = Math.min(560, wrap.clientWidth), golden = Math.PI * (3 - Math.sqrt(5));
+  const total = ucDeaths, gap = (W / 2 - 24) / Math.sqrt(total + othSaved * 6), r = Math.max(1.8, gap * 0.36), H = W * 0.98;
+  const svg = d3.select('#deaths').attr('width', W).attr('height', H).attr('viewBox', `${-W / 2} ${-H / 2} ${W} ${H}`); svg.selectAll('*').remove();
+  // saved deaths sit at the heart of the bloom
+  const pts = d3.range(total).map(i => ({ i, x: gap * Math.sqrt(i + .5) * Math.cos(i * golden), y: gap * Math.sqrt(i + .5) * Math.sin(i * golden), saved: i < ugiSaved }));
+  svg.append('g').selectAll('circle').data(pts).join('circle').attr('cx', d => d.x - W * 0.05).attr('cy', d => d.y).attr('r', r)
+    .attr('fill', d => d.saved ? C.found : C.paper).attr('fill-opacity', d => d.saved ? 1 : 0.3);
+  const ox = W / 2 - gap * Math.sqrt(othSaved) - 40, oy = H / 2 - gap * Math.sqrt(othSaved) - 10;
+  svg.append('g').selectAll('circle').data(d3.range(othSaved)).join('circle').attr('cx', i => ox + gap * Math.sqrt(i + .5) * Math.cos(i * golden)).attr('cy', i => oy + gap * Math.sqrt(i + .5) * Math.sin(i * golden)).attr('r', r).attr('fill', C.found);
+  svg.append('text').attr('x', ox).attr('y', oy - gap * Math.sqrt(othSaved) - 10).attr('text-anchor', 'middle').style('font-size', '11.5px').text(`+${othSaved} other cancers`);
+  svg.on('mousemove', ev => showTip(`<b>${fmt(ucDeaths)}</b> upper GI cancer deaths per 100,000 men without screening.<br><span style="color:${C.found}"><b>${ugiSaved}</b></span> prevented by yearly Galleri, plus <b>${othSaved}</b> deaths from other cancers found by the workup.`, ev)).on('mouseleave', hideTip);
+  const tags = [
+    ['Blood tests', fmt(Math.round(DATA.tests)), ''], ['Extra cost, 2025 dollars', money(DATA.d_cost_total), 'hot'],
+    ['Cost per death prevented', money(DATA.d_cost_total / DATA.deaths_averted), 'hot'], ['Cost per QALY gained', money(DATA.icer), 'hot'],
+    ['Healthy life-years gained (QALYs)', fmt(Math.round(DATA.qaly_net)), 'good'], ['Late-stage diagnoses avoided', fmt(Math.round(DATA.late_averted)), 'good'],
+    ['Overdiagnosed cancers', fmt(Math.round(DATA.overdx)), ''], ['Healthy men worked up', fmt(Math.round(DATA.false_alarms)), '']];
+  const t = d3.select('#tags'); t.selectAll('*').remove();
+  tags.forEach(([k, v, c]) => { const d = t.append('div').attr('class', 'tag ' + c); d.append('span').attr('class', 'k').text(k); d.append('span').attr('class', 'v').text(v); });
+}
+
+/* 01 cumulative deaths */
+function drawCum() {
+  const wrap = document.getElementById('cum-wrap'), W = wrap.clientWidth, H = 360, m = { t: 20, r: 150, b: 30, l: 48 };
+  const svg = d3.select('#cum').attr('width', W).attr('height', H).attr('viewBox', `0 0 ${W} ${H}`); svg.selectAll('*').remove();
+  let cu = 0, cg = 0; const rows = DATA.cum.map(a => ({ age: a.age + 1, uc: (cu += a.uc), g: (cg += a.g) })); rows.unshift({ age: 50, uc: 0, g: 0 });
+  const x = d3.scaleLinear([50, 100], [m.l, W - m.r]), y = d3.scaleLinear([0, d3.max(rows, r => r.uc) * 1.05], [H - m.b, m.t]).nice();
+  svg.append('g').attr('class', 'axis').attr('transform', `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickFormat(fmt).tickSize(-(W - m.l - m.r))).call(g => g.select('.domain').remove()).call(g => g.selectAll('line').attr('stroke', C.rule).attr('stroke-opacity', .6));
+  svg.append('g').attr('class', 'axis').attr('transform', `translate(0,${H - m.b})`).call(d3.axisBottom(x).ticks(10).tickFormat(d3.format('d')).tickSize(0)).call(g => g.select('.domain').remove()).selectAll('text').attr('dy', '1.3em');
+  svg.append('rect').attr('x', x(85)).attr('width', x(100) - x(85)).attr('y', m.t).attr('height', H - m.t - m.b).attr('fill', C.paper).attr('fill-opacity', .025);
+  svg.append('text').attr('x', x(85) + 8).attr('y', m.t + 12).style('font-size', '11.5px').style('fill', C.faint).text('screening has stopped');
+  svg.append('path').attr('d', d3.area().x(r => x(r.age)).y0(r => y(r.uc)).y1(r => y(r.g)).curve(d3.curveMonotoneX)(rows)).attr('fill', C.found).attr('fill-opacity', .25);
+  svg.append('path').attr('d', d3.line().x(r => x(r.age)).y(r => y(r.uc)).curve(d3.curveMonotoneX)(rows)).attr('fill', 'none').attr('stroke', C.paper).attr('stroke-opacity', .55).attr('stroke-width', 2);
+  svg.append('path').attr('d', d3.line().x(r => x(r.age)).y(r => y(r.g)).curve(d3.curveMonotoneX)(rows)).attr('fill', 'none').attr('stroke', C.found).attr('stroke-width', 2);
+  const L = rows[rows.length - 1];
+  svg.append('text').attr('x', x(100) + 8).attr('y', y(L.uc) - 4).style('fill', C.paper).text(`Usual care ${fmt(Math.round(L.uc))}`);
+  svg.append('text').attr('x', x(100) + 8).attr('y', y(L.g) + 14).style('fill', C.found).text(`Galleri ${fmt(Math.round(L.g))}`);
+  svg.append('text').attr('x', x(100) + 8).attr('y', (y(L.uc) + y(L.g)) / 2 + 4).style('fill', C.mute).style('font-size', '11.5px').text(`${ugiSaved} prevented`);
+  const hit = svg.append('g'), rule = hit.append('line').attr('y1', m.t).attr('y2', H - m.b).attr('stroke', C.faint).style('opacity', 0);
+  const d1 = hit.append('circle').attr('r', 4.5).attr('fill', C.ink).attr('stroke', C.paper).attr('stroke-width', 2).style('opacity', 0), d2 = hit.append('circle').attr('r', 4.5).attr('fill', C.found).attr('stroke', C.ink).attr('stroke-width', 2).style('opacity', 0);
+  svg.append('rect').attr('x', m.l).attr('y', m.t).attr('width', W - m.l - m.r).attr('height', H - m.t - m.b).attr('fill', 'transparent')
+    .on('mousemove', ev => { const age = Math.max(50, Math.min(100, Math.round(x.invert(d3.pointer(ev)[0])))), r = rows.find(d => d.age === age);
+      rule.attr('x1', x(age)).attr('x2', x(age)).style('opacity', 1); d1.attr('cx', x(age)).attr('cy', y(r.uc)).style('opacity', 1); d2.attr('cx', x(age)).attr('cy', y(r.g)).style('opacity', 1);
+      showTip(`<b>By age ${age}</b><div class="r"><span>Usual care</span><span class="m">${fmt(Math.round(r.uc))}</span></div><div class="r"><span style="color:${C.found}">Galleri</span><span class="m">${fmt(Math.round(r.g))}</span></div><div class="r"><span>Prevented so far</span><span class="m">${Math.round(r.uc - r.g)}</span></div>`, ev); })
+    .on('mouseleave', () => { hideTip(); hit.selectAll('*').style('opacity', 0); });
+}
+
+/* 02 PSA constellation */
+function drawPSA() {
+  const P = DATA.psa.map(d => ({ q: d.d_qaly * DATA.per, c: d.d_cost * DATA.per / 1e6 }));
+  const ics = DATA.psa.filter(d => d.d_qaly > 0).map(d => d.d_cost / d.d_qaly);
+  document.getElementById('psa-intro').innerHTML = `Each glowing point is one run of the model with every uncertain input redrawn. US decisions often use $100,000 to $150,000 per QALY. Across 1,000 runs the cost per QALY ranges from <b>${money(d3.min(ics))}</b> to <b>${money(d3.max(ics))}</b>; the middle run is <b>${money(d3.median(ics))}</b>.`;
+  const wrap = document.getElementById('psa-wrap'), W = wrap.clientWidth, H = Math.min(520, Math.max(380, W * 0.5)), m = { t: 20, r: 20, b: 46, l: 84 };
+  const cv = document.getElementById('psa'), dpr = devicePixelRatio || 1; cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  const x = d3.scaleLinear([Math.min(0, d3.min(P, d => d.q)), d3.max(P, d => d.q) * 1.05], [m.l, W - m.r]).nice();
+  const y = d3.scaleLinear([0, d3.max(P, d => d.c) * 1.05], [H - m.b, m.t]).nice();
+  ctx.strokeStyle = C.rule; ctx.lineWidth = 1; ctx.fillStyle = C.faint; ctx.font = '11px "IBM Plex Mono", monospace';
+  y.ticks(5).forEach(t => { ctx.globalAlpha = .6; ctx.beginPath(); ctx.moveTo(m.l, y(t)); ctx.lineTo(W - m.r, y(t)); ctx.stroke(); ctx.globalAlpha = 1; ctx.textAlign = 'right'; ctx.fillText('$' + fmt(t) + 'M', m.l - 8, y(t) + 4); });
+  x.ticks(6).forEach(t => { ctx.textAlign = 'center'; ctx.fillText(fmt(t), x(t), H - m.b + 18); });
+  ctx.fillStyle = C.mute; ctx.font = '12px "Public Sans", sans-serif'; ctx.textAlign = 'center'; ctx.fillText('QALYs gained per 100,000 men', (m.l + W - m.r) / 2, H - 8);
+  ctx.save(); ctx.translate(14, (m.t + H - m.b) / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('Extra cost per 100,000 men', 0, 0); ctx.restore();
+  // willingness-to-pay rays from the origin
+  [[1e5, '$100k per QALY'], [1e6, '$1M per QALY'], [1e7, '$10M per QALY']].forEach(([k, lab], i) => {
+    const qMax = x.domain()[1], cAt = q => q * k / 1e6; let q2 = qMax, c2 = cAt(q2); if (c2 > y.domain()[1]) { c2 = y.domain()[1]; q2 = c2 * 1e6 / k; }
+    ctx.strokeStyle = i === 0 ? C.found : C.faint; ctx.setLineDash(i === 0 ? [] : [4, 4]); ctx.lineWidth = i === 0 ? 2 : 1;
+    ctx.beginPath(); ctx.moveTo(x(0), y(0)); ctx.lineTo(x(q2), y(c2)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = i === 0 ? C.found : C.mute; ctx.textAlign = 'right'; ctx.font = '12px "Public Sans", sans-serif';
+    ctx.fillText(lab, x(q2) - 4, y(c2) - 8);
+  });
+  ctx.globalCompositeOperation = 'lighter';
+  P.forEach(d => { const g = ctx.createRadialGradient(x(d.q), y(d.c), 0, x(d.q), y(d.c), 7); g.addColorStop(0, 'rgba(25,158,112,0.55)'); g.addColorStop(1, 'rgba(25,158,112,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x(d.q), y(d.c), 7, 0, 7); ctx.fill(); });
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = '#d7f5e8'; P.forEach(d => { ctx.beginPath(); ctx.arc(x(d.q), y(d.c), 1.2, 0, 7); ctx.fill(); });
+  const bq = DATA.qaly_net, bc = DATA.d_cost_total / 1e6;
+  ctx.strokeStyle = C.paper; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x(bq), y(bc), 7, 0, 7); ctx.stroke();
+  ctx.textAlign = 'left'; ctx.font = '600 13px "Public Sans", sans-serif'; const lab = `Base case: ${money(DATA.icer)} per QALY`;
+  ctx.lineWidth = 5; ctx.strokeStyle = C.ink; ctx.lineJoin = 'round'; ctx.strokeText(lab, x(bq) + 14, y(bc) - 12); ctx.fillStyle = C.paper; ctx.fillText(lab, x(bq) + 14, y(bc) - 12);
+  cv.onmousemove = ev => { const r = cv.getBoundingClientRect(), mx = ev.clientX - r.left, my = ev.clientY - r.top;
+    let best = null, bd = 144; P.forEach((d, i) => { const dd = (x(d.q) - mx) ** 2 + (y(d.c) - my) ** 2; if (dd < bd) { bd = dd; best = i; } });
+    if (best == null) return hideTip(); const d = P[best];
+    showTip(`<b>Run ${best + 1}</b><div class="r"><span>QALYs gained</span><span class="m">${fmt(Math.round(d.q))}</span></div><div class="r"><span>Extra cost</span><span class="m">$${d.c.toFixed(0)}M</span></div><div class="r"><span>Per QALY</span><span class="m">${d.q > 0 ? money(d.c * 1e6 / d.q) : 'no gain'}</span></div>`, ev); };
+  cv.onmouseleave = hideTip;
+}
+
+/* 03 price */
+function drawPrice() {
+  const p100 = priceAt(100000), p150 = priceAt(150000), share = 0.077 * DATA.price;
+  document.getElementById('price-intro').innerHTML = `Everything else held at the base case, the cost per QALY rises in a straight line with the test price. At the list price of <b>$${fmt(DATA.price)}</b> it is <b>${money(DATA.icer)}</b>. It reaches $100,000 to $150,000 per QALY only at <b>$${Math.round(p100)} to $${Math.round(p150)}</b> a test. Charging upper GI screening only its share of the cancers Galleri finds (about 7.7%, <b>$${Math.round(share)}</b>) gives ${money(icerAt(share))}.`;
+  const wrap = document.getElementById('price-wrap'), W = wrap.clientWidth, H = 360, m = { t: 24, r: 30, b: 46, l: 70 };
+  const svg = d3.select('#price').attr('width', W).attr('height', H).attr('viewBox', `0 0 ${W} ${H}`); svg.selectAll('*').remove();
+  const x = d3.scaleLinear([0, 1000], [m.l, W - m.r]), y = d3.scaleLog([1e4, 1e7], [H - m.b, m.t]);
+  [1e4, 1e5, 1e6, 1e7].forEach(t => { svg.append('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y(t)).attr('y2', y(t)).attr('stroke', C.rule).attr('stroke-opacity', .6);
+    svg.append('text').attr('x', m.l - 8).attr('y', y(t)).attr('dy', '0.35em').attr('text-anchor', 'end').style('font-family', 'var(--mono)').style('font-size', '11px').style('fill', C.faint).text(money(t)); });
+  svg.append('g').attr('class', 'axis').attr('transform', `translate(0,${H - m.b})`).call(d3.axisBottom(x).ticks(10).tickFormat(d => '$' + d).tickSize(0)).call(g => g.select('.domain').remove()).selectAll('text').attr('dy', '1.3em');
+  svg.append('text').attr('x', (m.l + W - m.r) / 2).attr('y', H - 6).attr('text-anchor', 'middle').text('Galleri test price');
+  svg.append('rect').attr('x', m.l).attr('width', W - m.l - m.r).attr('y', y(1.5e5)).attr('height', y(1e5) - y(1.5e5)).attr('fill', C.found).attr('fill-opacity', .22);
+  svg.append('text').attr('x', W - m.r).attr('y', y(1.5e5) - 6).attr('text-anchor', 'end').style('fill', C.found).style('font-size', '11.5px').text('$100k–$150k per QALY');
+  const pts = d3.range(1, 1001, 3).map(p => ({ p, v: icerAt(p) })).filter(d => d.v >= 1e4);
+  svg.append('path').attr('d', d3.line().x(d => x(d.p)).y(d => y(d.v)).curve(d3.curveMonotoneX)(pts)).attr('fill', 'none').attr('stroke', C.paper).attr('stroke-width', 2);
+  const mark = (p, label, color, dx, anchor) => { svg.append('circle').attr('cx', x(p)).attr('cy', y(icerAt(p))).attr('r', 5.5).attr('fill', color).attr('stroke', C.ink).attr('stroke-width', 2);
+    svg.append('text').attr('x', x(p) + dx).attr('y', y(icerAt(p)) - 12).attr('text-anchor', anchor).style('fill', C.paper).style('font-size', '12.5px').text(label); };
+  mark(DATA.price, `List price $${fmt(DATA.price)} → ${money(DATA.icer)}`, C.alarm, 0, 'end');
+  mark(DATA.price / 2, `Half price → ${money(icerAt(DATA.price / 2))}`, C.paper, 0, 'middle');
+  mark(share, `Upper GI share $${Math.round(share)} → ${money(icerAt(share))}`, C.overdx, 8, 'start');
+  mark(p100, `$${Math.round(p100)}`, C.found, -10, 'end');
+  svg.append('rect').attr('x', m.l).attr('y', m.t).attr('width', W - m.l - m.r).attr('height', H - m.t - m.b).attr('fill', 'transparent')
+    .on('mousemove', ev => { const p = Math.max(0, Math.min(1000, x.invert(d3.pointer(ev)[0]))); showTip(`<b>Test price $${p.toFixed(0)}</b><br>Cost per QALY <span class="m">${money(icerAt(p))}</span>`, ev); }).on('mouseleave', hideTip);
+}
+
+/* 04 scenarios */
+function drawScen() {
+  const S = DATA.scenarios.slice().sort((a, b) => b.icer - a.icer);
+  const wrap = document.getElementById('sc-wrap'), W = wrap.clientWidth, row = 30, m = { t: 30, r: 80, b: 20, l: Math.min(420, W * 0.46) }, H = m.t + m.b + row * S.length;
+  const svg = d3.select('#sc').attr('width', W).attr('height', H).attr('viewBox', `0 0 ${W} ${H}`); svg.selectAll('*').remove();
+  const x = d3.scaleLog([5e4, 1e7], [m.l, W - m.r]);
+  svg.append('rect').attr('x', x(1e5)).attr('width', x(1.5e5) - x(1e5)).attr('y', m.t - 8).attr('height', H - m.t - m.b + 8).attr('fill', C.found).attr('fill-opacity', .22);
+  svg.append('text').attr('x', x(1.25e5)).attr('y', m.t - 14).attr('text-anchor', 'middle').style('fill', C.found).style('font-size', '11.5px').text('threshold');
+  [1e5, 1e6, 1e7].forEach(t => { svg.append('line').attr('x1', x(t)).attr('x2', x(t)).attr('y1', m.t - 8).attr('y2', H - m.b).attr('stroke', C.rule);
+    svg.append('text').attr('x', x(t)).attr('y', m.t - 14).attr('text-anchor', t === 1e5 ? 'end' : 'middle').style('font-family', 'var(--mono)').style('font-size', '11px').style('fill', C.faint).text(t === 1e5 ? '' : money(t)); });
+  const base = DATA.icer;
+  svg.append('line').attr('x1', x(base)).attr('x2', x(base)).attr('y1', m.t - 8).attr('y2', H - m.b).attr('stroke', C.paper).attr('stroke-opacity', .35).attr('stroke-dasharray', '3 3');
+  S.forEach((s, i) => { const yy = m.t + i * row + row / 2, isBase = s.s === 'Base case', hot = s.icer < 1e6;
+    svg.append('text').attr('x', m.l - 14).attr('y', yy).attr('dy', '0.35em').attr('text-anchor', 'end').style('fill', isBase || hot ? C.paper : C.mute).style('font-weight', isBase || hot ? 600 : 400).style('font-size', '12.5px').text(s.s);
+    svg.append('line').attr('x1', x(base)).attr('x2', x(s.icer)).attr('y1', yy).attr('y2', yy).attr('stroke', hot ? C.overdx : C.faint).attr('stroke-width', 1.5);
+    svg.append('circle').attr('cx', x(s.icer)).attr('cy', yy).attr('r', isBase ? 6 : 5).attr('fill', isBase ? C.ink : hot ? C.overdx : C.paper).attr('stroke', isBase ? C.paper : C.ink).attr('stroke-width', 2);
+    svg.append('text').attr('x', x(s.icer) + (s.icer > base ? 10 : -10)).attr('y', yy).attr('dy', '0.35em').attr('text-anchor', s.icer > base ? 'start' : 'end').style('font-family', 'var(--mono)').style('font-size', '11px').style('fill', C.mute).text(money(s.icer));
+  });
+}
+
+/* 05 subgroup mosaic */
+function drawMosaic() {
+  const S = DATA.subgroups, ages = Array.from(new Set(S.map(d => d.age))).sort((a, b) => a - b);
+  const races = ['all', 'nhw', 'nhb', 'nhapi', 'nhaian', 'hisp'], rl = { all: 'All', nhw: 'NH White', nhb: 'NH Black', nhapi: 'NH Asian/Pacific Isl.', nhaian: 'NH Am. Indian/Alaska N.', hisp: 'Hispanic' };
+  const bands = [[0, 3e6], [3e6, 5e6], [5e6, 1e7], [1e7, 3e7], [3e7, Infinity]], labs = ['< $3M', '$3–5M', '$5–10M', '$10–30M', '> $30M'];
+  const ramp = d3.quantize(d3.interpolateLab('#f1a37f', '#5a2414'), 5);
+  const band = v => bands.findIndex(([a, b]) => v >= a && v < b);
+  const rp = d3.select('#ramp'); rp.selectAll('*').remove();
+  labs.forEach((l, i) => rp.append('span').html(`<i style="background:${ramp[i]}"></i>${l}`));
+  rp.append('span').html(`<i style="background:repeating-linear-gradient(135deg, ${C.faint} 0 2px, transparent 2px 6px); border:1px solid ${C.faint}"></i>no QALY gain (dominated)`);
+  rp.append('span').html(`<i style="border:1px solid ${C.rule}"></i>not screened (past 85)`);
+  const W0 = document.getElementById('mo-wrap').clientWidth, lw = 170, cw = Math.max(52, (Math.max(640, W0) - lw - 20) / ages.length), ch = 30, gapSex = 22;
+  const W = lw + cw * ages.length + 10, H = 30 + (races.length * ch) * 2 + gapSex + 30;
+  const svg = d3.select('#mosaic').attr('width', W).attr('height', H).attr('viewBox', `0 0 ${W} ${H}`); svg.selectAll('*').remove();
+  const defs = svg.append('defs'); defs.append('pattern').attr('id', 'hatch').attr('width', 6).attr('height', 6).attr('patternUnits', 'userSpaceOnUse').attr('patternTransform', 'rotate(45)')
+    .append('line').attr('x1', 0).attr('y1', 0).attr('x2', 0).attr('y2', 6).attr('stroke', C.faint).attr('stroke-width', 2);
+  ages.forEach((a, j) => svg.append('text').attr('x', lw + j * cw + cw / 2).attr('y', 16).attr('text-anchor', 'middle').style('font-family', 'var(--mono)').style('font-size', '11px').style('fill', C.faint).text(a));
+  svg.append('text').attr('x', lw - 10).attr('y', 16).attr('text-anchor', 'end').style('font-size', '11px').style('fill', C.faint).text('start age →');
+  let best = S.filter(d => d.icer && d.dq > 0).sort((a, b) => a.icer - b.icer)[0];
+  ['male', 'female'].forEach((sx, k) => { const y0 = 30 + k * (races.length * ch + gapSex);
+    svg.append('text').attr('x', 0).attr('y', y0 + 14).style('fill', C.paper).style('font-weight', 600).style('font-size', '12.5px').text(sx === 'male' ? 'Men' : 'Women');
+    races.forEach((r, i) => { const yy = y0 + i * ch;
+      svg.append('text').attr('x', lw - 10).attr('y', yy + ch / 2).attr('dy', '0.35em').attr('text-anchor', 'end').style('font-size', '12px').text(rl[r]);
+      ages.forEach((a, j) => { const d = S.find(s => s.age === a && s.sex === sx && s.race === r); const xx = lw + j * cw;
+        const notScreened = a > 85, dominated = !notScreened && !(d && d.dq > 0 && d.icer > 0);
+        const cell = svg.append('rect').attr('x', xx + 1).attr('y', yy + 1).attr('width', cw - 2).attr('height', ch - 2).attr('rx', 3)
+          .attr('fill', notScreened ? 'none' : dominated ? 'url(#hatch)' : ramp[band(d.icer)]).attr('stroke', notScreened ? C.rule : 'none');
+        if (!notScreened && !dominated) svg.append('text').attr('x', xx + cw / 2).attr('y', yy + ch / 2).attr('dy', '0.35em').attr('text-anchor', 'middle').style('font-family', 'var(--mono)').style('font-size', '11px')
+          .style('fill', band(d.icer) >= 3 ? C.paper : C.ink).style('pointer-events', 'none').text(d.icer >= 1e8 ? '>100' : (d.icer / 1e6).toFixed(d.icer < 1e7 ? 1 : 0));
+        if (best && d === best) svg.append('rect').attr('x', xx).attr('y', yy).attr('width', cw).attr('height', ch).attr('rx', 4).attr('fill', 'none').attr('stroke', C.paper).attr('stroke-width', 2);
+        cell.on('mousemove', ev => showTip(`<b>${sx === 'male' ? 'Men' : 'Women'}, ${d ? d.label : rl[r]}, from age ${a}</b><br>${notScreened ? 'Not screened: past the stop age of 85.' : dominated ? 'No QALY gain: screening does more harm than good.' : `Cost per QALY <span class="m">${money(d.icer)}</span><br>Cancer deaths prevented <span class="m">${Math.round(d.averted)}</span> per 100,000`}`, ev)).on('mouseleave', hideTip);
+      });
+    });
+  });
+  if (best) svg.append('text').attr('x', lw).attr('y', H - 8).style('fill', C.mute).style('font-size', '12px').text(`Outlined: the best group, ${best.sex === 'male' ? 'men' : 'women'} (${best.label}) starting at ${best.age}, at ${money(best.icer)} per QALY.`);
+}
+
+/* 06 Kunzmann */
+function drawKunz() {
+  const K = DATA.kunz, s = d3.select('#kunz'); s.selectAll('*').remove();
+  [[fmt(Math.round(K.egd)), 'endoscopies per 100,000 men', ''], [Math.round(K.averted), 'cancer deaths prevented', ''], [Math.round(K.perf_deaths), 'deaths from perforation', 'hot'],
+   [fmt(Math.round(K.qaly_net)), 'QALYs: a net loss', 'hot'], [money(K.cost), 'extra cost', '']]
+    .forEach(([v, k, c]) => { const d = s.append('div'); d.append('span').attr('class', 'v ' + c).text(v); d.append('span').attr('class', 'k').text(k); });
+}
+
+function drawAll() { drawDeaths(); drawCum(); drawPSA(); drawPrice(); drawScen(); drawMosaic(); drawKunz(); }
+drawAll();
+let rt; new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(drawAll, 150); }).observe(document.querySelector('.wrap'));
+</script>
+</body>
+</html>

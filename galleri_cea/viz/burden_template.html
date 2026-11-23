@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>2.8 Million Blood Tests</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300;1,9..144,400&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* One visual world: a night-ink page where every dot is a person; faint dots are tests, coloured sparks are positive results. */
+:root {
+  color-scheme: dark;
+  --ink: #10151f;          /* page and chart surface */
+  --ink-2: #171e2b;        /* raised panels */
+  --rule: #273042;
+  --paper: #ece6da;        /* primary text */
+  --mute: #9aa3b3;         /* secondary text */
+  --faint: #5d6678;        /* tertiary text, axes */
+  --found: #199e70;        /* cancer found that mattered */
+  --overdx: #9085e9;       /* overdiagnosed */
+  --alarm: #d95926;        /* false alarm: cancer-free person worked up */
+  --display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --body: "Public Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--ink); color: var(--paper); }
+body { font: 16px/1.6 var(--body); -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 56px max(18px, 4vw) 80px; display: grid; gap: 88px; }
+.text { max-width: 640px; }
+h1, h2 { font-family: var(--display); font-weight: 300; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h1 { font-size: clamp(44px, 8vw, 96px); line-height: .98; }
+h1 em { font-style: italic; color: var(--alarm); font-weight: 300; }
+h2 { font-size: clamp(28px, 4vw, 42px); line-height: 1.08; }
+h2 em { font-style: italic; }
+p { margin: 0; }
+.eyebrow { font: 500 12px/1.4 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--mute); }
+.dek { font-size: 19px; line-height: 1.55; color: var(--mute); max-width: 620px; }
+.dek b, .text b { color: var(--paper); font-weight: 600; }
+.chapter { display: grid; gap: 22px; min-width: 0; }
+.chapter .num { font: 500 12px var(--mono); color: var(--faint); letter-spacing: .12em; }
+.fig { position: relative; min-width: 0; }
+.note { font-size: 13.5px; color: var(--mute); max-width: 720px; line-height: 1.55; }
+.key { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 13.5px; color: var(--mute); align-items: center; }
+.key span { display: inline-flex; align-items: center; gap: 8px; }
+.sw { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.sw.found { background: var(--found); } .sw.overdx { background: var(--overdx); } .sw.alarm { background: var(--alarm); }
+.sw.missed { border: 1.6px solid var(--paper); width: 10px; height: 10px; }
+.sw.test { background: var(--paper); opacity: .28; width: 6px; height: 6px; }
+.big { font: 300 clamp(40px, 6vw, 64px)/1 var(--display); font-variant-numeric: tabular-nums; }
+.tip { position: fixed; pointer-events: none; z-index: 10; background: #0a0e16; border: 1px solid var(--rule); border-radius: 8px;
+  padding: 10px 12px; font-size: 13px; line-height: 1.45; color: var(--paper); max-width: 260px; box-shadow: 0 8px 28px rgba(0,0,0,.45); opacity: 0; transition: opacity .12s; }
+.tip b { font-weight: 600; } .tip .m { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.tip .r { display: flex; justify-content: space-between; gap: 14px; }
+canvas, svg { display: block; max-width: 100%; }
+svg text { font-family: var(--body); fill: var(--mute); font-size: 12px; }
+svg .axis text { font-family: var(--mono); font-size: 11px; fill: var(--faint); }
+svg .axis line, svg .axis path { stroke: var(--rule); }
+.hero { display: grid; gap: 28px; }
+.hero-fig { position: relative; }
+.anno { position: absolute; font-size: 12.5px; line-height: 1.4; color: var(--mute); max-width: 190px; pointer-events: none; }
+.anno b { color: var(--paper); font-weight: 600; }
+.anno::before { content: ""; position: absolute; left: -14px; top: 8px; width: 9px; height: 1px; background: var(--faint); }
+.discs { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 28px 20px; align-items: end; }
+.disc { display: grid; gap: 10px; justify-items: center; text-align: center; }
+.disc svg { overflow: visible; }
+.disc .n { font: 300 40px/1 var(--display); font-variant-numeric: tabular-nums; }
+.disc .l { font-weight: 600; font-size: 15px; }
+.disc .d { font-size: 13px; color: var(--mute); max-width: 240px; }
+.ledger { display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); background: var(--ink-2); border: 1px solid var(--rule); border-radius: 12px; overflow: hidden; }
+.ledger div { padding: 18px 18px 16px; display: grid; gap: 6px; align-content: start; box-shadow: inset -1px -1px 0 var(--rule); }
+.ledger .v { font: 300 32px/1 var(--display); font-variant-numeric: tabular-nums; }
+.ledger .v small { font-size: 16px; color: var(--mute); }
+.ledger .k { font-size: 13px; color: var(--mute); line-height: 1.4; }
+.split { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 36px; align-items: start; }
+@media (max-width: 860px) { .split { grid-template-columns: 1fr; } }
+table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+th, td { text-align: left; padding: 11px 12px; border-bottom: 1px solid var(--rule); vertical-align: baseline; }
+th { font: 500 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+td.ui { font-family: var(--mono); font-size: 12.5px; color: var(--faint); text-align: right; white-space: nowrap; }
+td.sub { padding-left: 30px; color: var(--mute); }
+.tablebox { overflow-x: auto; }
+a.next { color: var(--paper); font: 300 24px/1.3 var(--display); text-decoration: none; border-bottom: 1px solid var(--faint); }
+a.next:hover { border-color: var(--paper); }
+.foot { font-size: 13px; color: var(--faint); line-height: 1.6; border-top: 1px solid var(--rule); padding-top: 22px; display: grid; gap: 8px; max-width: 860px; }
+button.replay { font: 500 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--mute); background: transparent;
+  border: 1px solid var(--rule); border-radius: 999px; padding: 7px 14px; cursor: pointer; justify-self: start; }
+button.replay:hover { color: var(--paper); border-color: var(--faint); }
+button:focus-visible { outline: 2px solid var(--found); outline-offset: 2px; }
+.sankey-node rect { shape-rendering: crispEdges; }
+.sankey-link { fill: none; }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+<header class="hero">
+  <span class="eyebrow">A yearly multi-cancer blood test · upper GI cancer screening model · 100,000 US men</span>
+  <h1>2.8 million <em>blood tests</em></h1>
+  <p class="dek">If <b>100,000 men</b> took a Galleri test every year from 50 to 85, they would give <b id="h-tests"></b> blood samples. <b id="h-pos"></b> would come back positive. This is what happens to each of them.</p>
+  <div class="key" aria-label="Legend">
+    <span><i class="sw test"></i>250 negative tests</span>
+    <span><i class="sw found"></i>cancer found</span>
+    <span><i class="sw overdx"></i>cancer found, overdiagnosed</span>
+    <span><i class="sw missed"></i>cancer missed despite workup</span>
+    <span><i class="sw alarm"></i>no cancer: false alarm</span>
+  </div>
+  <div class="hero-fig fig" id="rain-wrap">
+    <canvas id="rain" role="img" aria-label="Tests by age from 50 to 85, each faint dot 250 negative tests, with every positive result as a coloured dot by its outcome"></canvas>
+  </div>
+  <p class="note">Each column is one year of age. Its height is the number of tests that year, which falls as the men die of other causes. Each coloured dot is <b>one man</b> with a positive result. Point at a column for that year's numbers.</p>
+  <button class="replay" id="replay" type="button">Replay the years</button>
+</header>
+
+<section class="chapter" aria-labelledby="c1">
+  <span class="num">01 · THE POSITIVES</span>
+  <h2 id="c1">Only <em>about half</em> of positive results lead to a cancer that needed finding</h2>
+  <p class="text note">Every dot below is one man. Each pile is drawn to scale: its area is the number of men in it.</p>
+  <div class="discs" id="discs"></div>
+</section>
+
+<section class="chapter" aria-labelledby="c2">
+  <span class="num">02 · THE WORKUP</span>
+  <h2 id="c2">A positive test starts a <em>chain of procedures</em></h2>
+  <p class="text note">Every positive gets an endoscopy (EGD). When it finds nothing, the search moves on: an ENT exam or a whole-body PET CT, then endoscopic ultrasound or a biopsy of whatever else lights up. Widths are men, lifetime, per 100,000.</p>
+  <div class="fig" id="sankey-wrap"><svg id="sankey" role="img" aria-label="Flow of the 2,575 men with a positive result through EGD, ENT, PET CT, EUS and follow-up, ending in a cancer found or no cancer"></svg></div>
+</section>
+
+<section class="chapter" aria-labelledby="c3">
+  <span class="num">03 · ONE FALSE ALARM</span>
+  <h2 id="c3">What a false alarm costs <em>one healthy man</em></h2>
+  <p class="text note" id="fa-intro"></p>
+  <div class="ledger" id="ledger"></div>
+</section>
+
+<section class="chapter" aria-labelledby="c4">
+  <span class="num">04 · OVERDIAGNOSIS</span>
+  <h2 id="c4">The older the man, the more often the cancer found <em>would never have mattered</em></h2>
+  <p class="text note">Overdiagnosed: a cancer found by screening that would never have caused symptoms, because the man would have died of something else first. Bars are cancers found each year of age.</p>
+  <div class="key"><span><i class="sw found"></i>found, would have caused symptoms</span><span><i class="sw overdx"></i>found, overdiagnosed</span></div>
+  <div class="fig" id="od-wrap"><svg id="od" role="img" aria-label="Cancers found each year from age 50 to 85, split into those that would have caused symptoms and those overdiagnosed; the overdiagnosed share rises with age"></svg></div>
+</section>
+
+<section class="chapter" aria-labelledby="c5">
+  <span class="num">05 · WHAT A NEGATIVE MISSES</span>
+  <h2 id="c5">A negative result is not an <em>all-clear</em></h2>
+  <p class="text note" id="fn-intro"></p>
+  <div class="key"><span><i class="sw found"></i>upper GI cancer, test positive</span><span><i class="sw missed"></i>upper GI cancer, test negative</span></div>
+  <div class="fig" id="fn-wrap"><svg id="fn" role="img" aria-label="Each year, upper GI cancers present at a test: how many tested positive and how many tested negative"></svg></div>
+</section>
+
+<section class="chapter" aria-labelledby="c6">
+  <span class="num">06 · THE LEDGER</span>
+  <h2 id="c6">The burden, <em>counted</em></h2>
+  <div class="tablebox"><table id="tbl"><thead><tr><th>Per 100,000 men, age 50 to 85</th><th style="text-align:right">Base case</th><th style="text-align:right">95% interval</th></tr></thead><tbody></tbody></table></div>
+</section>
+
+<p class="text"><a class="next" href="https://claude.ai/artifact/YcKcYAsVTv88jqJVtZyFQS">Next: is it worth it? Galleri or usual care →</a></p>
+<footer class="foot">
+  <p>Source: Galleri upper GI screening model (github.com/fali-ebm/Galleri, galleri_cea), base case: non-Hispanic White men screened every year from age 50 to 85, followed to 100. Natural history calibrated to SEER 2013–17 incidence and stage; Galleri accuracy from PATHFINDER 2 and NHS-Galleri; workup probabilities from the literature; NCHS 2024 life tables. Intervals are the 2.5th and 97.5th percentiles of 1,000 probabilistic runs.</p>
+  <p>Model results are expected values for a cohort, drawn as whole people. A man who tests positive in more than one year is counted at each positive.</p>
+</footer>
+</main>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+<script>
+const DATA = __DATA__;
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { found: css('--found'), overdx: css('--overdx'), alarm: css('--alarm'), paper: css('--paper'), mute: css('--mute'),
+            faint: css('--faint'), rule: css('--rule'), ink: css('--ink') };
+const fmt = d3.format(','), f1 = d3.format(',.1f'), f2 = d3.format(',.2f');
+const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const tip = document.getElementById('tip');
+function showTip(html, ev) {
+  tip.innerHTML = html; tip.style.opacity = 1;
+  const r = tip.getBoundingClientRect(); let x = ev.clientX + 16, y = ev.clientY + 16;
+  if (x + r.width > innerWidth - 8) x = ev.clientX - r.width - 16;
+  if (y + r.height > innerHeight - 8) y = ev.clientY - r.height - 16;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+const hideTip = () => tip.style.opacity = 0;
+function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+const A = DATA.ages, T = DATA.tot;
+const nPos = T.found + T.overdx + T.missed + T.falsealarm;
+document.getElementById('h-tests').textContent = (DATA.tests_total / 1e6).toFixed(2) + ' million';
+document.getElementById('h-pos').textContent = fmt(nPos);
+
+/* ---------- hero: the rain of tests ---------- */
+const rain = document.getElementById('rain'), rwrap = document.getElementById('rain-wrap');
+let rainState = null;
+function layoutRain() {
+  const W = rwrap.clientWidth, cols = A.length, mL = 0, mB = 30, colW = W / cols;
+  const per = 6, pitch = Math.max(2.2, Math.min(5, colW * 0.78 / per));
+  const dots = A.map(a => Math.round(a.tests / 250));
+  const maxRows = Math.ceil(d3.max(dots) / per), fieldH = maxRows * pitch, H = fieldH + mB + 70;
+  const dpr = window.devicePixelRatio || 1;
+  rain.width = W * dpr; rain.height = H * dpr; rain.style.width = W + 'px'; rain.style.height = H + 'px';
+  const ctx = rain.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const top = 70, base = top + fieldH;
+  const cols_ = A.map((a, i) => {
+    const x0 = mL + i * colW + (colW - per * pitch) / 2, rows = Math.ceil(dots[i] / per);
+    const r = rng(1009 + i * 7919), sparks = [];
+    const kinds = [['found', a.found], ['overdx', a.overdx], ['missed', a.missed], ['falsealarm', a.falsealarm]];
+    for (const [k, n] of kinds) for (let j = 0; j < n; j++)
+      sparks.push({ k, x: x0 + r() * per * pitch, y: base - r() * rows * pitch });
+    return { a, x0, rows, n: dots[i], sparks };
+  });
+  rainState = { W, H, colW, pitch, per, top, base, cols: cols_, ctx };
+  placeAnnotations();
+}
+function drawRain(progress = 1) {
+  const s = rainState; if (!s) return; const { ctx, pitch, per } = s;
+  ctx.clearRect(0, 0, s.W, s.H);
+  ctx.fillStyle = C.paper; ctx.globalAlpha = 0.17;
+  const sz = Math.max(1.1, pitch * 0.42);
+  for (const c of s.cols) for (let j = 0; j < c.n; j++) {
+    const col = j % per, row = Math.floor(j / per);
+    ctx.fillRect(c.x0 + col * pitch, s.base - (row + 1) * pitch, sz, sz);
+  }
+  ctx.globalAlpha = 1;
+  const rr = Math.max(1.6, pitch * 0.5), color = { found: C.found, overdx: C.overdx, falsealarm: C.alarm };
+  const shown = Math.floor(progress * s.cols.length + 0.0001);
+  s.cols.forEach((c, i) => {
+    const local = Math.max(0, Math.min(1, progress * s.cols.length - i));
+    if (local <= 0) return;
+    for (const p of c.sparks) {
+      ctx.globalAlpha = local;
+      if (p.k === 'missed') { ctx.strokeStyle = C.paper; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(p.x, p.y, rr, 0, 7); ctx.stroke(); }
+      else { ctx.fillStyle = color[p.k]; ctx.beginPath(); ctx.arc(p.x, p.y, rr, 0, 7); ctx.fill(); }
+    }
+  });
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = C.faint; ctx.font = '11px "IBM Plex Mono", monospace'; ctx.textAlign = 'center';
+  s.cols.forEach((c, i) => { if (c.a.age % 5 === 0) ctx.fillText(c.a.age, c.x0 + per * pitch / 2, s.base + 18); });
+}
+function placeAnnotations() {
+  rwrap.querySelectorAll('.anno').forEach(n => n.remove());
+  const s = rainState; if (s.W < 640) return;
+  const note = (i, html, dy) => {
+    const c = s.cols[i], el = document.createElement('div'); el.className = 'anno'; el.innerHTML = html;
+    el.style.left = (c.x0 + s.per * s.pitch + 18) + 'px'; el.style.top = (s.base - c.rows * s.pitch + dy) + 'px'; rwrap.appendChild(el);
+  };
+  const a0 = s.cols[0].a, a75 = s.cols.find(c => c.a.age === 75).a, a85 = s.cols[s.cols.length - 1].a;
+  note(0, `<b>Age 50.</b> ${fmt(Math.round(a0.tests))} tests, ${a0.found + a0.overdx + a0.missed + a0.falsealarm} positive. The first round finds the cancers already there.`, -66);
+  { const i75 = s.cols.findIndex(c => c.a.age === 75), c = s.cols[i75], el = document.createElement('div'); el.className = 'anno';
+    el.innerHTML = `<b>Age 75.</b> ${fmt(Math.round(a75.tests))} men still tested. Most positives are now real cancers, and more of them are overdiagnosed.`;
+    el.style.left = (c.x0 - 214) + 'px'; el.style.top = (s.base - c.rows * s.pitch - 104) + 'px'; el.style.textAlign = 'right'; rwrap.appendChild(el); }
+  const i85 = s.cols.length - 1, c85 = s.cols[i85], el = document.createElement('div'); el.className = 'anno';
+  el.innerHTML = `<b>Age 85.</b> Screening stops. ${fmt(Math.round(a85.tests))} men are still being tested.`;
+  el.style.left = Math.max(0, c85.x0 - 150) + 'px'; el.style.top = (s.base - c85.rows * s.pitch - 104) + 'px'; el.style.textAlign = 'right';
+  rwrap.appendChild(el);
+}
+let anim = null;
+function playRain() {
+  if (reduce) { drawRain(1); return; }
+  cancelAnimationFrame(anim); const t0 = performance.now(), dur = 3600;
+  const step = t => { const p = Math.min(1, (t - t0) / dur); drawRain(p); if (p < 1) anim = requestAnimationFrame(step); };
+  anim = requestAnimationFrame(step);
+}
+rain.addEventListener('mousemove', ev => {
+  const s = rainState, x = ev.offsetX, i = Math.max(0, Math.min(s.cols.length - 1, Math.floor(x / s.colW))), a = s.cols[i].a;
+  showTip(`<b>Age ${a.age}</b><div class="r"><span>Tests</span><span class="m">${fmt(Math.round(a.tests))}</span></div>
+    <div class="r"><span>Positive results</span><span class="m">${a.found + a.overdx + a.missed + a.falsealarm}</span></div>
+    <div class="r"><span style="color:${C.found}">Cancer found</span><span class="m">${a.found}</span></div>
+    <div class="r"><span style="color:${C.overdx}">Overdiagnosed</span><span class="m">${a.overdx}</span></div>
+    <div class="r"><span>Missed despite workup</span><span class="m">${a.missed}</span></div>
+    <div class="r"><span style="color:${C.alarm}">False alarm</span><span class="m">${a.falsealarm}</span></div>`, ev);
+});
+rain.addEventListener('mouseleave', hideTip);
+document.getElementById('replay').addEventListener('click', playRain);
+
+/* ---------- 01: sunflower piles ---------- */
+const piles = [
+  { k: 'found', n: T.found, l: 'Cancer found', d: 'Upper GI or another cancer, found early enough to change its course.' },
+  { k: 'falsealarm', n: T.falsealarm, l: 'No cancer', d: 'A false alarm: a healthy man sent through the workup.' },
+  { k: 'overdx', n: T.overdx, l: 'Overdiagnosed', d: 'A real cancer that would never have caused symptoms.' },
+  { k: 'missed', n: T.missed, l: 'Missed', d: 'A cancer the workup did not find; it surfaces later with symptoms.' },
+];
+function drawDiscs() {
+  const host = document.getElementById('discs'); host.innerHTML = '';
+  const gap = 7.2, r = 2.7, golden = Math.PI * (3 - Math.sqrt(5));
+  const maxR = gap * Math.sqrt(d3.max(piles, p => p.n)) * 0.56 + r;
+  piles.forEach(p => {
+    const R_ = gap * Math.sqrt(p.n) * 0.56 + r, size = 2 * maxR + 4;
+    const div = document.createElement('div'); div.className = 'disc';
+    const svg = d3.select(div).append('svg').attr('width', size).attr('height', size).attr('viewBox', `${-size / 2} ${-size / 2} ${size} ${size}`)
+      .attr('role', 'img').attr('aria-label', `${fmt(p.n)} men: ${p.l}`).style('max-width', '100%');
+    const pts = d3.range(p.n).map(i => ({ x: gap * 0.56 * Math.sqrt(i + 0.5) * Math.cos(i * golden), y: gap * 0.56 * Math.sqrt(i + 0.5) * Math.sin(i * golden) }));
+    const g = svg.append('g').attr('transform', `translate(0,${maxR - R_})`);
+    const fill = { found: C.found, overdx: C.overdx, falsealarm: C.alarm }[p.k];
+    g.selectAll('circle').data(pts).join('circle').attr('cx', d => d.x).attr('cy', d => d.y).attr('r', r)
+      .attr('fill', p.k === 'missed' ? 'none' : fill).attr('stroke', p.k === 'missed' ? C.paper : C.ink).attr('stroke-width', p.k === 'missed' ? 1.1 : 0.8);
+    svg.on('mousemove', ev => showTip(`<b>${p.l}</b><br>${fmt(p.n)} of ${fmt(nPos)} men with a positive result (${Math.round(100 * p.n / nPos)}%).<br>${p.d}`, ev)).on('mouseleave', hideTip);
+    d3.select(div).append('div').attr('class', 'n').text(fmt(p.n));
+    d3.select(div).append('div').attr('class', 'l').text(p.l);
+    d3.select(div).append('div').attr('class', 'd').text(p.d);
+    host.appendChild(div);
+  });
+}
+
+/* ---------- 02: sankey ---------- */
+function drawSankey() {
+  const wrap = document.getElementById('sankey-wrap'), W = Math.max(720, wrap.clientWidth), H = 520;
+  wrap.style.overflowX = 'auto';
+  const svg = d3.select('#sankey').attr('width', W).attr('height', H).attr('viewBox', `0 0 ${W} ${H}`); svg.selectAll('*').remove();
+  const nice = n => n.replace(' (false positive)', '').replace(' (true positive)', ': cancer').replace(/-ve/g, '\u2212ve');
+  DATA.links.forEach(l => { l.source = nice(l.source); l.target = nice(l.target); });
+  const names = Array.from(new Set(DATA.links.flatMap(l => [l.source, l.target])));
+  const foundN = new Set(['EGD +ve: cancer', 'ENT +ve: cancer', 'EUS sampling +ve: cancer', 'Incidental: cancer']);
+  const harmN = new Set(['ENT \u2212ve', 'PET \u2212ve', 'EUS sampling \u2212ve', 'No sampling', 'Incidental: benign', 'Fatal perforation']);
+  const graph = d3.sankey().nodeId(d => d.name).nodeWidth(10).nodePadding(26).nodeAlign(d3.sankeyLeft).extent([[4, 28], [W - 230, H - 10]])({
+    nodes: names.map(name => ({ name })), links: DATA.links.map(l => ({ ...l, value: Math.max(l.value, 0.6) })) });
+  const col = n => foundN.has(n.name) ? C.found : harmN.has(n.name) ? C.alarm : C.mute;
+  svg.append('g').selectAll('path').data(graph.links).join('path').attr('class', 'sankey-link').attr('d', d3.sankeyLinkHorizontal())
+    .attr('stroke', d => col(d.target)).attr('stroke-opacity', 0.28).attr('stroke-width', d => Math.max(1, d.width))
+    .on('mousemove', (ev, d) => showTip(`<b>${d.source.name} → ${d.target.name}</b><br><span class="m">${d.value < 1 ? f2(DATA.links.find(l => l.source === d.source.name && l.target === d.target.name).value) : fmt(Math.round(d.value))}</span> men`, ev))
+    .on('mouseleave', hideTip);
+  const node = svg.append('g').selectAll('g').data(graph.nodes).join('g');
+  node.append('rect').attr('x', d => d.x0).attr('y', d => d.y0).attr('width', d => d.x1 - d.x0).attr('height', d => Math.max(1.5, d.y1 - d.y0)).attr('rx', 2).attr('fill', col);
+  const realV = n => d3.sum(DATA.links.filter(l => l.target === n.name), l => l.value) || d3.sum(DATA.links.filter(l => l.source === n.name), l => l.value);
+  const terminal = d => !d.sourceLinks.length;
+  node.append('text').attr('x', d => terminal(d) ? d.x1 + 8 : d.x0).attr('y', d => terminal(d) ? (d.y0 + d.y1) / 2 : d.y0 - 7).attr('dy', d => terminal(d) ? '0.35em' : 0)
+    .style('fill', d => foundN.has(d.name) || harmN.has(d.name) ? C.paper : C.mute).style('font-size', '12.5px')
+    .text(d => `${d.name}  ${realV(d) < 1 ? f2(realV(d)) : fmt(Math.round(realV(d)))}`);
+}
+
+/* ---------- 03: one false alarm ---------- */
+function drawLedger() {
+  const L = DATA.ledger;
+  document.getElementById('fa-intro').innerHTML = `Over 35 years, <b>${fmt(Math.round(L.n_fp))}</b> of the 100,000 men are worked up for a cancer they do not have. On average, each of them goes through this.`;
+  const cells = [
+    ['1', '', 'upper GI endoscopy, with sedation'],
+    [L.pet.toFixed(2), '', 'whole-body PET CT scans'],
+    [L.ent.toFixed(2), '', 'ENT examinations'],
+    [L.incid.toFixed(2), '', 'follow-ups of a harmless PET finding'],
+    [L.eus.toFixed(3), '', 'endoscopic ultrasounds'],
+    [Math.round(L.days), ' days', 'waiting for the all-clear'],
+    [L.msv.toFixed(1), ' mSv', 'radiation, about three years of natural background'],
+    ['$' + fmt(Math.round(L.cost / 10) * 10), '', `in workup and complications (${DATA.cost_year} USD, discounted)`],
+    ['1 in ' + fmt(Math.round(L.perf_1_in)), '', 'chance of an endoscopic perforation'],
+    [L.qaly_days.toFixed(1), ' days', 'of healthy life lost to procedures, anxiety and harms'],
+  ];
+  const host = d3.select('#ledger'); host.selectAll('*').remove();
+  cells.forEach(([v, u, k]) => { const d = host.append('div'); d.append('span').attr('class', 'v').text(v).append('small').text(u); d.append('span').attr('class', 'k').text(k); });
+}
+
+/* ---------- 04: overdiagnosis by age ---------- */
+function drawOverdx() {
+  const wrap = document.getElementById('od-wrap'), W = wrap.clientWidth, H = 320, m = { t: 34, r: 8, b: 30, l: 34 };
+  const svg = d3.select('#od').attr('width', W).attr('height', H).attr('viewBox', `0 0 ${W} ${H}`); svg.selectAll('*').remove();
+  const x = d3.scaleBand(A.map(a => a.age), [m.l, W - m.r]).padding(0.28);
+  const y = d3.scaleLinear([0, d3.max(A, a => a.found + a.overdx) * 1.08], [H - m.b, m.t]).nice();
+  svg.append('g').attr('class', 'axis').attr('transform', `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(4).tickSize(-(W - m.l - m.r)))
+    .call(g => g.select('.domain').remove()).call(g => g.selectAll('line').attr('stroke', C.rule).attr('stroke-opacity', .6));
+  svg.append('g').attr('class', 'axis').attr('transform', `translate(0,${H - m.b})`).call(d3.axisBottom(x).tickValues(A.filter(a => a.age % 5 === 0).map(a => a.age)).tickSize(0))
+    .call(g => g.select('.domain').remove()).selectAll('text').attr('dy', '1.3em');
+  const bw = x.bandwidth();
+  const g = svg.append('g').selectAll('g').data(A).join('g');
+  // found (bottom), 2px surface gap, overdiagnosed (top) with rounded data end
+  g.append('rect').attr('x', d => x(d.age)).attr('width', bw).attr('y', d => y(d.found)).attr('height', d => y(0) - y(d.found)).attr('fill', C.found);
+  g.append('path').attr('fill', C.overdx).attr('d', d => {
+    if (!d.overdx) return ''; const x0 = x(d.age), y1 = y(d.found) - 2, y0 = y(d.found + d.overdx) - 2, r = Math.min(3, bw / 2, (y1 - y0));
+    return `M${x0},${y1}V${y0 + r}Q${x0},${y0} ${x0 + r},${y0}H${x0 + bw - r}Q${x0 + bw},${y0} ${x0 + bw},${y0 + r}V${y1}Z`; });
+  g.append('rect').attr('x', d => x(d.age) - x.step() * x.padding() / 2).attr('width', x.step()).attr('y', m.t).attr('height', H - m.t - m.b).attr('fill', 'transparent')
+    .on('mousemove', (ev, d) => showTip(`<b>Age ${d.age}</b><div class="r"><span>Cancers found</span><span class="m">${d.found + d.overdx}</span></div>
+      <div class="r"><span style="color:${C.overdx}">Overdiagnosed</span><span class="m">${d.overdx} (${Math.round(100 * d.overdx / Math.max(1, d.found + d.overdx))}%)</span></div>`, ev)).on('mouseleave', hideTip);
+  [50, 60, 70, 80, 85].forEach(age => { const d = A.find(a => a.age === age); if (!d) return;
+    svg.append('text').attr('x', x(age) + bw / 2).attr('y', y(d.found + d.overdx) - 10).attr('text-anchor', 'middle').style('fill', C.overdx).style('font-family', 'var(--mono)').style('font-size', '11.5px')
+      .text(Math.round(100 * d.overdx / Math.max(1, d.found + d.overdx)) + '%'); });
+  svg.append('text').attr('x', m.l).attr('y', 14).style('fill', C.faint).style('font-size', '11.5px').text('Cancers found per year, per 100,000 · violet % = share overdiagnosed');
+}
+
+/* ---------- 05: what a negative misses (mirror) ---------- */
+function drawFN() {
+  const wrap = document.getElementById('fn-wrap'), W = wrap.clientWidth, H = 380, m = { t: 20, r: 12, b: 26, l: 40 };
+  const svg = d3.select('#fn').attr('width', W).attr('height', H).attr('viewBox', `0 0 ${W} ${H}`); svg.selectAll('*').remove();
+  document.getElementById('fn-intro').innerHTML = `For every upper GI cancer the test catches, it misses about one. Over 35 years that is <b>${fmt(Math.round(DATA.fn))}</b> negative results given to men who had the cancer. <b>${fmt(Math.round(DATA.fn_symp))}</b> of those cancers surface with symptoms before the next test; the rest wait for another round.`;
+  const x = d3.scaleBand(A.map(a => a.age), [m.l, W - m.r]).padding(0.3), mid = m.t + (H - m.t - m.b) / 2;
+  const mx = d3.max(A, a => Math.max(a.tp, a.fn)) * 1.08, half = (H - m.t - m.b) / 2 - 16;
+  const up = d3.scaleLinear([0, mx], [mid - 11, mid - 11 - half]), dn = d3.scaleLinear([0, mx], [mid + 11, mid + 11 + half]);
+  const bw = x.bandwidth(), r = Math.min(3, bw / 2);
+  [20, 40].forEach(v => { svg.append('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', up(v)).attr('y2', up(v)).attr('stroke', C.rule).attr('stroke-opacity', .6);
+    svg.append('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', dn(v)).attr('y2', dn(v)).attr('stroke', C.rule).attr('stroke-opacity', .6);
+    svg.append('text').attr('x', m.l - 8).attr('y', up(v)).attr('dy', '0.35em').attr('text-anchor', 'end').style('font-family', 'var(--mono)').style('font-size', '11px').style('fill', C.faint).text(v);
+    svg.append('text').attr('x', m.l - 8).attr('y', dn(v)).attr('dy', '0.35em').attr('text-anchor', 'end').style('font-family', 'var(--mono)').style('font-size', '11px').style('fill', C.faint).text(v); });
+  const bar = (x0, y0, y1, w, dir) => { // rounded end away from the midline
+    const h = Math.abs(y1 - y0); if (h < 0.5) return ''; const rr = Math.min(r, h);
+    return dir < 0 ? `M${x0},${y0}V${y1 + rr}Q${x0},${y1} ${x0 + rr},${y1}H${x0 + w - rr}Q${x0 + w},${y1} ${x0 + w},${y1 + rr}V${y0}Z`
+                   : `M${x0},${y0}V${y1 - rr}Q${x0},${y1} ${x0 + rr},${y1}H${x0 + w - rr}Q${x0 + w},${y1} ${x0 + w},${y1 - rr}V${y0}Z`; };
+  const g = svg.append('g').selectAll('g').data(A).join('g');
+  g.append('path').attr('fill', C.found).attr('d', a => bar(x(a.age), up(0), up(a.tp), bw, -1));
+  g.append('path').attr('fill', 'none').attr('stroke', C.paper).attr('stroke-width', 1.2).attr('d', a => bar(x(a.age) + 0.6, dn(0), dn(a.fn) - 0.6, bw - 1.2, 1));
+  g.append('path').attr('fill', C.paper).attr('fill-opacity', .22).attr('d', a => bar(x(a.age) + 0.6, dn(0), dn(a.fn_symp), bw - 1.2, 1));
+  svg.append('text').attr('x', W - m.r).attr('y', up(mx) + 4).attr('text-anchor', 'end').style('fill', C.found).style('font-weight', 600).text('Test positive: cancer caught \u2191');
+  svg.append('text').attr('x', W - m.r).attr('y', dn(mx) - 2).attr('text-anchor', 'end').style('fill', C.paper).style('font-weight', 600).text('Test negative: cancer missed \u2193');
+  svg.append('text').attr('x', W - m.r).attr('y', dn(mx) + 14).attr('text-anchor', 'end').style('fill', C.mute).style('font-size', '11.5px').text('filled part: symptoms before the next test');
+  A.filter(a => a.age % 5 === 0).forEach(a => svg.append('text').attr('x', x(a.age) + bw / 2).attr('y', mid).attr('dy', '0.35em').attr('text-anchor', 'middle')
+    .style('font-family', 'var(--mono)').style('font-size', '10.5px').style('fill', C.faint).style('paint-order', 'stroke').style('stroke', C.ink).style('stroke-width', 4).text(a.age));
+  g.append('rect').attr('x', a => x(a.age) - x.step() * x.padding() / 2).attr('width', x.step()).attr('y', m.t).attr('height', H - m.t - m.b).attr('fill', 'transparent')
+    .on('mousemove', (ev, a) => showTip(`<b>Age ${a.age}</b><div class="r"><span style="color:${C.found}">Cancer, test positive</span><span class="m">${f1(a.tp)}</span></div><div class="r"><span>Cancer, test negative</span><span class="m">${f1(a.fn)}</span></div><div class="r"><span>Symptoms before next test</span><span class="m">${f1(a.fn_symp)}</span></div>`, ev))
+    .on('mouseleave', hideTip);
+}
+
+/* ---------- 06: ledger table ---------- */
+function drawTable() {
+  const tb = d3.select('#tbl tbody'); tb.selectAll('*').remove();
+  DATA.table.forEach(([label, v]) => { const tr = tb.append('tr'); const sub = label.startsWith('  ');
+    tr.append('td').attr('class', sub ? 'sub' : null).text(label.trim()); tr.append('td').attr('class', 'n').text(v.v); tr.append('td').attr('class', 'ui').text(`${v.lo} – ${v.hi}`); });
+}
+
+function drawAll() { layoutRain(); drawRain(1); drawDiscs(); drawSankey(); drawLedger(); drawOverdx(); drawFN(); drawTable(); }
+drawAll();
+let rt; new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(() => { layoutRain(); drawRain(1); drawSankey(); drawOverdx(); drawFN(); }, 150); }).observe(document.querySelector('.wrap'));
+</script>
+</body>
+</html>
