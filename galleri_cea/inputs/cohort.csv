@@ -1,3 +1,3 @@
 population,race_eth,sex,start_age,risk_group,share,kunzmann_scoped,status,notes
-screening,nhw,male,50,kunzmann_high,0.3566,1,ASSUMPTION,Base case: 50-year-old non-Hispanic White men; Kunzmann score >= 8 flags 35.66% (GRADE evidence profile; pooled sensitivity 0.78 and specificity 0.64); one-time score and EGD
-screening,nhw,male,50,kunzmann_low,0.6434,0,ASSUMPTION,Base case: 50-year-old non-Hispanic White men; Kunzmann score >= 8 flags 35.66% (GRADE evidence profile; pooled sensitivity 0.78 and specificity 0.64); one-time score and EGD
+screening,nhw,male,50,kunzmann_high,0.3566,1,ASSUMPTION,Base case: 50-year-old non-Hispanic White men; Kunzmann score >= 8 flags 35.66% (GRADE evidence profile; pooled sensitivity 77.5% and specificity 64.4%); one-time score and EGD
+screening,nhw,male,50,kunzmann_low,0.6434,0,ASSUMPTION,Base case: 50-year-old non-Hispanic White men; Kunzmann score >= 8 flags 35.66% (GRADE evidence profile; pooled sensitivity 77.5% and specificity 64.4%); one-time score and EGD

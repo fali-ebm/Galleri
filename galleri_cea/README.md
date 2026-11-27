@@ -40,8 +40,8 @@ equals the excess lifetime diagnoses versus usual care exactly.
   removed from the NCHS life tables.
 - Costs are in 2025 USD (CPI medical care; `data-raw/inflate_costs.R`).
 - The Kunzmann score uses the GRADE evidence profile (one study, n = 95,200,
-  very low certainty): sensitivity 0.78, specificity 0.64, so 35.66% are
-  flagged and capture 78% of esophageal adenocarcinoma. These are pooled
+  very low certainty): sensitivity 77.5%, specificity 64.4%, so 35.66% are
+  flagged and capture 77.5% of esophageal adenocarcinoma. These are pooled
   values, applied to both sexes.
 - Incidental PET findings are followed up (`c_incid_fu`), and symptomatic
   diagnoses carry the EGD perforation risk.

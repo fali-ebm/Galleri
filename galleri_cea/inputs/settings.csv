@@ -9,8 +9,8 @@ screen_stop_age,85,Screening,Screening stop age,last age screened,
 screen_interval,1,Screening,Screening interval,years between rounds (1 = annual),
 kunz_share_male,0.3566,Kunzmann score,"Share flagged (score >= 8), men","GRADE evidence profile (Kunzmann score >= 8; 1 study, n = 95,200; very low certainty): per 10,000 tested, 10 TP + 3,556 FP flagged = 35.66%. Pooled, not sex-specific",8
 kunz_share_female,0.3566,Kunzmann score,"Share flagged (score >= 8), women","GRADE evidence profile (Kunzmann score >= 8; 1 study, n = 95,200; very low certainty): per 10,000 tested, 10 TP + 3,556 FP flagged = 35.66%. Pooled, not sex-specific",8
-kunz_capture_male,0.78,Kunzmann score,"Share of EAC in flagged group (sensitivity), men","GRADE evidence profile: sensitivity 0.78 (95% CI 0.76-0.79), specificity 0.64 (0.63-0.65); pooled, not sex-specific",8
-kunz_capture_female,0.78,Kunzmann score,"Share of EAC in flagged group (sensitivity), women","GRADE evidence profile: sensitivity 0.78 (95% CI 0.76-0.79), specificity 0.64 (0.63-0.65); pooled, not sex-specific",8
+kunz_capture_male,0.775,Kunzmann score,"Share of EAC in flagged group (sensitivity), men","GRADE evidence profile: sensitivity 77.5% (95% CI 76-79%), specificity 64.4% (63-65%); pooled, not sex-specific",8
+kunz_capture_female,0.775,Kunzmann score,"Share of EAC in flagged group (sensitivity), women","GRADE evidence profile: sensitivity 77.5% (95% CI 76-79%), specificity 64.4% (63-65%); pooled, not sex-specific",8
 kunz_egd_rounds,1,Kunzmann score,EGD rounds for people flagged,"1 = one-time score and one-time EGD at the start age (Nov 2026); larger = that many rounds at the screening interval",
 subgroup_ages,"50, 55, 60, 65, 70, 75, 80, 85, 90",Subgroup grid,Start ages,"comma-separated, 50-99",
 subgroup_sexes,"male, female",Subgroup grid,Sexes,"comma-separated: male, female",
