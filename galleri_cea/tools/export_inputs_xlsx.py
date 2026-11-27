@@ -63,7 +63,7 @@ def num(x):
 # ---------------------------------------------------------------- README
 IMPORT_STEPS = [
     ("How to update the model from this workbook", "h"),
-    ("1. Edit blue cells (and add or delete rows on Parameters, Scenarios, References and the raw-data sheets). Black cells are formulas or labels; the Baseline (calibration) sheet is rebuilt from the raw-data sheets, so edits there are ignored.", ""),
+    ("1. Edit blue cells (and add or delete rows on the numbered tree-step tabs, Scenarios, References and the raw-data sheets). Black cells are formulas or labels; the Baseline (calibration) sheet is rebuilt from the raw-data sheets, so edits there are ignored.", ""),
     ("2. Save the workbook as galleri_cea/Galleri_model_inputs.xlsx (keep the sheet names and column headers).", ""),
     ("3. From galleri_cea/, preview: Rscript import_inputs_xlsx.R --check   (validates and lists every change, writes nothing).", ""),
     ("4. Apply: Rscript import_inputs_xlsx.R   (validates on a scratch copy, backs up the old CSVs, writes the new ones, rebuilds the SEER/NCHS baseline).", ""),
@@ -79,9 +79,10 @@ lines = [
     ("", ""),
     ("Model in one paragraph", "h"),
     ("Annual-cycle cohort model, lifetime horizon (to age 100), US payer perspective, 2025 USD, 3% discounting of costs and QALYs. Arms: usual care; Kunzmann score >= 8 -> EGD every year; Galleri every year: +ve -> EGD (EGD +ve = true positive; EGD -ve = false positive -> rest of the workup; any EGD can perforate), -ve -> true negative (stays well) or false negative (symptomatic cancer later or found at a later round), then usual care. Screening runs from the start age to 85. Natural history is calibrated to SEER for every subgroup: onset of preclinical upper GI cancer is solved so that, without screening, symptomatic diagnoses reproduce SEER incidence by age, sex and race/ethnicity, and their stage reproduces SEER stage at diagnosis. Base case: 50-year-old non-Hispanic White men.", ""),
+    ("Revised tree (Nov 2026, not yet in the engine): a 2-year hold on repeat EGDs after a negative EGD; a negative EGD can hide a visible lesion that was missed or a cancer not yet visible; Bayesian update of each person's false-positive propensity; EUS sampling as a coin toss; tumor board -> laparoscopy or watchful waiting, with laparoscopy less likely after each negative result. Its inputs are the purple 'After rebuild' rows on the tree-step tabs.", ""),
     ("", ""),
     ("Sheets", "h"),
-    ("Parameters - every scalar input with value, PSA distribution, range, status and source (one row per parameter).", ""),
+    ("1 Galleri test ... 9 Utilities and DALYs - every scalar input, one tab per step of the decision tree: value, one-way range, PSA distribution, status, whether the current model uses it (In model), and source. New rows of the revised tree are purple and marked After rebuild.", ""),
     ("References - numbered sources; Refs columns elsewhere point to these numbers.", ""),
     ("Settings - analysis settings: willingness to pay, discounting, horizon, screening schedule, Kunzmann split, subgroup grid, PSA size.", ""),
     ("Cohort - base-case cohort rows (start age, sex, race/ethnicity). The Kunzmann shares are linked to Settings.", ""),
@@ -110,71 +111,82 @@ for i, (txt, kind) in enumerate(lines, 1):
         d = ws.cell(i, 2, desc[kind]); d.font = BASE
 ws.column_dimensions["A"].width = 110; ws.column_dimensions["B"].width = 70
 
-# ---------------------------------------------------------------- Parameters
-CATS = [
-    ("Galleri test performance", ["sens_g_ugi", "sens_g_other", "fpr_g_es", "sens_g_rep_ratio", "p_fn_persist"]),
-    ("Endoscopy (Kunzmann arm)", ["sens_egd"]),
-    ("Galleri +ve workup tree", ["p_egd_pos", "p_ent_route", "p_ent_pos", "p_pet_pb", "p_pet_incid", "p_eus_pos",
-                                 "p_eus_neg", "p_miss", "p_incid_cancer"]),
-    ("Natural history and stage", ["sojourn_years", "p_late_screen", "or_late_clin", "m_early", "m_late"]),
-    ("Procedure harms", ["p_perf_egd", "p_death_perf", "sae_ent", "sae_eus", "sae_eus_samp", "p_death_sae", "msv_pet", "risk_per_sv",
-                         "loss_rad_ca"]),
-    ("Time to workup steps", ["t_egd", "t_ent", "t_pet", "t_eus", "t_tb"]),
-    ("Costs (USD, inflated to the Settings cost year)", ["c_galleri", "galleri_cost_share", "c_kunz", "c_egd", "c_ent", "c_pet", "c_eus", "c_eus_samp", "c_tb", "c_symp_dx",
-                     "c_tx_first_early", "c_tx_first_late", "c_fu_early", "c_fu_late", "c_eol", "c_sae", "c_perf", "c_incid_fu"]),
-    ("Utilities, disutilities and disability weights", ["u_mult_early", "u_mult_late", "d_proc", "d_sae",
-        "dfp_endo", "dfp_pet", "dfp_ext", "fp_tto", "dw_anx", "p_worry", "dur_worry",
-                                                        "dw_early", "dw_late"]),
+# ---------------------------------------------------------------- Parameters, one tab per tree step
+# Tabs whose names start with a number are read by the importer; 'In model' says which file a row goes to:
+# "Yes..." -> inputs/parameters.csv (the model reads it now); "After rebuild" -> inputs/parameters_pending.csv
+# (parameters of the revised tree, read once the engine is rebuilt).
+STEPS = [
+    ("1 Galleri test", "Annual Galleri test. Chance of a positive result with an esophagus/stomach (E/S) signal for each true health state, how sensitivity falls after round 1, and whether false positives repeat in the same person.",
+     ["sens_g_ugi", "sens_g_other", "fpr_g_es", "sens_g_rep_ratio", "p_fn_persist", "fp_kappa", "hr_ca_after_fp"]),
+    ("2 EGD", "Galleri +ve: EGD unless inside the hold after a negative EGD. What the EGD finds, what it misses (visible lesion missed vs cancer not yet visible), and perforation.",
+     ["p_egd_pos", "sens_egd", "f_invisible", "t_visible", "egd_hold_years", "p_perf_egd", "p_death_perf"]),
+    ("3 ENT and PET CT", "EGD -ve or skipped: routed to ENT exam or PET CT. What each finds.",
+     ["p_ent_route", "p_ent_pos", "p_pet_pb", "p_pet_incid", "p_pet_ugi", "p_incid_cancer", "p_miss"]),
+    ("4 Pancreatobiliary", "PET pancreatobiliary +ve: EUS (FNA/FNB a coin toss), tumor board after a negative or unsampled EUS, laparoscopy or watchful waiting. After a prior negative EUS or laparoscopy, laparoscopy becomes less likely.",
+     ["p_eus_pos", "p_eus_neg", "p_eus_samp", "p_eus_pos_samp", "p_tb_lap", "r_lap_after_eus", "r_lap_after_lap",
+      "p_reeus_after_eus", "p_reeus_after_lap"]),
+    ("5 Natural history", "Preclinical sojourn, stage at screen detection and at symptoms, and cancer mortality by stage.",
+     ["sojourn_years", "sojourn_eac", "p_late_screen", "or_late_clin", "m_early", "m_late"]),
+    ("6 Procedure harms", "Serious adverse events of each procedure and radiation from PET CT. EGD perforation is on the EGD tab.",
+     ["sae_ent", "sae_eus", "sae_eus_samp", "p_lap_cx", "p_death_sae", "msv_pet", "risk_per_sv", "loss_rad_ca"]),
+    ("7 Time to each step", "Days from one workup step to the next (time spent waiting for the all-clear).",
+     ["t_egd", "t_ent", "t_pet", "t_eus", "t_tb", "t_lap"]),
+    ("8 Costs", "Costs in USD, inflated to the Settings cost year. Rows with a published price: edit Price as published and Price year.",
+     ["c_galleri", "galleri_cost_share", "c_kunz", "c_egd", "c_ent", "c_pet", "c_eus", "c_eus_samp", "c_tb", "c_lap", "c_surv",
+      "c_incid_fu", "c_symp_dx", "c_tx_first_early", "c_tx_first_late", "c_fu_early", "c_fu_late", "c_eol", "c_sae", "c_perf"]),
+    ("9 Utilities and DALYs", "Quality-of-life multipliers, disutilities of procedures and false positives, and disability weights.",
+     ["u_mult_early", "u_mult_late", "d_proc", "d_sae", "dfp_endo", "dfp_pet", "dfp_ext", "fp_tto", "dw_anx", "p_worry",
+      "dur_worry", "dw_early", "dw_late"]),
 ]
-P = {r["parameter"]: r for r in rd("inputs/parameters.csv")}
-assert sorted(sum((v for _, v in CATS), [])) == sorted(P), set(P) ^ set(sum((v for _, v in CATS), []))
-hdr = ["Category", "Parameter", "Label", "Value", "Unit", "Status", "PSA distribution", "SE", "n (beta/Dirichlet)",
-       "Dirichlet group", "Low (OWSA)", "High (OWSA)", "Description", "Source / derivation", "Refs (see References)", "Used in",
-       "Price as published (USD)", "Price year"]
-ws = wb.create_sheet("Parameters"); ws.append(hdr)
-for c in ws[1]:
-    c.font = H_FONT; c.fill = H_FILL; c.alignment = Alignment(vertical="center", wrap_text=True)
-for cat, keys in CATS:
-    ws.append([cat]); r = ws.max_row
-    for c in ws[r]: c.fill = SEC_FILL
-    ws.cell(r, 1).font = BOLD
+P_NOW = {r["parameter"]: r for r in rd("inputs/parameters.csv")}
+P_NEW = {r["parameter"]: r for r in rd("inputs/parameters_pending.csv")} if os.path.exists(os.path.join(ROOT, "inputs/parameters_pending.csv")) else {}
+P = {**P_NOW, **P_NEW}
+allk = sum((v for _, _, v in STEPS), [])
+assert sorted(allk) == sorted(P) and len(allk) == len(set(allk)), set(P) ^ set(allk)
+IN_MODEL_NOTE = {"p_eus_pos": "Yes (replaced at rebuild)", "p_eus_neg": "Yes (replaced at rebuild)",
+                 "sens_egd": "Yes (both arms after rebuild)"}
+hdr = ["Parameter", "Label", "Value", "Low (OWSA)", "High (OWSA)", "PSA distribution", "SE", "n (beta/Dirichlet)",
+       "Dirichlet group", "Status", "In model", "Unit", "Description", "Source / derivation", "Refs (see References)",
+       "Used in", "Price as published (USD)", "Price year"]
+NEW_FILL = PatternFill("solid", fgColor="E4DFF5")
+for title, blurb, keys in STEPS:
+    ws = wb.create_sheet(title); ws.append(hdr)
+    for c in ws[1]:
+        c.font = H_FONT; c.fill = H_FILL; c.alignment = Alignment(vertical="center", wrap_text=True)
     for k in keys:
-        p = P[k]
-        ws.append([None, k, p["label"], num(p["value"]), p["unit"], p["status"], p["dist"], num(p["se"]), num(p["n"]),
-                   p["group"] or None, num(p["low"]), num(p["high"]), p["description"], p["source"], p.get("refs") or NONE_REF, {"both": "Both analyses", "comparison": "Comparison (Kunzmann arm)"}.get(p["analysis"], p["analysis"]),
+        p = P[k]; pending = k in P_NEW
+        ws.append([k, p["label"], num(p["value"]), num(p["low"]), num(p["high"]), p["dist"], num(p["se"]), num(p["n"]),
+                   p["group"] or None, p["status"], "After rebuild" if pending else IN_MODEL_NOTE.get(k, "Yes"),
+                   p["unit"], p["description"], p["source"], p.get("refs") or NONE_REF,
+                   {"both": "Both analyses", "comparison": "Comparison (Kunzmann arm)"}.get(p["analysis"], p["analysis"]),
                    num(p.get("price_value") or ""), num(p.get("price_year") or "")])
         r = ws.max_row
         for c in ws[r]:
-            c.font = BASE; c.alignment = Alignment(vertical="top", wrap_text=c.column in (3, 13, 14))
+            c.font = BASE; c.alignment = Alignment(vertical="top", wrap_text=c.column in (2, 13, 14))
+        for col in (3, 4, 5, 6, 7, 8): ws.cell(r, col).font = BLUE
+        u = p["unit"]
+        fmt = ("0.0%" if u == "proportion" and float(p["value"] or 0) >= 0.01 else
+               "0.000%" if u in ("proportion", "per procedure", "per year") else
+               "$#,##0" if u.startswith("USD") else "#,##0" if u == "count" else "0.00###")
+        if u == "per year" and k.startswith("m_"): fmt = "0.0%"
+        for col in (3, 4, 5): ws.cell(r, col).number_format = fmt
         if p.get("price_value"):
             ws.cell(r, 17).font = BLUE; ws.cell(r, 18).font = BLUE; ws.cell(r, 17).number_format = "$#,##0"
-            ws.cell(r, 4).font = BASE    # value is computed from the published price on import
-        for col in (4, 11, 12):
-            if col == 4 and p.get("price_value"): continue
-            ws.cell(r, col).font = BLUE
-            u = p["unit"]
-            fmt = ("0.0%" if u == "proportion" and float(p["value"] or 0) >= 0.01 else
-                   "0.000%" if u in ("proportion", "per procedure", "per year") else
-                   "$#,##0" if u.startswith("USD") else "0.00###")
-            if u == "per year" and k.startswith("m_"): fmt = "0.0%"
-            ws.cell(r, col).number_format = fmt
-        ws.cell(r, 6).fill = PatternFill("solid", fgColor=STATUS_FILL.get(p["status"], "FFFFFF"))
-widths = [24, 18, 30, 12, 13, 13, 13, 9, 10, 10, 11, 11, 48, 60, 14, 12, 14, 10]
-for i, w in enumerate(widths, 1): ws.column_dimensions[get_column_letter(i)].width = w
-ws.freeze_panes = "C2"; ws.row_dimensions[1].height = 30
-ws.auto_filter.ref = f"A1:R{ws.max_row}"
-n0 = ws.max_row + 2
-ws.cell(n0, 2, "Notes").font = BOLD
-for j, t in enumerate([
-    "Value = base case. SE / n define the probabilistic (PSA) distribution: beta and Dirichlet use n as the effective sample size; gamma, normal and lognormal use SE.",
-    "Low/High are one-way sensitivity bounds; where blank the model uses +/-25% (owsa_pct) of the base value.",
-    "Costs with a published price: edit the blue 'Price as published' and 'Price year' columns; on import Value, SE, Low and High are recomputed in Settings cost-year USD with CPI medical care (CPI sheet). Black Value cells are not imported for those rows.",
-    "EGD perforation (p_perf_egd, p_death_perf, c_perf) applies to every EGD in both screening arms; a fatal perforation ends the Galleri workup. p_death_sae, c_sae and d_sae now cover the other serious adverse events (ENT, EUS, sampling); d_sae is also the QALY loss of a non-fatal perforation.",
-    "Stage at symptomatic diagnosis is no longer a single parameter: it is calibrated to SEER by site, race and sex (Baseline sheet, late_eso / late_stom). or_late_clin = 1 reproduces SEER; it carries the PSA uncertainty.",
-    "Workup tree probabilities are literature values (PubMed/Consensus, Nov 2026); counts entered on the Workup counts sheet (inputs/counts.csv) override them."], 1):
-    c = ws.cell(n0 + j, 2, t); c.font = BASE
-    ws.merge_cells(start_row=n0 + j, start_column=2, end_row=n0 + j, end_column=14)
-    c.alignment = Alignment(wrap_text=True, vertical="top"); ws.row_dimensions[n0 + j].height = 28
+            ws.cell(r, 3).font = BASE    # value is computed from the published price on import
+        ws.cell(r, 10).fill = PatternFill("solid", fgColor=STATUS_FILL.get(p["status"], "FFFFFF"))
+        if pending: ws.cell(r, 1).fill = NEW_FILL; ws.cell(r, 11).fill = NEW_FILL
+    widths = [20, 34, 12, 11, 11, 13, 9, 10, 10, 13, 15, 12, 52, 60, 14, 14, 14, 10]
+    for i, w in enumerate(widths, 1): ws.column_dimensions[get_column_letter(i)].width = w
+    ws.freeze_panes = "B2"; ws.row_dimensions[1].height = 30
+    ws.auto_filter.ref = f"A1:R{ws.max_row}"
+    n0 = ws.max_row + 2
+    notes = [blurb,
+             "Edit the blue cells: Value is the base case; Low/High are one-way sensitivity bounds (blank = +/-25%); PSA distribution with SE or n sets the probabilistic range (beta and Dirichlet use n as the effective sample size).",
+             "In model: 'Yes' = the current model reads it; 'After rebuild' (purple) = part of the revised tree, used once the engine is rebuilt. Status DUMMY = placeholder with no source yet."]
+    for j, t in enumerate(notes):
+        c = ws.cell(n0 + j, 1, t); c.font = BOLD if j == 0 else BASE
+        ws.merge_cells(start_row=n0 + j, start_column=1, end_row=n0 + j, end_column=14)
+        c.alignment = Alignment(wrap_text=True, vertical="top"); ws.row_dimensions[n0 + j].height = 30
 
 # ---------------------------------------------------------------- Settings
 ST = rd("inputs/settings.csv")
@@ -352,7 +364,7 @@ extra = {8: ["Kunzmann split (Settings, Cohort)"], 9: ["Kunzmann RR on EAC share
          36: ["cost inflation (CPI medical care sheet; Settings cost_year)"], 37: ["repeat-round positivity (context)"]}
 extra[26].append("mort_ugi (SEER mortality sheets)"); extra[27].append("mort_ugi (SEER mortality sheets)")
 for n, v in extra.items(): used.setdefault(n, []).extend(v)
-ws = wb.create_sheet("References", 1)
+ws = wb.create_sheet("References", wb.sheetnames.index("Workup counts") + 1)
 ws.append(["#", "Reference", "DOI / URL", "PMID", "Used for (derived, not imported)"])
 for c in ws[1]:
     c.font = H_FONT; c.fill = H_FILL; c.alignment = Alignment(vertical="center", wrap_text=True)
@@ -369,7 +381,7 @@ for n, cit, url, pmid in REFS:
 for i, w in enumerate([5, 80, 45, 11, 45], 1): ws.column_dimensions[get_column_letter(i)].width = w
 ws.freeze_panes = "B2"
 r0 = ws.max_row + 2
-ws.cell(r0, 2, "Inputs marked 'none (assumption)' have no published source; their reasoning is in the Source / derivation column of the Parameters sheet. Citations and DOIs verified in PubMed (Nov 2026) except where noted.").font = Font(name=F, size=9, italic=True)
+ws.cell(r0, 2, "Inputs marked 'none (assumption)' have no published source; their reasoning is in the Source / derivation column of the numbered tree-step tabs. Citations and DOIs verified in PubMed (Nov 2026) except where noted.").font = Font(name=F, size=9, italic=True)
 ws.cell(r0, 2).alignment = Alignment(wrap_text=True)
 
 # README pointer

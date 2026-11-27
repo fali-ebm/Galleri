@@ -179,3 +179,21 @@ pool, other-cancer incidence and life table of each sex × race/ethnicity group 
 how many true and false positives occur, so PPV, NPV and the number of cancer-free
 people worked up per cancer found vary by attained age, sex and race.
 
+
+## Revised tree inputs (pending engine rebuild)
+
+`inputs/parameters_pending.csv` holds the inputs of the revised decision tree agreed in November 2026. The current engine does not read them yet. In the workbook they are the purple "After rebuild" rows on the numbered tree-step tabs.
+
+| Parameter | Value | Basis |
+|---|---|---|
+| `fp_kappa` | 1,000,000 (independent tests) | Person-level false-positive propensity, beta(m·κ, (1−m)·κ). Scenarios 3,400 (7 all-site Galleri retests [52, 53]) and 2,900 (mammography 1.96× [51]). No esophagus/stomach data. **ASSUMPTION** |
+| `hr_ca_after_fp` | 1 | Scenario 2, from mammography [54]. **ASSUMPTION** |
+| `egd_hold_years` | 2 | Shorter of gastric (2.37 y [7]) and esophageal adenocarcinoma (4.9 y [43]) sojourn times |
+| `f_invisible` | 0.26 (0.09–0.83) | Share of EGD misses (1 − `sens_egd`) not yet visible: root-cause categories A + C [48]; upper bound 5 of 6 [50] |
+| `t_visible` | 1 y (0.5–2) | Time for a hidden cancer to become visible; 17-month mean interval [47], ~1-year Galleri window [46]. **ASSUMPTION** |
+| `p_pet_ugi` | 0.5 | **DUMMY** placeholder: PET CT sensitivity for upper GI cancer when the EGD is skipped |
+| `p_eus_samp`, `p_eus_pos_samp` | 0.5 (beta(2, 2)), 0.71 | FNA/FNB as a coin toss; sample yield as before [24]. Replace `p_eus_pos`, `p_eus_neg` |
+| `p_tb_lap`, `r_lap_after_eus`, `r_lap_after_lap` | 0.10, 0.5, 0.1 | Tumor board → laparoscopy, falling after each negative result. **ASSUMPTION** |
+| `p_reeus_after_eus`, `p_reeus_after_lap` | 0.15, 0.06 | Repeat EUS shares. **ASSUMPTION** |
+| `sojourn_eac` | 4.9 (4.9–7.1) | CISNET esophageal adenocarcinoma sojourn, men [43]; site-specific scenario only |
+| `p_lap_cx`, `t_lap`, `c_lap`, `c_surv` | 0.02, 21 d, $5,000, $600 | **DUMMY** placeholders, to source |

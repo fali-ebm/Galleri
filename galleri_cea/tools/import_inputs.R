@@ -31,18 +31,26 @@ as_num <- function(x) suppressWarnings(as.numeric(x))
 band_start <- function(x) as.character(as_num(sub("^\\s*(\\d+).*$", "\\1", x)))
 
 # ---- Sheet specifications ------------------------------------------------------
+# Parameters live on the numbered tree-step tabs ("1 Galleri test" ... "9 Utilities and DALYs"); every tab
+# whose name starts with a number is read. 'In model' = Yes... -> parameters.csv (read by the model now);
+# anything else ("After rebuild") -> parameters_pending.csv (revised tree, read once the engine is rebuilt).
+PARAM_SPEC <- list(sheet_pattern = "^[0-9]+ ", key = "parameter",
+  cols = c(Parameter = "parameter", Label = "label", Value = "value", Status = "status",
+           `PSA distribution` = "dist", SE = "se", `n (beta/Dirichlet)` = "n", `Dirichlet group` = "group",
+           `Low (OWSA)` = "low", `High (OWSA)` = "high", Unit = "unit", Description = "description",
+           `Source / derivation` = "source", `Used in` = "analysis", `Refs (see References)` = "refs",
+           `Price as published (USD)` = "price_value", `Price year` = "price_year", `In model` = "in_model"),
+  num = c("value", "se", "n", "low", "high", "price_value", "price_year"),
+  drop = "in_model")
+param_rows <- function(d) !is.na(d$parameter) & grepl("^[A-Za-z][A-Za-z0-9_.]*$", d$parameter) &
+  !(is.na(d$value) & is.na(d$dist) & is.na(d$status) & is.na(d$price_value))     # skips the notes under each table
 # cols: workbook header -> CSV column. keep: rows to keep. num: numeric CSV columns.
 # key: CSV columns identifying a row (for diffs). file: target, relative to project.
 SPECS <- list(
-  parameters = list(sheet = "Parameters", file = "inputs/parameters.csv", key = "parameter",
-    cols = c(Parameter = "parameter", Label = "label", Value = "value", Status = "status",
-             `PSA distribution` = "dist", SE = "se", `n (beta/Dirichlet)` = "n", `Dirichlet group` = "group",
-             `Low (OWSA)` = "low", `High (OWSA)` = "high", Unit = "unit", Description = "description",
-             `Source / derivation` = "source", `Used in` = "analysis", `Refs (see References)` = "refs",
-             `Price as published (USD)` = "price_value", `Price year` = "price_year"),
-    num = c("value", "se", "n", "low", "high", "price_value", "price_year"),
-    keep = function(d) !is.na(d$parameter) & grepl("^[A-Za-z][A-Za-z0-9_.]*$", d$parameter) &
-      !(is.na(d$value) & is.na(d$dist) & is.na(d$status) & is.na(d$price_value))),     # skips the Notes block
+  parameters = c(PARAM_SPEC, list(file = "inputs/parameters.csv",
+    keep = function(d) param_rows(d) & grepl("^yes", tolower(d$in_model)))),
+  pending = c(PARAM_SPEC, list(file = "inputs/parameters_pending.csv",
+    keep = function(d) param_rows(d) & !grepl("^yes", tolower(d$in_model)))),
   settings = list(sheet = "Settings", file = "inputs/settings.csv", key = "setting",
     cols = c(Key = "setting", Value = "value", Area = "area", Setting = "label", Note = "note", Refs = "refs"),
     num = character(0), keep = function(d) !is.na(d$setting)),
@@ -101,17 +109,30 @@ SPECS <- list(
 )
 
 # ---- Reading -------------------------------------------------------------------
-read_spec <- function(xlsx, sp, errs) {
-  if (!sp$sheet %in% excel_sheets(xlsx)) { errs$add(sprintf("sheet '%s' is missing", sp$sheet)); return(NULL) }
-  d <- read_excel(xlsx, sp$sheet, col_types = "text", .name_repair = "minimal")
+read_one <- function(xlsx, sheet, sp, errs) {
+  d <- read_excel(xlsx, sheet, col_types = "text", .name_repair = "minimal")
   miss <- setdiff(names(sp$cols), names(d))
   if (length(miss)) {
-    errs$add(sprintf("%s: column header(s) not found: %s", sp$sheet, paste(sQuote(miss, FALSE), collapse = ", ")))
+    errs$add(sprintf("%s: column header(s) not found: %s", sheet, paste(sQuote(miss, FALSE), collapse = ", ")))
     return(NULL)
   }
-  d <- as.data.frame(d[names(sp$cols)], stringsAsFactors = FALSE); names(d) <- unname(sp$cols)
+  d <- as.data.frame(d[names(sp$cols)], stringsAsFactors = FALSE); names(d) <- unname(sp$cols); d
+}
+
+read_spec <- function(xlsx, sp, errs) {
+  if (!is.null(sp$sheet_pattern)) {
+    sh <- grep(sp$sheet_pattern, excel_sheets(xlsx), value = TRUE)
+    if (!length(sh)) { errs$add("no numbered tree-step tabs (e.g. '1 Galleri test') found"); return(NULL) }
+    parts <- lapply(sh, read_one, xlsx = xlsx, sp = sp, errs = errs)
+    if (any(vapply(parts, is.null, TRUE))) return(NULL)
+    d <- do.call(rbind, parts); sp$sheet <- "Tree-step tabs"
+  } else {
+    if (!sp$sheet %in% excel_sheets(xlsx)) { errs$add(sprintf("sheet '%s' is missing", sp$sheet)); return(NULL) }
+    d <- read_one(xlsx, sp$sheet, sp, errs); if (is.null(d)) return(NULL)
+  }
   d[] <- lapply(d, function(x) { x <- trimws(x); x[x == ""] <- NA; x })
   d <- d[sp$keep(d), , drop = FALSE]
+  if (!is.null(sp$drop)) d <- d[setdiff(names(d), sp$drop)]
   if (!is.null(sp$fix)) d <- sp$fix(d)
   for (k in sp$num) {
     bad <- !is.na(d[[k]]) & is.na(as_num(d[[k]]))
@@ -144,7 +165,7 @@ collector <- function() { v <- character(0); list(add = function(x) v <<- c(v, x
 
 validate_inputs <- function(X, errs, warns) {
   n <- function(x) as_num(x)
-  P <- X$parameters
+  P <- if (!is.null(X$parameters)) rbind(X$parameters, X$pending) else NULL
   if (!is.null(P)) {
     if (any(dup <- duplicated(P$parameter))) errs$add(paste("Parameters: duplicate", paste(unique(P$parameter[dup]), collapse = ", ")))
     for (i in seq_len(nrow(P))) {
@@ -163,7 +184,9 @@ validate_inputs <- function(X, errs, warns) {
     }
     P$analysis <- c(`Both analyses` = "both", `Comparison (Kunzmann arm)` = "comparison")[P$analysis] %|na|% tolower(P$analysis)
     P$refs[!is.na(P$refs) & P$refs == NONE_REF] <- NA
-    X$parameters <- P
+    now <- P$parameter %in% X$parameters$parameter
+    X$pending <- P[!now, , drop = FALSE]; X$parameters <- P[now, , drop = FALSE]
+    rownames(X$pending) <- NULL; rownames(X$parameters) <- NULL
   }
   S <- X$settings
   if (!is.null(S)) {
