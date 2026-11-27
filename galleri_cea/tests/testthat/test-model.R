@@ -57,7 +57,7 @@ test_that("Kunzmann groups average back to the subgroup's SEER incidence", {
     expect_equal(C$share, c(k, 1 - k))
     expect_equal(k * t_hi + (1 - k) * t_lo, curve$inc_eso + curve$inc_stom)
   }
-  expect_gt(S$kunz_share_male, S$kunz_share_female)
+  expect_gte(S$kunz_share_male, S$kunz_share_female)
 })
 
 test_that("every arm's trace conserves the cohort", {
@@ -329,4 +329,12 @@ test_that("accuracy by age, sex and race: 2x2 adds up and PPV follows SEER risk"
   # PPV is higher where risk is higher: men vs women, age 80 vs 55
   g <- function(sx, ag) a$ppv_upper_gi[a$sex == sx & a$race_eth == "all" & a$age == ag]
   expect_gt(g("male", 70), g("female", 70)); expect_gt(g("male", 80), g("male", 55))
+})
+
+test_that("Kunzmann arm: one-time score and one-time EGD for the flagged share", {
+  m <- ev("comparison")
+  expect_equal(unname(m["kunz_scores", "Kunzmann -> EGD"]), 1, tolerance = 1e-9)
+  expect_equal(unname(m["screen_rounds", "Kunzmann -> EGD"]), S$kunz_share_male, tolerance = 1e-6)
+  S2 <- S; S2$kunz_egd_rounds <- 3
+  expect_equal(unname(ev("comparison", s = S2)["screen_rounds", "Kunzmann -> EGD"]), 3 * S$kunz_share_male, tolerance = 1e-3)
 })

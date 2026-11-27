@@ -11,7 +11,7 @@
 #      at each age). The same calibrated natural history drives every arm.
 #   2. SCREENING happens at the start of each screening year until
 #      settings$screen_stop_age:
-#        Kunzmann -> EGD : people flagged by the score have an EGD;
+#        Kunzmann -> EGD : score once; people flagged have an EGD (one-time by default, kunz_egd_rounds);
 #        Galleri         : everyone undiagnosed is tested; a +ve esophagus/
 #                          stomach signal goes through the full workup tree.
 #      Screen-detected cancers enter lead-time states (no cancer deaths until
@@ -285,7 +285,8 @@ simulate_arm <- function(arm, row, curve, cal, p, settings, wk, V, q_od = overdx
     P <- transition_matrix(curve$mort_other[t], cal$onset[t], p, cal$pl[t])
     if (arm == "Kunzmann -> EGD" && t == 1) { ev["kunz"] <- 1; cost0 <- cost0 + df[["cost"]] * p$c_kunz }
     screen <- arm != "Usual care" && age <= settings$screen_stop_age && (t - 1) %% interval == 0 &&
-              (arm == "Galleri" || isTRUE(row$kunzmann_scoped == 1))
+              (arm == "Galleri" || (isTRUE(row$kunzmann_scoped == 1) &&
+                                    ev[["rounds"]] < (settings$kunz_egd_rounds %||% Inf)))   # one-time EGD by default
     if (screen) {
       W <- x[["well"]]; U <- x[["pre"]]; e <- list()
       if (arm == "Galleri") {

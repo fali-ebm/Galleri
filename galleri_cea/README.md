@@ -8,8 +8,9 @@ An annual-cycle cohort model over a lifetime horizon (to age 100), with
 three arms and **annual screening from the start age to 85**:
 
 1. **Usual care**: no screening. Cancers present with symptoms.
-2. **Kunzmann -> EGD**: the score is applied once; people with a score ≥ 8
-   have an EGD every year. Everyone else follows usual care.
+2. **Kunzmann -> EGD**: a one-time test. The score is applied once at the
+   start age; people with a score ≥ 8 have one EGD (`kunz_egd_rounds` = 1).
+   Everyone then follows usual care.
 3. **Galleri**: a test every year, scored against preclinical upper GI
    cancer as a 2×2 table:
    - **Galleri +ve** (esophagus/stomach signal) → EGD. **EGD +ve** is a true
@@ -38,8 +39,10 @@ equals the excess lifetime diagnoses versus usual care exactly.
 - Other-cause mortality is cause-deleted: SEER upper GI cancer deaths are
   removed from the NCHS life tables.
 - Costs are in 2025 USD (CPI medical care; `data-raw/inflate_costs.R`).
-- The Kunzmann flagged share and capture differ by sex (59.7% of men, 3.5%
-  of women flagged).
+- The Kunzmann score uses the GRADE evidence profile (one study, n = 95,200,
+  very low certainty): sensitivity 0.78, specificity 0.64, so 35.66% are
+  flagged and capture 78% of esophageal adenocarcinoma. These are pooled
+  values, applied to both sexes.
 - Incidental PET findings are followed up (`c_incid_fu`), and symptomatic
   diagnoses carry the EGD perforation risk.
 - Scenarios: missed cancers stay missed by Galleri (`p_fn_persist`), and the

@@ -27,7 +27,7 @@ SETTINGS_DEFAULTS <- list(
   screen_stop_age = 85, screen_interval = 1,          # annual screening to age 85
   # Kunzmann score >= 8 by sex (Kunzmann 2018: 59.7% of men, 3.5% of women flagged;
   # capture within sex derived assuming equal within-sex RR and 85% male cases)
-  kunz_share_male = 0.597, kunz_share_female = 0.035, kunz_capture_male = 0.881, kunz_capture_female = 0.153,
+  kunz_share_male = 0.3566, kunz_share_female = 0.3566, kunz_capture_male = 0.78, kunz_capture_female = 0.78, kunz_egd_rounds = 1,
   cost_year = 2025,                                    # costs in inputs are 2025 USD (data-raw/inflate_costs.R)
   subgroups = list(ages = seq(50, 90, 5), sexes = c("male", "female"),
                    races = c("all", "nhw", "nhb", "nhapi", "nhaian", "hisp")))

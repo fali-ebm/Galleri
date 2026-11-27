@@ -194,7 +194,7 @@ validate_inputs <- function(X, errs, warns) {
     rng <- list(wtp = c(0, Inf), disc_cost = c(0, 0.2), disc_qaly = c(0, 0.2), disc_daly = c(0, 0.2), max_age = c(51, 100),
                 screen_stop_age = c(50, 99), screen_interval = c(1, 10), kunz_share_male = c(0.001, 0.999),
                 kunz_share_female = c(0.001, 0.999), kunz_capture_male = c(0.001, 0.999), kunz_capture_female = c(0.001, 0.999),
-                n_sim = c(1, 1e6), seed = c(-Inf, Inf), owsa_pct = c(0.001, 0.99), cost_year = c(2000, 2100))
+                kunz_egd_rounds = c(1, 50), n_sim = c(1, 1e6), seed = c(-Inf, Inf), owsa_pct = c(0.001, 0.99), cost_year = c(2000, 2100))
     for (k in names(rng)) {
       v <- g(k)
       if (!length(v)) next

@@ -78,7 +78,7 @@ lines = [
 ] + (IMPORT_STEPS if os.path.exists(os.path.join(ROOT, 'import_inputs_xlsx.R')) else NO_IMPORT) + [
     ("", ""),
     ("Model in one paragraph", "h"),
-    ("Annual-cycle cohort model, lifetime horizon (to age 100), US payer perspective, 2025 USD, 3% discounting of costs and QALYs. Arms: usual care; Kunzmann score >= 8 -> EGD every year; Galleri every year: +ve -> EGD (EGD +ve = true positive; EGD -ve = false positive -> rest of the workup; any EGD can perforate), -ve -> true negative (stays well) or false negative (symptomatic cancer later or found at a later round), then usual care. Screening runs from the start age to 85. Natural history is calibrated to SEER for every subgroup: onset of preclinical upper GI cancer is solved so that, without screening, symptomatic diagnoses reproduce SEER incidence by age, sex and race/ethnicity, and their stage reproduces SEER stage at diagnosis. Base case: 50-year-old non-Hispanic White men.", ""),
+    ("Annual-cycle cohort model, lifetime horizon (to age 100), US payer perspective, 2025 USD, 3% discounting of costs and QALYs. Arms: usual care; Kunzmann score once -> one-time EGD if score >= 8; Galleri every year: +ve -> EGD (EGD +ve = true positive; EGD -ve = false positive -> rest of the workup; any EGD can perforate), -ve -> true negative (stays well) or false negative (symptomatic cancer later or found at a later round), then usual care. Screening runs from the start age to 85. Natural history is calibrated to SEER for every subgroup: onset of preclinical upper GI cancer is solved so that, without screening, symptomatic diagnoses reproduce SEER incidence by age, sex and race/ethnicity, and their stage reproduces SEER stage at diagnosis. Base case: 50-year-old non-Hispanic White men.", ""),
     ("Revised tree (Nov 2026, not yet in the engine): a 2-year hold on repeat EGDs after a negative EGD; a negative EGD can hide a visible lesion that was missed or a cancer not yet visible; Bayesian update of each person's false-positive propensity; EUS sampling as a coin toss; tumor board -> laparoscopy or watchful waiting, with laparoscopy less likely after each negative result. Its inputs are the purple 'After rebuild' rows on the tree-step tabs.", ""),
     ("", ""),
     ("Sheets", "h"),
@@ -192,7 +192,7 @@ for title, blurb, keys in STEPS:
 ST = rd("inputs/settings.csv")
 FMT = {"wtp": "$#,##0", "disc_cost": "0.0%", "disc_qaly": "0.0%", "disc_daly": "0.0%", "kunz_share_male": "0.0%",
        "kunz_share_female": "0.0%", "kunz_capture_male": "0.0%", "kunz_capture_female": "0.0%", "owsa_pct": "0%",
-       "n_sim": "#,##0", "cost_year": "0"}
+       "n_sim": "#,##0", "cost_year": "0", "kunz_egd_rounds": "0"}
 ws = wb.create_sheet("Settings")
 ws.append(["Area", "Setting", "Key", "Value", "Note", "Refs"])
 for c in ws[1]:
@@ -216,7 +216,7 @@ derived = [
     ("Model structure", "Half-cycle correction", "Yes", "mid-cycle alive fraction (fixed in model code)", None, None),
     ("Economic", "Perspective", "US payer", "Medicare rates as proxy (fixed)", None, None),
     ("Screening", "Galleri arm", "Galleri every round; +ve -> full workup tree", "fixed in model code", "1, 2", None),
-    ("Screening", "Kunzmann arm", "Score once at start; EGD every round if score >= 8", "fixed in model code", None, None),
+    ("Screening", "Kunzmann arm", "Score once at start; EGD for score >= 8 (one-time unless kunz_egd_rounds > 1)", "kunz_egd_rounds above", None, None),
     ("Base case", "Start age, sex, race/ethnicity", "set on the Cohort sheet", "", None, None),
 ]
 ws.append([]); ws.append(["Derived and fixed (not imported)"]); ws.cell(ws.max_row, 1).font = BOLD
