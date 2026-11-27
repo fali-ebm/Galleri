@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Galleri Decision Model</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>:root {
+  --bg: #F5F7FA; --surface: #FFFFFF; --paper: #FFFFFF;
+  --ink: #142235; --muted: #55657A; --line: #D5DCE5; --navy: #1F3A5F;
+  --amber: #B07A10; --amber-bg: #FBEBC4; --amber-ink: #5A3D00;
+  --rose: #B8435A; --rose-bg: #F9DDE2; --rose-ink: #5E1526;
+  --green: #3E8A5A; --green-bg: #DCEFE2; --green-ink: #133D22;
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #0F1722; --surface: #172233; --paper: #172233;
+  --ink: #E6ECF3; --muted: #9AA9BC; --line: #2A3A50; --navy: #8FB3DD;
+  --amber: #E2A93A; --amber-bg: #3A2C0E; --amber-ink: #F7D58B;
+  --rose: #E37C91; --rose-bg: #3B1820; --rose-ink: #F6C9CF;
+  --green: #6FC08D; --green-bg: #15301F; --green-ink: #CFE8D6;
+  color-scheme: dark; } }
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--body); margin: 0; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 40px max(16px, env(safe-area-inset-left, 0px)) 72px; display: grid; gap: 48px; }
+.col { max-width: 780px; min-width: 0; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(30px, 5vw, 44px); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 26px; font-weight: 600; }
+p { margin: 0; }
+.eyebrow { font: 500 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.stack { display: grid; gap: 14px; min-width: 0; }
+.lede { font-size: 17px; color: var(--muted); max-width: 70ch; }
+code { font-family: var(--mono); font-size: 0.88em; }
+.figure { display: grid; gap: 12px; min-width: 0; }
+.figure .head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
+.canvas { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; padding: 16px; margin: 0; }
+.canvas svg { display: block; width: 100%; max-width: var(--minw); min-width: min(var(--minw), 900px); height: auto; margin: 0 auto; color: var(--ink); }
+.caption { font-size: 13.5px; color: var(--muted); max-width: 95ch; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 16px; align-items: start; }
+.tablebox { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 9px 14px; border-bottom: 1px solid var(--line); }
+tr:last-child td { border-bottom: 0; }
+th { font: 500 11.5px/1.3 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: color-mix(in srgb, var(--surface) 92%, var(--ink)); }
+td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+tr.base td { font-weight: 600; background: color-mix(in srgb, var(--surface) 90%, var(--navy)); }
+.pill { display: inline-block; font: 500 11px/1 var(--mono); letter-spacing: 0.05em; text-transform: uppercase; padding: 4px 7px; border-radius: 999px; white-space: nowrap; }
+.pill.ok { background: var(--green-bg); color: var(--green-ink); }
+.pill.gap { background: var(--rose-bg); color: var(--rose-ink); }
+.pill.data { background: var(--amber-bg); color: var(--amber-ink); }
+tr.flag-review td:first-child { box-shadow: inset 4px 0 0 var(--rose); }
+ul.gaps { margin: 0; padding-left: 20px; display: grid; gap: 10px; }
+ul.gaps li::marker { color: var(--navy); }
+.foot { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 4px; align-content: start; }
+.kpi .v { font: 600 24px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+.kpi .l { font-size: 13px; color: var(--muted); }
+.canvas svg .n { fill: var(--surface); stroke: var(--line); stroke-width: 1.2; }
+.canvas svg .n.root, .canvas svg .n.arm { fill: var(--navy); stroke: var(--navy); }
+.canvas svg .n.dec { fill: var(--surface); stroke: var(--navy); }
+.canvas svg .n.found { fill: var(--green-bg); stroke: var(--green); }
+.canvas svg .n.harm { fill: var(--rose-bg); stroke: var(--rose); }
+.canvas svg .n.out { fill: var(--surface); stroke: var(--line); }
+.canvas svg .n.dash { fill: var(--surface); stroke: var(--muted); stroke-dasharray: 5 4; }
+.canvas svg .nt { fill: var(--ink); font: 12px var(--body); }
+.canvas svg .nt.b { font-weight: 600; font-family: var(--display); font-size: 13px; }
+.canvas svg .nt.s { fill: var(--muted); font-size: 11.5px; }
+.canvas svg .nt.root, .canvas svg .nt.arm { fill: #fff; }
+@media (prefers-color-scheme: dark) { .canvas svg .nt.root, .canvas svg .nt.arm { fill: #0F1722; } }
+.canvas svg .nt.found.s { fill: var(--green-ink); } .canvas svg .nt.harm.s { fill: var(--rose-ink); }
+.canvas svg .e { stroke: currentColor; stroke-width: 1.3; opacity: .7; }
+.canvas svg .e.dash { stroke-dasharray: 5 4; }
+.canvas svg .e.hot { stroke: var(--rose); opacity: 1; }
+.canvas svg .el { fill: var(--muted); font: 500 11.5px var(--mono); paint-order: stroke; stroke: var(--paper); stroke-width: 4px; }
+</style></head>
+<body><main class="wrap">
+<header class="stack col">
+  <span class="eyebrow">Galleri upper GI screening · cost-effectiveness model · updated 27 Nov 2026</span>
+  <h1>Galleri decision model, step by step</h1>
+  <p class="lede">The revised decision trees (EGD hold, two kinds of EGD miss, pancreatobiliary history, Bayesian repeat tests), the natural history they feed, and the results from both the cohort model and the new person-level microsimulation. Green marks a cancer found; rose a harm or a miss; dashed a placeholder or a scenario-only path.</p>
+</header>
+
+<section class="stack" aria-labelledby="res">
+  <h2 id="res">Base case at a glance</h2>
+  <p class="col">50-year-old non-Hispanic White men, annual Galleri to 85, lifetime horizon, 2025 USD, 3% discounting, per 100,000 people (cohort model).</p>
+  <div class="kpis"><div class="kpi"><span class="v">$5.35M</span><span class="l">Galleri cost per QALY gained, cohort model (95% UI $2.30M–$24.74M)</span></div>
+<div class="kpi"><span class="v">$5.95M</span><span class="l">Galleri cost per QALY gained, microsimulation of 1M people</span></div>
+<div class="kpi"><span class="v">110</span><span class="l">cancer deaths averted per 100,000</span></div>
+<div class="kpi"><span class="v">135</span><span class="l">cancers overdiagnosed (9.7% of those found)</span></div>
+<div class="kpi"><span class="v">1,003</span><span class="l">cancer-free people worked up after a Galleri +ve</span></div>
+<div class="kpi"><span class="v">Dominated</span><span class="l">one-time Kunzmann → EGD (fewer QALYs, more cost)</span></div></div>
+  <div class="tablebox"><table><thead><tr><th>Per 100,000 (lifetime)</th><th>Galleri vs usual care</th><th>One-time Kunzmann → EGD vs usual care</th></tr></thead><tbody><tr><td>Cost per QALY gained</td><td class='num'>$5.35M (95% UI $2.30M–$24.74M)</td><td class='num'>dominated</td></tr><tr><td>Incremental cost per person</td><td class='num'>$18k</td><td class='num'>$384</td></tr><tr><td>Net QALYs</td><td class='num'>+335</td><td class='num'>−348</td></tr><tr><td>Cancers found by screening</td><td class='num'>1,388 (1,228 upper GI)</td><td class='num'>22</td></tr><tr><td>Cancer deaths averted</td><td class='num'>110</td><td class='num'>1.0</td></tr><tr><td>Late-stage diagnoses averted</td><td class='num'>316</td><td class='num'>6.7</td></tr><tr><td>Overdiagnosed cancers</td><td class='num'>135 (9.7%)</td><td class='num'>0.4</td></tr><tr><td>EGDs</td><td class='num'>2,627</td><td class='num'>35,660</td></tr><tr><td>EGD perforations</td><td class='num'>0.53</td><td class='num'>7.1</td></tr><tr><td>Positives inside the EGD hold</td><td class='num'>54</td><td class='num'>—</td></tr><tr><td>Cancers missed after +ve: visible / not yet visible</td><td class='num'>103 / 44</td><td class='num'>—</td></tr><tr><td>PET CT · EUS · laparoscopy · watchful waiting</td><td class='num'>1,018 · 103 · 6.8 · 61</td><td class='num'>—</td></tr><tr><td>False-positive burden</td><td class='num'>1,003 people; 31 days each; 61.9 QALYs, 8.0 DALYs</td><td class='num'>—</td></tr></tbody></table></div>
+</section>
+
+<section class="figure" aria-labelledby="f1">
+  <div class="head"><h2 id="f1">1 · Three arms</h2><span class="eyebrow">Kunzmann once · Galleri every year</span></div>
+  <figure class="canvas" style="--minw:1259px"><svg viewBox="0 0 1259 540" role="img" aria-label="Three-arm decision tree" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+<path class="e" d="M181,238 H195 V64" fill="none"/>
+<path class="e" d="M195,64 H256" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M181,238 H195 V224" fill="none"/>
+<path class="e" d="M195,224 H256" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M181,238 H195 V412" fill="none"/>
+<path class="e" d="M195,412 H256" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M382,64 H468 V64" fill="none"/>
+<path class="e" d="M468,64 H529" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M763,64 H777 V35" fill="none"/>
+<path class="e" d="M777,35 H838" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M763,64 H777 V93" fill="none"/>
+<path class="e" d="M777,93 H838" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M454,224 H468 V180" fill="none"/>
+<path class="e" d="M468,180 H529" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M454,224 H468 V267" fill="none"/>
+<path class="e" d="M468,267 H529" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M718,180 H777 V180" fill="none"/>
+<path class="e" d="M777,180 H838" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M961,180 H1053 V151" fill="none"/>
+<path class="e" d="M1053,151 H1114" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M961,180 H1053 V209" fill="none"/>
+<path class="e" d="M1053,209 H1114" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M447,412 H468 V354" fill="none"/>
+<path class="e" d="M468,354 H529" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M447,412 H468 V470" fill="none"/>
+<path class="e" d="M468,470 H529" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M727,354 H777 V325" fill="none"/>
+<path class="e" d="M777,325 H838" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M727,354 H777 V383" fill="none"/>
+<path class="e hot" d="M777,383 H838" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M652,470 H777 V441" fill="none"/>
+<path class="e" d="M777,441 H838" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M652,470 H777 V499" fill="none"/>
+<path class="e hot" d="M777,499 H838" fill="none" marker-end="url(#ah)"/>
+<rect class="n root" x="8" y="217" width="173" height="42" rx="7"/>
+<text class="nt b root" x="95" y="234" text-anchor="middle">Cohort eligible</text>
+<text class="nt s root" x="95" y="250" text-anchor="middle">50-year-old NH White men</text>
+<rect class="n arm" x="259" y="48" width="123" height="32" rx="7"/>
+<text class="nt b arm" x="321" y="69" text-anchor="middle">1 · Usual care</text>
+<rect class="n out" x="532" y="43" width="231" height="42" rx="7"/>
+<text class="nt b out" x="647" y="60" text-anchor="middle">Cancer presents with symptoms</text>
+<text class="nt s out" x="647" y="76" text-anchor="middle">SEER incidence and stage</text>
+<rect class="n out" x="841" y="19" width="120" height="32" rx="7"/>
+<text class="nt b out" x="901" y="40" text-anchor="middle">Early stage</text>
+<rect class="n out" x="841" y="77" width="120" height="32" rx="7"/>
+<text class="nt b out" x="901" y="98" text-anchor="middle">Late stage</text>
+<rect class="n arm" x="259" y="202" width="195" height="42" rx="7"/>
+<text class="nt b arm" x="357" y="220" text-anchor="middle">2 · Kunzmann score, once</text>
+<text class="nt s arm" x="357" y="236" text-anchor="middle">at the start age</text>
+<rect class="n dec" x="532" y="159" width="186" height="42" rx="7"/>
+<text class="nt b dec" x="625" y="176" text-anchor="middle">Score ≥ 8</text>
+<text class="nt s dec" x="625" y="192" text-anchor="middle">35.7% flagged; sens. 77.5%</text>
+<rect class="n dec" x="841" y="159" width="120" height="42" rx="7"/>
+<text class="nt b dec" x="901" y="176" text-anchor="middle">One EGD</text>
+<text class="nt s dec" x="901" y="192" text-anchor="middle">start age only</text>
+<rect class="n found" x="1117" y="135" width="120" height="32" rx="7"/>
+<text class="nt b found" x="1177" y="156" text-anchor="middle">Cancer found</text>
+<rect class="n out" x="1117" y="188" width="130" height="42" rx="7"/>
+<text class="nt b out" x="1182" y="205" text-anchor="middle">No cancer found</text>
+<text class="nt s out" x="1182" y="221" text-anchor="middle">→ usual care</text>
+<rect class="n out" x="532" y="246" width="120" height="42" rx="7"/>
+<text class="nt b out" x="592" y="263" text-anchor="middle">Score &lt; 8</text>
+<text class="nt s out" x="592" y="279" text-anchor="middle">→ usual care</text>
+<rect class="n arm" x="259" y="391" width="188" height="42" rx="7"/>
+<text class="nt b arm" x="353" y="408" text-anchor="middle">3 · Galleri, every year</text>
+<text class="nt s arm" x="353" y="424" text-anchor="middle">to age 85</text>
+<rect class="n dec" x="532" y="333" width="195" height="42" rx="7"/>
+<text class="nt b dec" x="629" y="350" text-anchor="middle">Galleri +ve (E/S signal)</text>
+<text class="nt s dec" x="629" y="366" text-anchor="middle">→ figure 2</text>
+<rect class="n found" x="841" y="304" width="167" height="42" rx="7"/>
+<text class="nt b found" x="924" y="321" text-anchor="middle">Cancer present</text>
+<text class="nt s found" x="924" y="337" text-anchor="middle">sens 63.7%, then ×0.775</text>
+<rect class="n harm" x="841" y="362" width="167" height="42" rx="7"/>
+<text class="nt b harm" x="924" y="379" text-anchor="middle">No upper GI cancer</text>
+<text class="nt s harm" x="924" y="395" text-anchor="middle">FP rate 0.036% per test</text>
+<rect class="n out" x="532" y="454" width="120" height="32" rx="7"/>
+<text class="nt b out" x="592" y="475" text-anchor="middle">Galleri −ve</text>
+<rect class="n out" x="841" y="420" width="135" height="42" rx="7"/>
+<text class="nt b out" x="908" y="437" text-anchor="middle">True negative</text>
+<text class="nt s out" x="908" y="453" text-anchor="middle">retested next year</text>
+<rect class="n harm" x="841" y="478" width="198" height="42" rx="7"/>
+<text class="nt b harm" x="940" y="495" text-anchor="middle">False negative</text>
+<text class="nt s harm" x="940" y="511" text-anchor="middle">symptoms later or next round</text>
+<text class="el" x="500" y="175" text-anchor="middle">0.36</text>
+<text class="el" x="500" y="262" text-anchor="middle">0.64</text>
+<text class="el" x="1086" y="146" text-anchor="middle">sens 0.89</text>
+</svg></figure>
+  <p class="caption">Kunzmann is scored once at the start age; 35.7% score 8 or more (GRADE evidence profile, sensitivity 77.5%, specificity 64.4%) and get one EGD, then usual care. Galleri sensitivity is 63.7% in round 1 and ×0.775 after. Every end state feeds the natural-history model (figure 5).</p>
+</section>
+
+<section class="figure" aria-labelledby="f2">
+  <div class="head"><h2 id="f2">2 · Galleri +ve: the EGD step</h2><span class="eyebrow">hold · two kinds of miss</span></div>
+  <figure class="canvas" style="--minw:1215px"><svg viewBox="0 0 1215 308" role="img" aria-label="Galleri positive: the EGD step" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+<path class="e" d="M128,122 H142 V122" fill="none"/>
+<path class="e" d="M142,122 H203" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M408,122 H422 V35" fill="none"/>
+<path class="e" d="M422,35 H483" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M408,122 H422 V209" fill="none"/>
+<path class="e" d="M422,209 H483" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M691,209 H705 V151" fill="none"/>
+<path class="e" d="M705,151 H766" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M691,209 H705 V267" fill="none"/>
+<path class="e" d="M705,267 H766" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M892,151 H934 V93" fill="none"/>
+<path class="e" d="M934,93 H995" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M892,151 H934 V151" fill="none"/>
+<path class="e hot" d="M934,151 H995" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M892,151 H934 V209" fill="none"/>
+<path class="e hot" d="M934,209 H995" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M920,267 H934 V267" fill="none"/>
+<path class="e" d="M934,267 H995" fill="none" marker-end="url(#ah)"/>
+<rect class="n root" x="8" y="101" width="120" height="42" rx="7"/>
+<text class="nt b root" x="68" y="118" text-anchor="middle">Galleri +ve</text>
+<text class="nt s root" x="68" y="134" text-anchor="middle">E/S signal</text>
+<rect class="n dec" x="206" y="101" width="202" height="42" rx="7"/>
+<text class="nt b dec" x="307" y="118" text-anchor="middle">Negative EGD in last 2 y?</text>
+<text class="nt s dec" x="307" y="134" text-anchor="middle">the EGD hold</text>
+<rect class="n dash" x="486" y="14" width="167" height="42" rx="7"/>
+<text class="nt b dash" x="569" y="31" text-anchor="middle">Yes: EGD skipped</text>
+<text class="nt s dash" x="569" y="47" text-anchor="middle">go straight to figure 3</text>
+<rect class="n dec" x="486" y="188" width="205" height="42" rx="7"/>
+<text class="nt b dec" x="588" y="205" text-anchor="middle">No: EGD</text>
+<text class="nt s dec" x="588" y="221" text-anchor="middle">perforation 0.02%, 9.8% fatal</text>
+<rect class="n dec" x="769" y="135" width="123" height="32" rx="7"/>
+<text class="nt b dec" x="830" y="156" text-anchor="middle">Cancer present</text>
+<rect class="n found" x="998" y="77" width="120" height="32" rx="7"/>
+<text class="nt b found" x="1058" y="98" text-anchor="middle">Found at EGD</text>
+<rect class="n harm" x="998" y="130" width="205" height="42" rx="7"/>
+<text class="nt b harm" x="1101" y="147" text-anchor="middle">Missed: visible lesion</text>
+<text class="nt s harm" x="1101" y="163" text-anchor="middle">→ figure 3; stays preclinical</text>
+<rect class="n harm" x="998" y="188" width="188" height="42" rx="7"/>
+<text class="nt b harm" x="1092" y="205" text-anchor="middle">Missed: not yet visible</text>
+<text class="nt s harm" x="1092" y="221" text-anchor="middle">visible after 1 y</text>
+<rect class="n out" x="769" y="246" width="152" height="42" rx="7"/>
+<text class="nt b out" x="844" y="263" text-anchor="middle">No upper GI cancer</text>
+<text class="nt s out" x="844" y="279" text-anchor="middle">EGD −ve</text>
+<rect class="n out" x="998" y="246" width="144" height="42" rx="7"/>
+<text class="nt b out" x="1070" y="263" text-anchor="middle">Hold starts (2 y)</text>
+<text class="nt s out" x="1070" y="279" text-anchor="middle">→ figure 3</text>
+<text class="el" x="967" y="88" text-anchor="middle">0.89</text>
+<text class="el" x="967" y="146" text-anchor="middle">0.084</text>
+<text class="el" x="967" y="204" text-anchor="middle">0.029</text>
+</svg></figure>
+  <p class="caption">After a negative EGD, repeat positives skip EGD for 2 years (the shorter of the gastric 2.37-year and esophageal adenocarcinoma 4.9-year sojourn estimates) and go straight to ENT or PET CT. EGD finds 88.7% of cancers present (Menon 2014). Of the misses, 26% are cancers not yet visible (Kamran 2023 root causes A + C), which become visible after 1 year; the rest are visible lesions that were missed.</p>
+</section>
+
+<section class="figure" aria-labelledby="f3">
+  <div class="head"><h2 id="f3">3 · After a negative or skipped EGD</h2><span class="eyebrow">ENT or PET CT</span></div>
+  <figure class="canvas" style="--minw:667px"><svg viewBox="0 0 667 366" role="img" aria-label="After a negative or skipped EGD: ENT or PET CT" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+<path class="e" d="M160,151 H174 V64" fill="none"/>
+<path class="e" d="M174,64 H235" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M160,151 H174 V238" fill="none"/>
+<path class="e" d="M174,238 H235" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M360,64 H374 V35" fill="none"/>
+<path class="e" d="M374,35 H435" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M360,64 H374 V93" fill="none"/>
+<path class="e" d="M374,93 H435" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M358,238 H374 V151" fill="none"/>
+<path class="e" d="M374,151 H435" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M358,238 H374 V209" fill="none"/>
+<path class="e" d="M374,209 H435" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M358,238 H374 V267" fill="none"/>
+<path class="e dash" d="M374,267 H435" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M358,238 H374 V325" fill="none"/>
+<path class="e" d="M374,325 H435" fill="none" marker-end="url(#ah)"/>
+<rect class="n root" x="8" y="135" width="152" height="32" rx="7"/>
+<text class="nt b root" x="84" y="156" text-anchor="middle">EGD −ve or skipped</text>
+<rect class="n dec" x="238" y="48" width="123" height="32" rx="7"/>
+<text class="nt b dec" x="299" y="69" text-anchor="middle">ENT evaluation</text>
+<rect class="n found" x="438" y="14" width="120" height="42" rx="7"/>
+<text class="nt b found" x="498" y="31" text-anchor="middle">ENT +ve</text>
+<text class="nt s found" x="498" y="47" text-anchor="middle">cancer found</text>
+<rect class="n out" x="438" y="72" width="135" height="42" rx="7"/>
+<text class="nt b out" x="506" y="89" text-anchor="middle">ENT −ve</text>
+<text class="nt s out" x="506" y="105" text-anchor="middle">missed cancer 3.4%</text>
+<rect class="n dec" x="238" y="222" width="120" height="32" rx="7"/>
+<text class="nt b dec" x="298" y="243" text-anchor="middle">PET CT</text>
+<rect class="n dec" x="438" y="130" width="166" height="42" rx="7"/>
+<text class="nt b dec" x="521" y="147" text-anchor="middle">Pancreatobiliary +ve</text>
+<text class="nt s dec" x="521" y="163" text-anchor="middle">→ figure 4</text>
+<rect class="n harm" x="438" y="188" width="167" height="42" rx="7"/>
+<text class="nt b harm" x="522" y="205" text-anchor="middle">Incidental finding</text>
+<text class="nt s harm" x="522" y="221" text-anchor="middle">cancer 33%; rest benign</text>
+<rect class="n found" x="438" y="246" width="217" height="42" rx="7"/>
+<text class="nt b found" x="547" y="263" text-anchor="middle">Upper GI cancer seen</text>
+<text class="nt s found" x="547" y="279" text-anchor="middle">targeted EGD; if one is visible</text>
+<rect class="n out" x="438" y="304" width="135" height="42" rx="7"/>
+<text class="nt b out" x="506" y="321" text-anchor="middle">PET −ve</text>
+<text class="nt s out" x="506" y="337" text-anchor="middle">missed cancer 3.4%</text>
+<text class="el" x="206" y="59" text-anchor="middle">0.3</text>
+<text class="el" x="206" y="233" text-anchor="middle">0.7</text>
+<text class="el" x="407" y="30" text-anchor="middle">0.1</text>
+<text class="el" x="407" y="88" text-anchor="middle">0.9</text>
+<text class="el" x="407" y="146" text-anchor="middle">0.087</text>
+<text class="el" x="407" y="204" text-anchor="middle">0.16</text>
+<text class="el" x="407" y="262" text-anchor="middle">0.5*</text>
+<text class="el" x="407" y="320" text-anchor="middle">0.75</text>
+</svg></figure>
+  <p class="caption">A missed visible upper GI cancer can be seen on PET CT (*0.5, a DUMMY placeholder) and is then found by a targeted EGD. Incidental findings are followed up; the benign ones count toward the false-positive burden.</p>
+</section>
+
+<section class="figure" aria-labelledby="f4">
+  <div class="head"><h2 id="f4">4 · Pancreatobiliary finding, by history</h2><span class="eyebrow">tumor board · coin-toss sampling</span></div>
+  <figure class="canvas" style="--minw:1084px"><svg viewBox="0 0 1084 308" role="img" aria-label="First pancreatobiliary finding" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+<path class="e" d="M160,158 H174 V78" fill="none"/>
+<path class="e" d="M174,78 H235" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M160,158 H174 V238" fill="none"/>
+<path class="e" d="M174,238 H235" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M358,78 H372 V35" fill="none"/>
+<path class="e" d="M372,35 H433" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M358,78 H372 V122" fill="none"/>
+<path class="e" d="M372,122 H433" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M556,122 H570 V122" fill="none"/>
+<path class="e" d="M570,122 H631" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M754,122 H828 V93" fill="none"/>
+<path class="e" d="M828,93 H889" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M754,122 H828 V151" fill="none"/>
+<path class="e" d="M828,151 H889" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M358,238 H372 V238" fill="none"/>
+<path class="e" d="M372,238 H433" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M556,238 H570 V209" fill="none"/>
+<path class="e" d="M570,209 H631" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M556,238 H570 V267" fill="none"/>
+<path class="e" d="M570,267 H631" fill="none" marker-end="url(#ah)"/>
+<rect class="n root" x="8" y="137" width="152" height="42" rx="7"/>
+<text class="nt b root" x="84" y="154" text-anchor="middle">First finding: EUS</text>
+<text class="nt s root" x="84" y="170" text-anchor="middle">malignant 70%</text>
+<rect class="n dec" x="238" y="58" width="120" height="42" rx="7"/>
+<text class="nt b dec" x="298" y="74" text-anchor="middle">FNA/FNB taken</text>
+<text class="nt s dec" x="298" y="90" text-anchor="middle">coin toss</text>
+<rect class="n found" x="436" y="14" width="120" height="42" rx="7"/>
+<text class="nt b found" x="496" y="31" text-anchor="middle">Tissue +ve</text>
+<text class="nt s found" x="496" y="47" text-anchor="middle">cancer found</text>
+<rect class="n out" x="436" y="106" width="120" height="32" rx="7"/>
+<text class="nt b out" x="496" y="127" text-anchor="middle">Tissue −ve</text>
+<rect class="n dec" x="634" y="106" width="120" height="32" rx="7"/>
+<text class="nt b dec" x="694" y="127" text-anchor="middle">Tumor board</text>
+<rect class="n harm" x="892" y="77" width="180" height="32" rx="7"/>
+<text class="nt b harm" x="982" y="98" text-anchor="middle">Diagnostic laparoscopy</text>
+<rect class="n out" x="892" y="130" width="148" height="42" rx="7"/>
+<text class="nt b out" x="966" y="147" text-anchor="middle">Watchful waiting</text>
+<text class="nt s out" x="966" y="163" text-anchor="middle">surveillance imaging</text>
+<rect class="n out" x="238" y="222" width="120" height="32" rx="7"/>
+<text class="nt b out" x="298" y="243" text-anchor="middle">No sample</text>
+<rect class="n dec" x="436" y="222" width="120" height="32" rx="7"/>
+<text class="nt b dec" x="496" y="243" text-anchor="middle">Tumor board</text>
+<rect class="n harm" x="634" y="193" width="180" height="32" rx="7"/>
+<text class="nt b harm" x="724" y="214" text-anchor="middle">Diagnostic laparoscopy</text>
+<rect class="n out" x="634" y="246" width="148" height="42" rx="7"/>
+<text class="nt b out" x="708" y="263" text-anchor="middle">Watchful waiting</text>
+<text class="nt s out" x="708" y="279" text-anchor="middle">surveillance imaging</text>
+<text class="el" x="206" y="74" text-anchor="middle">0.5</text>
+<text class="el" x="206" y="233" text-anchor="middle">0.5</text>
+<text class="el" x="404" y="30" text-anchor="middle">0.7×0.91</text>
+<text class="el" x="404" y="117" text-anchor="middle">0.36</text>
+<text class="el" x="860" y="88" text-anchor="middle">0.1</text>
+<text class="el" x="860" y="146" text-anchor="middle">0.9</text>
+<text class="el" x="602" y="204" text-anchor="middle">0.1</text>
+<text class="el" x="602" y="262" text-anchor="middle">0.9</text>
+</svg></figure>
+  <figure class="canvas" style="--minw:691px"><svg viewBox="0 0 691 366" role="img" aria-label="Repeat pancreatobiliary finding" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+<path class="e" d="M162,180 H176 V93" fill="none"/>
+<path class="e" d="M176,93 H237" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M162,180 H176 V267" fill="none"/>
+<path class="e" d="M176,267 H237" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M406,93 H478 V35" fill="none"/>
+<path class="e" d="M478,35 H539" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M406,93 H478 V93" fill="none"/>
+<path class="e" d="M478,93 H539" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M406,93 H478 V151" fill="none"/>
+<path class="e" d="M478,151 H539" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M464,267 H478 V209" fill="none"/>
+<path class="e" d="M478,209 H539" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M464,267 H478 V267" fill="none"/>
+<path class="e" d="M478,267 H539" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M464,267 H478 V325" fill="none"/>
+<path class="e" d="M478,325 H539" fill="none" marker-end="url(#ah)"/>
+<rect class="n root" x="8" y="159" width="154" height="42" rx="7"/>
+<text class="nt b root" x="85" y="176" text-anchor="middle">Repeat finding</text>
+<text class="nt s root" x="85" y="192" text-anchor="middle">personalised decision</text>
+<rect class="n dec" x="240" y="77" width="166" height="32" rx="7"/>
+<text class="nt b dec" x="323" y="98" text-anchor="middle">After a negative EUS</text>
+<rect class="n harm" x="542" y="14" width="120" height="42" rx="7"/>
+<text class="nt b harm" x="602" y="31" text-anchor="middle">Laparoscopy</text>
+<text class="nt s harm" x="602" y="47" text-anchor="middle">0.1 × 0.5</text>
+<rect class="n dec" x="542" y="77" width="120" height="32" rx="7"/>
+<text class="nt b dec" x="602" y="98" text-anchor="middle">Repeat EUS</text>
+<rect class="n out" x="542" y="135" width="137" height="32" rx="7"/>
+<text class="nt b out" x="610" y="156" text-anchor="middle">Watchful waiting</text>
+<rect class="n dec" x="240" y="251" width="224" height="32" rx="7"/>
+<text class="nt b dec" x="352" y="272" text-anchor="middle">After a negative laparoscopy</text>
+<rect class="n harm" x="542" y="188" width="120" height="42" rx="7"/>
+<text class="nt b harm" x="602" y="205" text-anchor="middle">Laparoscopy</text>
+<text class="nt s harm" x="602" y="221" text-anchor="middle">0.1 × 0.1</text>
+<rect class="n dec" x="542" y="251" width="120" height="32" rx="7"/>
+<text class="nt b dec" x="602" y="272" text-anchor="middle">Repeat EUS</text>
+<rect class="n out" x="542" y="309" width="137" height="32" rx="7"/>
+<text class="nt b out" x="610" y="330" text-anchor="middle">Watchful waiting</text>
+<text class="el" x="510" y="30" text-anchor="middle">0.05</text>
+<text class="el" x="510" y="88" text-anchor="middle">0.15</text>
+<text class="el" x="510" y="146" text-anchor="middle">0.8</text>
+<text class="el" x="510" y="204" text-anchor="middle">0.01</text>
+<text class="el" x="510" y="262" text-anchor="middle">0.06</text>
+<text class="el" x="510" y="320" text-anchor="middle">0.93</text>
+</svg></figure>
+  <p class="caption">First finding: EUS, with FNA/FNB a coin toss (beta(2,2)); a negative or unsampled EUS goes to tumor board, which sends 10% to diagnostic laparoscopy and the rest to watchful waiting. A repeat finding is a personalised decision: after a negative EUS, laparoscopy is half as likely (0.05) and repeat EUS 15%; after a negative laparoscopy, laparoscopy is a tenth as likely (0.01) and repeat EUS 6%. The history is permanent.</p>
+</section>
+
+<section class="stack col" aria-labelledby="bay">
+  <h2 id="bay">Repeat positives after a negative workup</h2>
+  <p>Each person has their own false-positive propensity, drawn from beta(mκ, (1−m)κ) with mean m = 0.036% per test. After k earlier false positives in t − 1 tests, the chance the next test is falsely positive is <code>(mκ + k) / (κ + t − 1)</code>. The base case uses κ = 1,000,000 (tests independent); the scenarios κ = 3,400 and 2,900 make a second false positive 1.8× and 1.96× as likely. The cohort model carries tags for 0, 1 and 2+ earlier false positives; the microsimulation draws each person's propensity.</p>
+</section>
+
+<section class="figure" aria-labelledby="f5">
+  <div class="head"><h2 id="f5">5 · Natural history</h2><span class="eyebrow">same in every arm</span></div>
+  <figure class="canvas" style="--minw:923px"><svg viewBox="0 0 923 366" role="img" aria-label="Natural history states" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+<path class="e" d="M143,238 H157 V151" fill="none"/>
+<path class="e" d="M157,151 H218" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M143,238 H157 V325" fill="none"/>
+<path class="e" d="M157,325 H218" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M373,151 H409 V35" fill="none"/>
+<path class="e" d="M409,35 H470" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M373,151 H409 V93" fill="none"/>
+<path class="e dash" d="M409,93 H470" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M373,151 H409 V151" fill="none"/>
+<path class="e" d="M409,151 H470" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M373,151 H409 V209" fill="none"/>
+<path class="e" d="M409,209 H470" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M373,151 H409 V267" fill="none"/>
+<path class="e" d="M409,267 H470" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M614,35 H674 V35" fill="none"/>
+<path class="e" d="M674,35 H735" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M603,151 H674 V151" fill="none"/>
+<path class="e" d="M674,151 H735" fill="none" marker-end="url(#ah)"/>
+<path class="e" d="M595,209 H674 V209" fill="none"/>
+<path class="e" d="M674,209 H735" fill="none" marker-end="url(#ah)"/>
+<rect class="n out" x="8" y="217" width="135" height="42" rx="7"/>
+<text class="nt b out" x="76" y="234" text-anchor="middle">Well</text>
+<text class="nt s out" x="76" y="250" text-anchor="middle">no upper GI cancer</text>
+<rect class="n dec" x="221" y="130" width="152" height="42" rx="7"/>
+<text class="nt b dec" x="297" y="147" text-anchor="middle">Preclinical cancer</text>
+<text class="nt s dec" x="297" y="163" text-anchor="middle">mean sojourn 2.37 y</text>
+<rect class="n found" x="473" y="14" width="142" height="42" rx="7"/>
+<text class="nt b found" x="543" y="31" text-anchor="middle">Screen-detected</text>
+<text class="nt s found" x="543" y="47" text-anchor="middle">late 47%; lead time</text>
+<rect class="n out" x="738" y="14" width="173" height="42" rx="7"/>
+<text class="nt b out" x="825" y="31" text-anchor="middle">Would-be symptom time</text>
+<text class="nt s out" x="825" y="47" text-anchor="middle">stage-specific survival</text>
+<rect class="n dash" x="473" y="72" width="180" height="42" rx="7"/>
+<text class="nt b dash" x="563" y="89" text-anchor="middle">Not yet visible at EGD</text>
+<text class="nt s dash" x="563" y="105" text-anchor="middle">after a +ve test</text>
+<rect class="n out" x="473" y="130" width="130" height="42" rx="7"/>
+<text class="nt b out" x="538" y="147" text-anchor="middle">Symptoms: early</text>
+<text class="nt s out" x="538" y="163" text-anchor="middle">SEER stage mix</text>
+<rect class="n harm" x="738" y="130" width="120" height="42" rx="7"/>
+<text class="nt b harm" x="798" y="147" text-anchor="middle">Cancer death</text>
+<text class="nt s harm" x="798" y="163" text-anchor="middle">7.9% / y</text>
+<rect class="n out" x="473" y="193" width="123" height="32" rx="7"/>
+<text class="nt b out" x="534" y="214" text-anchor="middle">Symptoms: late</text>
+<rect class="n harm" x="738" y="188" width="120" height="42" rx="7"/>
+<text class="nt b harm" x="798" y="205" text-anchor="middle">Cancer death</text>
+<text class="nt s harm" x="798" y="221" text-anchor="middle">28.6% / y</text>
+<rect class="n harm" x="473" y="246" width="188" height="42" rx="7"/>
+<text class="nt b harm" x="566" y="263" text-anchor="middle">Other-cause death first</text>
+<text class="nt s harm" x="566" y="279" text-anchor="middle">overdiagnosed if found</text>
+<rect class="n out" x="221" y="304" width="173" height="42" rx="7"/>
+<text class="nt b out" x="308" y="321" text-anchor="middle">Other-cause death</text>
+<text class="nt s out" x="308" y="337" text-anchor="middle">NCHS 2024, cause-deleted</text>
+<text class="el" x="190" y="146" text-anchor="middle">onset</text>
+</svg></figure>
+  <p class="caption">Onset is solved so that, without screening, symptomatic diagnoses reproduce SEER incidence by age, sex and race/ethnicity, and their stage reproduces SEER's stage mix. Screen-detected cancers wait in lead-time states until they would have caused symptoms, so screening earns stage shift only. The cohort model steps once a year; the microsimulation runs the same hazards in continuous time (hesim).</p>
+</section>
+
+<section class="stack" aria-labelledby="ms">
+  <h2 id="ms">Microsimulation: following each person</h2>
+  <p class="col">The same inputs run through a hesim individual-level model: 1,000,000 simulated people, each followed through all three arms with the same random draws, so every person's outcome under Galleri can be compared with their own outcome under usual care.</p>
+  <div class="kpis">
+    <div class="kpi"><span class="v">$5.95M</span><span class="l">Galleri cost per QALY (cohort $5.35M)</span></div>
+    <div class="kpi"><span class="v">0.0030</span><span class="l">QALYs gained per person (± 0.0003)</span></div>
+    <div class="kpi"><span class="v">$18k</span><span class="l">extra cost per person</span></div>
+    <div class="kpi"><span class="v">1.76%</span><span class="l">of people worse off with Galleri (0.49% better off)</span></div>
+  </div>
+  <div class="two">
+    <div class="tablebox"><table><thead><tr><th>Galleri arm, per 100,000</th><th>Cohort</th><th>Microsim</th><th>Diff.</th></tr></thead><tbody><tr><td>Upper GI cancers found by screening</td><td class='num'>1,228</td><td class='num'>948</td><td class='num'>-22.8%</td></tr><tr><td>Symptomatic diagnoses</td><td class='num'>551</td><td class='num'>921</td><td class='num'>+67.1%</td></tr><tr><td>Overdiagnosed (upper GI)</td><td class='num'>120</td><td class='num'>76</td><td class='num'>-37.0%</td></tr><tr><td>Cancer deaths</td><td class='num'>1,264</td><td class='num'>1,341</td><td class='num'>+6.1%</td></tr><tr><td>Cancer-free people worked up</td><td class='num'>1,003</td><td class='num'>988</td><td class='num'>-1.4%</td></tr><tr><td>EGDs</td><td class='num'>2,627</td><td class='num'>2,320</td><td class='num'>-11.7%</td></tr><tr><td>PET CT</td><td class='num'>1,018</td><td class='num'>990</td><td class='num'>-2.8%</td></tr><tr><td>EUS</td><td class='num'>103</td><td class='num'>106</td><td class='num'>+3.3%</td></tr><tr><td>Laparoscopies</td><td class='num'>6.8</td><td class='num'>6.6</td><td class='num'>-2.6%</td></tr><tr><td>QALYs per person</td><td class='num'>15.7840</td><td class='num'>15.7843</td><td class='num'>+0.0%</td></tr><tr><td>Lifetime cost per person</td><td class='num'>$21k</td><td class='num'>$21k</td><td class='num'>-0.1%</td></tr></tbody></table></div>
+    <div class="stack">
+      <div class="tablebox"><table><thead><tr><th>Per person</th><th>Microsim</th></tr></thead><tbody><tr><td>Better off / worse off / unaffected</td><td class='num'>0.49% / 1.76% / 97.75%</td></tr><tr><td>Upper GI cancers found by Galleri</td><td class='num'>47% of lifetime cancers</td></tr><tr><td>Median lead time</td><td class='num'>1.5 years (IQR 0.64-2.99)</td></tr><tr><td>Shifted late → early</td><td class='num'>41% of screen-detected</td></tr><tr><td>Ever positive</td><td class='num'>2.25% of people</td></tr><tr><td>Largest single-person change</td><td class='num'>+10.6 / -11.0 QALYs</td></tr><tr><td>Lifetime cost, 99th percentile</td><td class='num'>$153k</td></tr></tbody></table></div>
+      <div class="tablebox"><table><thead><tr><th>Positive tests over a lifetime</th><th>People per 100,000</th></tr></thead><tbody><tr><td>1 positive</td><td class='num'>2,194.0</td></tr><tr><td>2 positives</td><td class='num'>43.3</td></tr><tr><td>3 positives</td><td class='num'>10.8</td></tr><tr><td>4+ positives</td><td class='num'>2.1</td></tr></tbody></table></div>
+    </div>
+  </div>
+  <p class="caption col">Usual care agrees within about 1% (life-years, QALYs, cost, symptomatic cancers). Workup counts agree within a few percent. The microsimulation finds about 23% fewer cancers by screening because, in continuous time, some cancers start and cause symptoms between two annual tests; the cohort model's yearly steps give every cancer at least one test. That is why its ICER is higher.</p>
+</section>
+
+<section class="stack" aria-labelledby="sc">
+  <h2 id="sc">Scenarios, lowest to highest cost per QALY</h2>
+  <div class="tablebox"><table><thead><tr><th>Scenario</th><th>Galleri cost per QALY</th></tr></thead><tbody><tr><td>Galleri price shared across all cancers it detects</td><td class='num'>$422k</td></tr><tr><td>Galleri test half price</td><td class='num'>$2.68M</td></tr><tr><td>Same Galleri sensitivity in every round</td><td class='num'>$4.52M</td></tr><tr><td>Galleri sensitivity at CCGA3 all-stage level</td><td class='num'>$4.52M</td></tr><tr><td>False positives: per-procedure loss only (EQ-5D finds none)</td><td class='num'>$4.73M</td></tr><tr><td>False positives: lowest Matza pathway (0.031)</td><td class='num'>$4.81M</td></tr><tr><td>Shorter sojourn time (lower 95% CI)</td><td class='num'>$5.06M</td></tr><tr><td>Lower procedure disutility</td><td class='num'>$5.19M</td></tr><tr><td>EUS sample always taken</td><td class='num'>$5.21M</td></tr><tr><td>No EGD hold (EGD at every positive)</td><td class='num'>$5.28M</td></tr><tr><td>Fewest EGD misses not yet visible (9%)</td><td class='num'>$5.32M</td></tr><tr><td>Tumor board sends 25% to laparoscopy</td><td class='num'>$5.33M</td></tr><tr><td>No persisting worry after the all-clear</td><td class='num'>$5.33M</td></tr><tr><td>Late-stage continuing cost = early</td><td class='num'>$5.33M</td></tr><tr><td>Kunzmann flags by sex (59.7% of men)</td><td class='num'>$5.35M</td></tr><tr><td>Hidden cancers visible sooner (0.5 years)</td><td class='num'>$5.35M</td></tr><tr><td>False positives persist in the same person, 1.96x (kappa 2,900; mammography)</td><td class='num'>$5.35M</td></tr><tr><td>False positives persist in the same person, 1.8x (kappa 3,400; all-site retests)</td><td class='num'>$5.35M</td></tr><tr class="base"><td>Base case</td><td class='num'>$5.35M</td></tr><tr><td>Cancer risk doubles after a false positive (mammography analog)</td><td class='num'>$5.36M</td></tr><tr><td>Hidden cancers visible later (2 years)</td><td class='num'>$5.36M</td></tr><tr><td>EGD hold 3 years</td><td class='num'>$5.37M</td></tr><tr><td>PET CT with diagnostic CT (24.4 mSv)</td><td class='num'>$5.38M</td></tr><tr><td>Higher perforation case fatality (EGD mortality 1/10,000, ASGE)</td><td class='num'>$5.38M</td></tr><tr><td>Incidental PET findings malignant at nationwide thyroid rate</td><td class='num'>$5.41M</td></tr><tr><td>Anxiety while waiting rated moderate (GBD 0.133)</td><td class='num'>$5.45M</td></tr><tr><td>Most EGD misses not yet visible (83%)</td><td class='num'>$5.48M</td></tr><tr><td>EUS sample rarely taken (10%)</td><td class='num'>$5.48M</td></tr><tr><td>EGD misses more (sensitivity 83.4%; Menon 2014 upper 95% CI of misses)</td><td class='num'>$5.57M</td></tr><tr><td>PET never shows an upper GI cancer when EGD is skipped</td><td class='num'>$5.57M</td></tr><tr><td>Missed after negative workup at NHS-Galleri 2-year rate</td><td class='num'>$5.73M</td></tr><tr><td>Longer sojourn time (upper 95% CI)</td><td class='num'>$5.96M</td></tr><tr><td>Site-specific sojourn (esophageal adenocarcinoma 4.9 years)</td><td class='num'>$6.39M</td></tr><tr><td>Galleri sensitivity at CCGA3 stage I-II level</td><td class='num'>$7.37M</td></tr><tr><td>Missed cancers stay missed by Galleri</td><td class='num'>$7.82M</td></tr><tr><td>Site-specific sojourn (esophageal adenocarcinoma 7.1 years)</td><td class='num'>$8.07M</td></tr><tr><td>Microsimulation (continuous time, 1M people)</td><td class='num'>$5.95M</td></tr></tbody></table></div>
+</section>
+
+<section class="stack" aria-labelledby="rv">
+  <h2 id="rv">Inputs to review</h2>
+  <p class="col">Rose rows are DUMMY placeholders still to source. Edit any of them on the numbered tabs of <code>Galleri_model_inputs.xlsx</code> and import with <code>Rscript import_inputs_xlsx.R</code>.</p>
+  <div class="tablebox"><table><thead><tr><th>Input</th><th>Value</th><th>Status</th><th>Parameter</th></tr></thead><tbody><tr class='flag-review'><td>P(PET CT shows upper GI cancer | EGD skipped)</td><td class='num'>0.5</td><td><span class='pill gap'>DUMMY</span></td><td><code>p_pet_ugi</code></td></tr><tr class='flag-review'><td>P(serious complication | diagnostic laparoscopy)</td><td class='num'>0.02</td><td><span class='pill gap'>DUMMY</span></td><td><code>p_lap_cx</code></td></tr><tr class='flag-review'><td>Days to diagnostic laparoscopy</td><td class='num'>21</td><td><span class='pill gap'>DUMMY</span></td><td><code>t_lap</code></td></tr><tr class='flag-review'><td>Cost diagnostic laparoscopy</td><td class='num'>5000</td><td><span class='pill gap'>DUMMY</span></td><td><code>c_lap</code></td></tr><tr class='flag-review'><td>Cost surveillance imaging</td><td class='num'>600</td><td><span class='pill gap'>DUMMY</span></td><td><code>c_surv</code></td></tr><tr class=''><td>P(FNA/FNB taken at EUS)</td><td class='num'>0.5</td><td><span class='pill data'>ASSUMPTION</span></td><td><code>p_eus_samp</code></td></tr><tr class=''><td>P(laparoscopy | first negative EUS, tumor board)</td><td class='num'>0.1</td><td><span class='pill data'>ASSUMPTION</span></td><td><code>p_tb_lap</code></td></tr><tr class=''><td>Laparoscopy multiplier after a prior negative EUS</td><td class='num'>0.5</td><td><span class='pill data'>ASSUMPTION</span></td><td><code>r_lap_after_eus</code></td></tr><tr class=''><td>Laparoscopy multiplier after a negative laparoscopy</td><td class='num'>0.1</td><td><span class='pill data'>ASSUMPTION</span></td><td><code>r_lap_after_lap</code></td></tr><tr class=''><td>P(repeat EUS | repeat finding, prior negative EUS)</td><td class='num'>0.15</td><td><span class='pill data'>ASSUMPTION</span></td><td><code>p_reeus_after_eus</code></td></tr><tr class=''><td>P(repeat EUS | repeat finding, prior negative laparoscopy)</td><td class='num'>0.06</td><td><span class='pill data'>ASSUMPTION</span></td><td><code>p_reeus_after_lap</code></td></tr><tr class=''><td>P(malignant | PET pancreatobiliary +ve)</td><td class='num'>0.70</td><td><span class='pill data'>ASSUMPTION</span></td><td><code>p_pb_malig</code></td></tr><tr class=''><td>Years until a hidden cancer becomes visible</td><td class='num'>1</td><td><span class='pill data'>ASSUMPTION</span></td><td><code>t_visible</code></td></tr><tr class=''><td>Galleri sensitivity (upper GI)</td><td class='num'>0.637</td><td><span class='pill data'>ASSUMPTION</span></td><td><code>sens_g_ugi</code></td></tr><tr class=''><td>Galleri false-positive rate (E/S)</td><td class='num'>0.00036</td><td><span class='pill data'>ASSUMPTION</span></td><td><code>fpr_g_es</code></td></tr><tr class=''><td>False-positive persistence (concentration)</td><td class='num'>1000000</td><td><span class='pill data'>ASSUMPTION</span></td><td><code>fp_kappa</code></td></tr></tbody></table></div>
+</section>
+
+<section class="stack col" aria-labelledby="g">
+  <h2 id="g">What changed since the last version</h2>
+  <ul class="gaps">
+    <li><b>EGD hold</b> of 2 years after a negative EGD; repeat positives go straight to ENT or PET CT.</li>
+    <li><b>Two kinds of EGD miss:</b> a visible lesion missed, and a cancer not yet visible.</li>
+    <li><b>Pancreatobiliary workup by history:</b> coin-toss FNA/FNB, tumor board, laparoscopy less likely after each negative result.</li>
+    <li><b>Bayesian repeat positives</b> (κ scenarios), and <b>Kunzmann as a one-time test</b> from the GRADE evidence profile.</li>
+    <li><b>Person-level microsimulation</b> (hesim) that cross-checks the cohort model; it also corrected how workup paths are weighted for people with cancers outside the upper GI tract.</li>
+  </ul>
+  <p class="caption">Still not modelled: stage varying with age within a race-sex group, the natural history of other-site cancers (they borrow upper GI's), and a hold that depends on a Bayesian probability threshold.</p>
+</section>
+
+<p class="foot col">Built by <code>viz/build_model_page.py</code> from <code>inputs/parameters.csv</code> and the model outputs on branch <code>us-sourced-inputs</code> (github.com/fali-ebm/Galleri, PR #1). Sources: <code>inputs/SOURCES.md</code> and the References tab of the inputs workbook.</p>
+</main></body></html>
