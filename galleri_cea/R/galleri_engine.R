@@ -224,14 +224,14 @@ rest_tree <- function(p, pb, edges_only = FALSE) {
   d
 }
 
-# Averages over the rest of the workup: for people with another cancer (all paths,
-# weighted by probability) and for people with no cancer outside the upper GI tract
+# Averages over the rest of the workup: for people with another cancer (paths weighted
+# by where cancers are, probability x (found + missed)) and for people with no cancer outside the upper GI tract
 # (paths weighted by their cancer-free share), plus where the latter's
 # pancreatobiliary history ends up.
 REST_COLS <- c("n_ent", "n_pet", "n_eus", "n_samp", "n_tb", "n_lap", "n_ww", "n_incid", "cost", "days", "sae", "rad", "invasive", "dfp")
 rest_summary <- function(p, pb) {
   d <- rest_tree(p, pb)
-  a <- colSums(d[REST_COLS] * d$prob)
+  wc <- d$prob * (d$found + d$missed); a <- colSums(d[REST_COLS] * wc) / sum(wc)   # people with another cancer: paths where cancers are
   w <- d$prob * d$free; f <- colSums(d[REST_COLS] * w) / sum(w)
   to <- vapply(1:3, function(b) sum(w[d$flag == b]) / sum(w), 0)
   list(all = a, free = f, det_o = sum(d$prob * d$found) / sum(d$prob * (d$found + d$missed)), to = to, paths = d)

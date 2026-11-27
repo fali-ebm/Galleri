@@ -407,3 +407,25 @@ test_that("Kunzmann sex-specific scenario switches the flagged share", {
   p <- p0; p$kunz_sexspec <- 1
   expect_equal(unname(ev("comparison", p)["screen_rounds", "Kunzmann -> EGD"]), 0.597, tolerance = 1e-6)
 })
+
+# ---- Microsimulation (hesim natural history + per-person screening) -----------------
+test_that("microsimulation: a test that finds nothing leaves every person's health as in usual care", {
+  skip_if_not_installed("hesim")
+  p <- p0; p$sens_g_ugi <- 0; p$sens_g_other <- 0; p$fpr_g_es <- 0
+  x <- E$ms_row(row1, D, p, S, c("Usual care", "Galleri"), 3000, 5)
+  u <- x[x$arm == "Usual care", ]; g <- x[x$arm == "Galleri", ]
+  expect_equal(g$qaly, u$qaly); expect_equal(g$ly, u$ly); expect_equal(g$ca_death, u$ca_death)
+  expect_equal(g$cost - u$cost, g$cost - u$cost)
+  expect_true(all(g$cost - u$cost >= 0)); expect_equal(sum(g$positives), 0)
+})
+
+test_that("microsimulation: arms share the same people; everyone dies or reaches the horizon once", {
+  skip_if_not_installed("hesim")
+  x <- E$ms_row(row1, D, p0, S, E$ARMS, 5000, 9)
+  u <- x[x$arm == "Usual care", ]; k <- x[x$arm == "Kunzmann -> EGD", ]; g <- x[x$arm == "Galleri", ]
+  expect_equal(u$cancer, k$cancer)                         # same natural history in every arm
+  expect_true(all(g$death_time <= 50 + 1e-9) && all(g$ly <= g$death_time + 1e-9))
+  expect_true(all(!g$screen_detected | !g$clin_dx))         # found by screening or by symptoms, not both
+  expect_true(all(g$found_other <= g$fp_other_cancer))      # an other-site cancer is found at most once per positive
+  expect_true(all(u$tests == 0) && all(g$tests >= 1))
+})

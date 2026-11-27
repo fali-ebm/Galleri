@@ -186,3 +186,30 @@ added to `inputs/counts.csv`.
 To use other packages, call `ceakit::psa_matrices(res)`. It returns cost,
 effect and parameter matrices for `dampack::make_psa_obj()`,
 `BCEA::bcea()` and the `voi` package.
+
+## Microsimulation (per-patient outcomes)
+
+`Rscript tools/run_microsim.R [n_people] [seed]` (default 1,000,000 people)
+runs an individual-level version of the same model (`R/microsim.R`):
+
+- **Natural history** is simulated person by person with **hesim**'s
+  individual-level continuous-time state-transition model (`IndivCtstm`,
+  piecewise-exponential hazards by year): well → preclinical upper GI cancer
+  → clinical presentation (early/late), with other-cause death competing.
+  Onset hazards are re-calibrated in continuous time so that usual-care
+  incidence matches the same SEER targets (`incidence_check.csv`).
+- **Screening is overlaid on each person**: annual Galleri tests with a
+  person-level false-positive propensity, the EGD hold, missed and
+  not-yet-visible cancers, each workup path sampled step by step,
+  pancreatobiliary history, perforations and other procedure deaths, and the
+  one-time Kunzmann EGD.
+- **All arms use the same simulated people**, so each person's gain or loss
+  from screening is observed directly (`per_person_increments.csv.gz`).
+- Outputs in `outputs/microsim/`: `validation.csv` (vs the cohort model),
+  `summary.csv` (incremental results with Monte Carlo intervals),
+  `distributions.csv`, `per_person_facts.csv`, `patients_sample.csv`
+  (10,000 people × arms), `patients.csv.gz` (everyone) and a figure.
+- Cancers at other sites found by the workup are credited with their
+  expected value, as in the cohort model.
+- The microsimulation is for the base case; the probabilistic and one-way
+  sensitivity analyses stay on the cohort model.
