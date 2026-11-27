@@ -24,7 +24,7 @@
 .strip .v { font: 300 32px/1 var(--display); font-variant-numeric: tabular-nums; }
 .strip .k { font-size: 13px; color: var(--mute); }
 .strip .v.hot { color: var(--alarm); }
-#price text, #sc text, #cum text, #deaths text { paint-order: stroke; stroke: var(--ink); stroke-width: 4px; stroke-linejoin: round; }
+#price text, #sc text, #cum text, #deaths text, #hist text, #mscmp text, #inc text, #val text, #msc text { paint-order: stroke; stroke: var(--ink); stroke-width: 4px; stroke-linejoin: round; }
 </style>
 </head>
 <body>
@@ -80,8 +80,36 @@
   <div class="fig" id="mo-wrap" style="overflow-x:auto"><svg id="mosaic" role="img" aria-label="Cost per QALY for every combination of start age, sex and race or ethnicity"></svg></div>
 </section>
 
+<section class="chapter" aria-labelledby="c7">
+  <span class="num">06 · ONE MAN AT A TIME</span>
+  <h2 id="c7">For <em id="h-same"></em> in 100 men, the test changes <em>nothing</em></h2>
+  <p class="text note" id="ms-intro"></p>
+  <div class="key"><span><i class="sw uc"></i>no change in healthy life</span><span><i class="sw alarm"></i>worse off</span><span><i class="sw found"></i>better off</span></div>
+  <div class="fig" id="waffle-wrap"><svg id="waffle" role="img" aria-label="10,000 men, one square each: most unaffected by yearly Galleri, a strip worse off and a few better off"></svg></div>
+  <p class="text note" id="hist-intro"></p>
+  <div class="fig" id="hist-wrap"><svg id="hist" role="img" aria-label="How much healthy life each affected man gains or loses, men per 100,000 on a log scale"></svg></div>
+  <div class="strip" id="ms-strip"></div>
+  <p class="text note" id="mscmp-intro"></p>
+  <div class="fig" id="mscmp-wrap"><svg id="mscmp" role="img" aria-label="Cohort model and person-level microsimulation compared, per 100,000 men"></svg></div>
+</section>
+
+<section class="chapter" aria-labelledby="c8">
+  <span class="num">07 · A SECOND OPINION ON THE DISEASE</span>
+  <h2 id="c8">Recalibrated to CISNET's esophageal cancer model, the answer <em>barely moves</em></h2>
+  <p class="text note" id="mi-intro"></p>
+  <div class="fig" id="nh-wrap"><svg id="nh" role="img" aria-label="Natural history of esophageal adenocarcinoma in the MISCAN-ESO scenario: early and late hidden stages before symptoms"></svg></div>
+  <p class="text note" id="inc-intro"></p>
+  <div class="key"><span><i class="sw band"></i>SEER target</span><span><i class="sw found"></i>model</span></div>
+  <div class="fig" id="inc-wrap"><svg id="inc" role="img" aria-label="Esophageal adenocarcinoma incidence by age, SEER target and model, men and women"></svg></div>
+  <p class="text note" id="val-intro"></p>
+  <div class="key"><span><i class="sw uc"></i>CISNET, three-model average</span><span><i class="sw found"></i>this model</span></div>
+  <div class="fig" id="val-wrap"><svg id="val" role="img" aria-label="Lifetime esophageal adenocarcinoma cases and deaths per 100,000, CISNET and this model"></svg></div>
+  <p class="text note" id="msc-intro"></p>
+  <div class="fig" id="msc-wrap"><svg id="msc" role="img" aria-label="Galleri cost per QALY in the base case and the MISCAN-ESO scenarios"></svg></div>
+</section>
+
 <section class="chapter" aria-labelledby="c6">
-  <span class="num">06 · THE OTHER OPTION</span>
+  <span class="num">08 · THE OTHER OPTION</span>
   <h2 id="c6">A one-time risk score and endoscopy <em>does harm</em></h2>
   <p class="text note">The Kunzmann score (sensitivity 77.5%, specificity 64.4%) flags 35.7% of men for a single endoscopy at 50. It finds few cancers, and the endoscopies in the 99.9% who have none take away more healthy life than the cancers caught give back.</p>
   <div class="strip" id="kunz"></div>
@@ -90,6 +118,7 @@
 <p class="text"><a class="next" href="https://claude.ai/artifact/KSek511vhqrfmtnnSmC3ui">← Before this: the burden of 2.8 million blood tests</a></p>
 <footer class="foot">
   <p>Source: Galleri upper GI screening model (github.com/fali-ebm/Galleri, galleri_cea). Base case: non-Hispanic White men screened every year from 50 to 85 and followed to 100; costs in 2025 US dollars, costs and QALYs discounted at 3%. Natural history calibrated to SEER; Galleri accuracy from PATHFINDER 2 and NHS-Galleri; NCHS 2024 life tables. Uncertainty from 1,000 probabilistic runs.</p>
+  <p>Chapter 06: hesim individual-level microsimulation of 1,000,000 men, the same men in every arm (seed 2026). Chapter 07: MISCAN-ESO scenario, esophageal adenocarcinoma sojourn from Kong 2014 (CEBP, doi:10.1158/1055-9965.EPI-13-1233), CISNET lifetime targets from Rubenstein 2022 (Gastroenterology, doi:10.1053/j.gastro.2022.03.037). Everything on this page is rebuilt in R by <code>Rscript make_all.R</code>.</p>
   <p>Deaths prevented include other cancers found during the workup of a Galleri positive. The price line holds everything else at the base case; the model's cost per QALY is linear in the test price.</p>
 </footer>
 </main>
@@ -290,7 +319,144 @@ function drawKunz() {
     .forEach(([v, k, c]) => { const d = s.append('div'); d.append('span').attr('class', 'v ' + c).text(v); d.append('span').attr('class', 'k').text(k); });
 }
 
-function drawAll() { drawDeaths(); drawCum(); drawPSA(); drawPrice(); drawScen(); drawMosaic(); drawKunz(); }
+
+/* 06 microsimulation: one man at a time */
+function drawMS() {
+  const M = DATA.ms, pc = v => (100 * v).toFixed(2) + '%';
+  document.getElementById('h-same').textContent = (100 * M.same).toFixed(1);
+  document.getElementById('ms-intro').innerHTML = `The same model, run one man at a time: <b>${fmt(M.n)}</b> simulated men, each living his life twice, once with yearly Galleri and once without, with the same chance events. Out of every 10,000, <b>${Math.round(1e4 * M.loss)}</b> end up with less healthy life, mostly from the workup of a false alarm, and <b>${Math.round(1e4 * M.gain)}</b> end up with more, almost all because a cancer was found earlier.`;
+  const wrap = document.getElementById('waffle-wrap'), W = wrap.clientWidth, n = 200, cell = W / n, H = cell * 50;
+  const svg = d3.select('#waffle').attr('width', W).attr('height', H).attr('viewBox', `0 0 ${W} ${H}`); svg.selectAll('*').remove();
+  const nl = Math.round(1e4 * M.loss), ng = Math.round(1e4 * M.gain), ns = 1e4 - nl - ng;
+  const kind = i => i < ns ? 0 : i < ns + nl ? 1 : 2, col = [C.paper, C.alarm, C.found], op = [0.16, 1, 1];
+  svg.append('g').selectAll('rect').data(d3.range(1e4)).join('rect').attr('x', i => (i % n) * cell + 0.6).attr('y', i => Math.floor(i / n) * cell + 0.6)
+    .attr('width', Math.max(1, cell - 1)).attr('height', Math.max(1, cell - 1)).attr('rx', 0.8).attr('fill', i => col[kind(i)]).attr('fill-opacity', i => op[kind(i)]);
+  svg.on('mousemove', ev => showTip(`<b>10,000 men, one square each</b><div class="r"><span>No change</span><span class="m">${fmt(ns)}</span></div><div class="r"><span style="color:${C.alarm}">Worse off</span><span class="m">${fmt(nl)}</span></div><div class="r"><span style="color:${C.found}">Better off</span><span class="m">${fmt(ng)}</span></div>`, ev)).on('mouseleave', hideTip);
+
+  // how much each affected man gains or loses
+  const big = M.gains.filter(b => b.lo >= 1).reduce((a, b) => a + b.n, 0) * M.per, small = M.losses.filter(b => b.hi <= 0.1).reduce((a, b) => a + b.n, 0) * M.per;
+  document.getElementById('hist-intro').innerHTML = `The losses are many and small, the gains few and large. Of 100,000 men, <b>${fmt(Math.round(small))}</b> lose less than a tenth of a healthy year (about five weeks), mostly the worry and procedures of a false alarm; <b>${fmt(Math.round(big))}</b> gain a healthy year or more. The extremes: one man gains <b>${M.max_gain.toFixed(1)}</b> years, another loses <b>${Math.abs(M.max_loss).toFixed(1)}</b> (a death from a complication).`;
+  const hw = document.getElementById('hist-wrap'), HW = hw.clientWidth, HH = 370, m = { t: 22, r: 16, b: 74, l: 56 };
+  const hs = d3.select('#hist').attr('width', HW).attr('height', HH).attr('viewBox', `0 0 ${HW} ${HH}`); hs.selectAll('*').remove();
+  const bins = [...M.losses.slice().reverse().map(b => ({ ...b, side: -1 })), ...M.gains.map(b => ({ ...b, side: 1 }))].map(b => ({ ...b, v: b.n * M.per }));
+  const x = d3.scaleBand(d3.range(bins.length), [m.l, HW - m.r]).padding(0.14), y = d3.scaleLog([0.1, 2000], [HH - m.b, m.t]).clamp(true);
+  [0.1, 1, 10, 100, 1000].forEach(t => { hs.append('line').attr('x1', m.l).attr('x2', HW - m.r).attr('y1', y(t)).attr('y2', y(t)).attr('stroke', C.rule).attr('stroke-opacity', .6);
+    hs.append('text').attr('x', m.l - 8).attr('y', y(t)).attr('dy', '0.35em').attr('text-anchor', 'end').style('font-family', 'var(--mono)').style('font-size', '11px').style('fill', C.faint).text(t < 1 ? t : fmt(t)); });
+  const mid = x(M.losses.length) - x.step() * x.padding() / 2;
+  hs.append('line').attr('x1', mid).attr('x2', mid).attr('y1', m.t - 6).attr('y2', HH - m.b + 6).attr('stroke', C.paper).attr('stroke-opacity', .5);
+  hs.append('text').attr('x', mid - 8).attr('y', m.t + 4).attr('text-anchor', 'end').style('fill', C.alarm).style('font-size', '12px').text('← healthy life lost');
+  hs.append('text').attr('x', mid + 8).attr('y', m.t + 4).style('fill', C.found).style('font-size', '12px').text('healthy life gained →');
+  const lab = b => (b.lo === 0 ? '<' + b.hi : b.lo + '–' + b.hi), short = b => (b.lo === 0 ? '<' + b.hi : '≤' + b.hi);
+  hs.append('g').selectAll('rect').data(bins).join('rect').attr('x', (b, i) => x(i)).attr('width', x.bandwidth()).attr('y', b => y(Math.max(0.1, b.v))).attr('height', b => b.v > 0 ? y(0.1) - y(Math.max(0.1, b.v)) : 0)
+    .attr('rx', 3).attr('fill', b => b.side < 0 ? C.alarm : C.found)
+    .on('mousemove', (ev, b) => showTip(`<b>${b.side < 0 ? 'Lose' : 'Gain'} ${lab(b)} QALYs</b><br><span class="m">${b.v < 1 ? b.v.toFixed(1) : fmt(Math.round(b.v))}</span> men per 100,000<br><span style="color:${C.mute}">0.1 QALY is about 5 weeks of healthy life; 1 QALY a year</span>`, ev)).on('mouseleave', hideTip);
+  hs.append('g').selectAll('text').data(bins).join('text').attr('transform', (b, i) => `translate(${x(i) + x.bandwidth() / 2},${HH - m.b + 12}) rotate(-35)`).attr('text-anchor', 'end')
+    .style('font-family', 'var(--mono)').style('font-size', '10.5px').style('fill', C.faint).text(b => short(b));
+  hs.append('text').attr('x', (m.l + HW - m.r) / 2).attr('y', HH - 10).attr('text-anchor', 'middle').style('fill', C.mute).style('font-size', '12px').text('QALYs gained or lost by one man (log-spaced bins)');
+  hs.append('text').attr('transform', `translate(14,${(m.t + HH - m.b) / 2}) rotate(-90)`).attr('text-anchor', 'middle').style('fill', C.mute).style('font-size', '12px').text('Men per 100,000');
+
+  const st = d3.select('#ms-strip'); st.selectAll('*').remove();
+  [[money(M.icer), 'per QALY, person by person', 'hot'], [money(M.icer_cohort), 'per QALY, cohort model', ''], [M.lead_med.toFixed(1) + ' yrs', 'median lead time when Galleri finds a cancer', ''],
+   [Math.round(M.shift) + '%', 'of screen-found cancers moved from late to early stage', ''], [Math.round(M.found_share) + '%', 'of lifetime upper GI cancers found by Galleri', '']]
+    .forEach(([v, k, c]) => { const d = st.append('div'); d.append('span').attr('class', 'v ' + c).text(v); d.append('span').attr('class', 'k').text(k); });
+
+  document.getElementById('mscmp-intro').innerHTML = `Why the person-level answer is higher: in continuous time some cancers start and cause symptoms between two yearly tests, so no test ever sees them. The person-level model finds about a fifth fewer cancers by screening and more after symptoms; the workup counts agree within a few percent.`;
+  const cw = document.getElementById('mscmp-wrap'), CW = cw.clientWidth, R = M.compare, row = 40, cm = { t: 26, r: 80, b: 10, l: Math.min(230, CW * 0.36) }, CH = cm.t + cm.b + row * R.length;
+  const cs = d3.select('#mscmp').attr('width', CW).attr('height', CH).attr('viewBox', `0 0 ${CW} ${CH}`); cs.selectAll('*').remove();
+  const cx = d3.scaleLinear([0, d3.max(R, r => Math.max(r.cohort, r.microsim)) * 1.05], [cm.l, CW - cm.r]).nice();
+  cx.ticks(5).forEach(t => { cs.append('line').attr('x1', cx(t)).attr('x2', cx(t)).attr('y1', cm.t - 6).attr('y2', CH - cm.b).attr('stroke', C.rule).attr('stroke-opacity', .6);
+    cs.append('text').attr('x', cx(t)).attr('y', cm.t - 12).attr('text-anchor', 'middle').style('font-family', 'var(--mono)').style('font-size', '11px').style('fill', C.faint).text(fmt(t)); });
+  R.forEach((r, i) => { const yy = cm.t + i * row + row / 2;
+    cs.append('text').attr('x', cm.l - 14).attr('y', yy).attr('dy', '0.35em').attr('text-anchor', 'end').style('font-size', '12.5px').text(r.label);
+    cs.append('line').attr('x1', cx(r.cohort)).attr('x2', cx(r.microsim)).attr('y1', yy).attr('y2', yy).attr('stroke', C.faint).attr('stroke-width', 2);
+    cs.append('circle').attr('cx', cx(r.cohort)).attr('cy', yy).attr('r', 6).attr('fill', C.ink).attr('stroke', C.paper).attr('stroke-width', 2);
+    cs.append('circle').attr('cx', cx(r.microsim)).attr('cy', yy).attr('r', 6).attr('fill', C.found).attr('stroke', C.ink).attr('stroke-width', 2);
+    const d = 100 * (r.microsim - r.cohort) / r.cohort;
+    cs.append('text').attr('x', cx(Math.max(r.cohort, r.microsim)) + 12).attr('y', yy).attr('dy', '0.35em').style('font-family', 'var(--mono)').style('font-size', '11px').style('fill', C.mute).text((d > 0 ? '+' : '') + d.toFixed(0) + '%');
+    cs.append('rect').attr('x', cm.l).attr('y', yy - row / 2).attr('width', CW - cm.l - cm.r).attr('height', row).attr('fill', 'transparent')
+      .on('mousemove', ev => showTip(`<b>${r.label}</b>, per 100,000<div class="r"><span>Cohort model</span><span class="m">${fmt(Math.round(r.cohort))}</span></div><div class="r"><span style="color:${C.found}">Person by person</span><span class="m">${fmt(Math.round(r.microsim))}</span></div>`, ev)).on('mouseleave', hideTip);
+  });
+  cs.append('text').attr('x', CW - cm.r).attr('y', 12).attr('text-anchor', 'end').style('font-size', '11.5px').style('fill', C.mute).text('○ cohort model   ● person by person');
+}
+
+/* 07 MISCAN-ESO */
+function drawMiscan() {
+  const Q = DATA.miscan, rm = Q.rates.male, rf = Q.rates.female;
+  const base = Q.scenarios.find(s => s.s === 'Base case').icer, mis = Q.scenarios.find(s => /natural history/.test(s.s)).icer;
+  document.getElementById('mi-intro').innerHTML = `The base case gives every upper GI cancer one hidden phase of 2.4 years on average. MISCAN-ESO, one of the National Cancer Institute's CISNET models, describes esophageal adenocarcinoma differently: it hides for about <b>${rm.S} years</b> in men and <b>${rf.S}</b> in women (Kong 2014), passing from an early to a late stage before it causes symptoms. In this scenario that cancer follows the MISCAN-ESO pattern; stomach and other esophageal cancers keep the base case. A cancer Galleri finds in the early phase is early stage; one found in the late phase is late.`;
+  // natural history flow (men)
+  const wrap = document.getElementById('nh-wrap'), W = Math.max(640, wrap.clientWidth), H = 262;
+  const svg = d3.select('#nh').attr('width', W).attr('height', H).attr('viewBox', `0 0 ${W} ${H}`); svg.selectAll('*').remove();
+  const bw = Math.min(210, W * 0.24), bh = 58, cx = [20, W * 0.38, W - bw - 20];
+  const box = (x, y, t, s, col) => { svg.append('rect').attr('x', x).attr('y', y).attr('width', bw).attr('height', bh).attr('rx', 10).attr('fill', col).attr('fill-opacity', .16).attr('stroke', col).attr('stroke-width', 1.5);
+    svg.append('text').attr('x', x + bw / 2).attr('y', y + 24).attr('text-anchor', 'middle').style('font-weight', 600).style('font-size', '13px').text(t);
+    svg.append('text').attr('x', x + bw / 2).attr('y', y + 43).attr('text-anchor', 'middle').style('fill', C.mute).style('font-size', '11.5px').text(s); };
+  const arrow = (x1, y1, x2, y2, lab, col) => { svg.append('line').attr('x1', x1).attr('y1', y1).attr('x2', x2).attr('y2', y2).attr('stroke', col || C.faint).attr('stroke-width', 1.6).attr('marker-end', 'url(#ah)');
+    svg.append('text').attr('x', (x1 + x2) / 2).attr('y', (y1 + y2) / 2 - 7).attr('text-anchor', 'middle').style('font-family', 'var(--mono)').style('font-size', '11px').style('fill', C.mute).text(lab); };
+  svg.append('defs').append('marker').attr('id', 'ah').attr('viewBox', '0 0 10 10').attr('refX', 9).attr('refY', 5).attr('markerWidth', 7).attr('markerHeight', 7).attr('orient', 'auto')
+    .append('path').attr('d', 'M0,0 L10,5 L0,10 z').attr('fill', C.faint);
+  const y1 = 86, y0 = 10, y2 = 162;
+  box(cx[0], y1, 'Hidden cancer, early', `about ${rm.pe.toFixed(1)} years`, C.paper);
+  box(cx[1], y1, 'Hidden cancer, late', `about ${rm.pl.toFixed(1)} years`, C.paper);
+  box(cx[2], y1, 'Symptoms: late stage', 'stage-specific survival', C.alarm);
+  box(cx[1], y0, 'Symptoms: early stage', 'stage-specific survival', C.paper);
+  box(cx[1], y2, 'Found by Galleri, early', 'lead time = time left', C.found);
+  arrow(cx[0] + bw, y1 + bh / 2, cx[1] - 4, y1 + bh / 2, `${rm.lam.toFixed(2)} / yr`);
+  arrow(cx[1] + bw, y1 + bh / 2, cx[2] - 4, y1 + bh / 2, `${rm.hL.toFixed(2)} / yr`);
+  arrow(cx[0] + bw * 0.6, y1, cx[1] - 4, y0 + bh / 2, `${rm.hE.toFixed(2)} / yr`);
+  arrow(cx[0] + bw * 0.6, y1 + bh, cx[1] - 4, y2 + bh / 2, 'yearly test', C.found);
+  svg.append('text').attr('x', 20).attr('y', H - 6).style('fill', C.mute).style('font-size', '11.5px').text(`Men. Rates solved so the hidden phase averages ${rm.S} years and ${Math.round(100 * rm.L)}% present at a late stage, as in SEER.`);
+
+  document.getElementById('inc-intro').innerHTML = `The recalibrated model still reproduces how often this cancer is diagnosed at every age (SEER 2013–2017), and its stage at diagnosis (${Math.round(100 * rm.L)}% late in men, ${Math.round(100 * rf.L)}% in women): the fit is exact, by construction.`;
+  const iw = document.getElementById('inc-wrap'), IW = iw.clientWidth, IH = 300, gap = 30, pw = (IW - gap) / 2, m = { t: 26, r: 10, b: 34, l: 44 };
+  const is = d3.select('#inc').attr('width', IW).attr('height', IH).attr('viewBox', `0 0 ${IW} ${IH}`); is.selectAll('*').remove();
+  ['male', 'female'].forEach((sx, k) => { const d = Q.by_age[sx], g = is.append('g').attr('transform', `translate(${k * (pw + gap)},0)`);
+    const x = d3.scaleLinear([50, 99], [m.l, pw - m.r]), y = d3.scaleLinear([0, d3.max(d.seer) * 1.1], [IH - m.b, m.t]).nice();
+    y.ticks(4).forEach(t => { g.append('line').attr('x1', m.l).attr('x2', pw - m.r).attr('y1', y(t)).attr('y2', y(t)).attr('stroke', C.rule).attr('stroke-opacity', .6);
+      g.append('text').attr('x', m.l - 6).attr('y', y(t)).attr('dy', '0.35em').attr('text-anchor', 'end').style('font-family', 'var(--mono)').style('font-size', '11px').style('fill', C.faint).text(t); });
+    [50, 60, 70, 80, 90].forEach(t => g.append('text').attr('x', x(t)).attr('y', IH - m.b + 16).attr('text-anchor', 'middle').style('font-family', 'var(--mono)').style('font-size', '11px').style('fill', C.faint).text(t));
+    const pts = d.age.map((a, i) => ({ a, s: d.seer[i], m: d.model[i] }));
+    g.append('path').attr('d', d3.line().x(p => x(p.a)).y(p => y(p.s))(pts)).attr('fill', 'none').attr('stroke', C.found).attr('stroke-opacity', .25).attr('stroke-width', 10).attr('stroke-linecap', 'round');
+    g.append('path').attr('d', d3.line().x(p => x(p.a)).y(p => y(p.m))(pts)).attr('fill', 'none').attr('stroke', C.found).attr('stroke-width', 2);
+    g.append('text').attr('x', m.l).attr('y', 12).style('font-weight', 600).style('font-size', '12.5px').text(sx === 'male' ? 'Men, per 100,000 a year' : 'Women, per 100,000 a year');
+    g.append('rect').attr('x', m.l).attr('y', m.t).attr('width', pw - m.l - m.r).attr('height', IH - m.t - m.b).attr('fill', 'transparent')
+      .on('mousemove', ev => { const a = Math.max(50, Math.min(99, Math.round(x.invert(d3.pointer(ev)[0])))), p = pts.find(q => q.a === a);
+        showTip(`<b>Age ${a}, ${sx === 'male' ? 'men' : 'women'}</b><div class="r"><span>SEER</span><span class="m">${p.s.toFixed(1)}</span></div><div class="r"><span style="color:${C.found}">Model</span><span class="m">${p.m.toFixed(1)}</span></div>`, ev); })
+      .on('mouseleave', hideTip);
+  });
+
+  const vm = Q.validation.find(v => v.label === 'Cases, men'), dm = Q.validation.find(v => v.label === 'Deaths, men');
+  document.getElementById('val-intro').innerHTML = `An outside check the model was not fitted to: CISNET's three esophageal models, averaged, put lifetime cases at <b>${vm.cisnet}</b> and deaths at <b>${dm.cisnet}</b> per 100,000 White men without screening (Rubenstein 2022). This model gives <b>${Math.round(vm.model)}</b> and <b>${Math.round(dm.model)}</b>. Women run high because SEER reports the adenocarcinoma share by race only, so it is applied to women as well, who have more squamous cell cancer.`;
+  const vw = document.getElementById('val-wrap'), VW = vw.clientWidth, V = Q.validation, row = 44, vm2 = { t: 26, r: 70, b: 10, l: 130 }, VH = vm2.t + vm2.b + row * V.length;
+  const vs = d3.select('#val').attr('width', VW).attr('height', VH).attr('viewBox', `0 0 ${VW} ${VH}`); vs.selectAll('*').remove();
+  const vx = d3.scaleLinear([0, d3.max(V, v => Math.max(v.cisnet, v.model)) * 1.08], [vm2.l, VW - vm2.r]).nice();
+  vx.ticks(5).forEach(t => { vs.append('line').attr('x1', vx(t)).attr('x2', vx(t)).attr('y1', vm2.t - 6).attr('y2', VH - vm2.b).attr('stroke', C.rule).attr('stroke-opacity', .6);
+    vs.append('text').attr('x', vx(t)).attr('y', vm2.t - 12).attr('text-anchor', 'middle').style('font-family', 'var(--mono)').style('font-size', '11px').style('fill', C.faint).text(fmt(t)); });
+  V.forEach((v, i) => { const yy = vm2.t + i * row + row / 2, d = 100 * (v.model - v.cisnet) / v.cisnet;
+    vs.append('text').attr('x', vm2.l - 14).attr('y', yy).attr('dy', '0.35em').attr('text-anchor', 'end').style('font-size', '12.5px').text(v.label);
+    vs.append('rect').attr('x', vx(0)).attr('y', yy - 8).attr('width', vx(v.cisnet) - vx(0)).attr('height', 16).attr('rx', 3).attr('fill', C.paper).attr('fill-opacity', .22);
+    vs.append('circle').attr('cx', vx(v.model)).attr('cy', yy).attr('r', 6.5).attr('fill', C.found).attr('stroke', C.ink).attr('stroke-width', 2);
+    vs.append('text').attr('x', Math.max(vx(v.model), vx(v.cisnet)) + 12).attr('y', yy).attr('dy', '0.35em').style('font-family', 'var(--mono)').style('font-size', '11px').style('fill', Math.abs(d) > 10 ? C.alarm : C.mute).text((d > 0 ? '+' : '') + d.toFixed(0) + '%');
+    vs.append('rect').attr('x', vm2.l).attr('y', yy - row / 2).attr('width', VW - vm2.l - vm2.r).attr('height', row).attr('fill', 'transparent')
+      .on('mousemove', ev => showTip(`<b>Lifetime EAC ${v.label.toLowerCase()}</b>, per 100,000<div class="r"><span>CISNET</span><span class="m">${fmt(v.cisnet)}</span></div><div class="r"><span style="color:${C.found}">This model</span><span class="m">${fmt(Math.round(v.model))}</span></div>`, ev)).on('mouseleave', hideTip);
+  });
+
+  document.getElementById('msc-intro').innerHTML = `With the MISCAN-ESO natural history the cost per QALY falls from <b>${money(base)}</b> to <b>${money(mis)}</b>. Varying the parts MISCAN-ESO does not pin down (how the hidden years split between early and late, a shorter hidden phase) keeps it between ${money(d3.min(Q.scenarios, s => s.icer))} and ${money(d3.max(Q.scenarios, s => s.icer))}: about 40 times the $100,000–$150,000 range, whichever description of the disease is used.`;
+  const sw = document.getElementById('msc-wrap'), SW = sw.clientWidth, S = Q.scenarios.slice().sort((a, b) => b.icer - a.icer), srow = 34, sm = { t: 26, r: 80, b: 10, l: Math.min(430, SW * 0.5) }, SH = sm.t + sm.b + srow * S.length;
+  const ss = d3.select('#msc').attr('width', SW).attr('height', SH).attr('viewBox', `0 0 ${SW} ${SH}`); ss.selectAll('*').remove();
+  const sx = d3.scaleLinear([4e6, 6e6], [sm.l, SW - sm.r]);
+  [4e6, 4.5e6, 5e6, 5.5e6, 6e6].forEach(t => { ss.append('line').attr('x1', sx(t)).attr('x2', sx(t)).attr('y1', sm.t - 6).attr('y2', SH - sm.b).attr('stroke', C.rule).attr('stroke-opacity', .6);
+    ss.append('text').attr('x', sx(t)).attr('y', sm.t - 12).attr('text-anchor', 'middle').style('font-family', 'var(--mono)').style('font-size', '11px').style('fill', C.faint).text(money(t)); });
+  ss.append('line').attr('x1', sx(base)).attr('x2', sx(base)).attr('y1', sm.t - 6).attr('y2', SH - sm.b).attr('stroke', C.paper).attr('stroke-opacity', .35).attr('stroke-dasharray', '3 3');
+  S.forEach((s, i) => { const yy = sm.t + i * srow + srow / 2, isB = s.s === 'Base case';
+    ss.append('text').attr('x', sm.l - 14).attr('y', yy).attr('dy', '0.35em').attr('text-anchor', 'end').style('font-size', '12.5px').style('font-weight', isB ? 600 : 400).text(s.s.replace('MISCAN-ESO natural history for esophageal adenocarcinoma', 'MISCAN-ESO natural history'));
+    ss.append('line').attr('x1', sx(base)).attr('x2', sx(s.icer)).attr('y1', yy).attr('y2', yy).attr('stroke', C.faint).attr('stroke-width', 1.5);
+    ss.append('circle').attr('cx', sx(s.icer)).attr('cy', yy).attr('r', isB ? 6.5 : 5.5).attr('fill', isB ? C.ink : C.found).attr('stroke', isB ? C.paper : C.ink).attr('stroke-width', 2);
+    ss.append('text').attr('x', sx(s.icer) + (s.icer >= base ? 12 : -12)).attr('y', yy).attr('dy', '0.35em').attr('text-anchor', s.icer >= base ? 'start' : 'end').style('font-family', 'var(--mono)').style('font-size', '11px').style('fill', C.mute).text(money(s.icer));
+  });
+}
+
+function drawAll() { drawDeaths(); drawCum(); drawPSA(); drawPrice(); drawScen(); drawMosaic(); drawMS(); drawMiscan(); drawKunz(); }
 drawAll();
 let rt; new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(drawAll, 150); }).observe(document.querySelector('.wrap'));
 </script>
