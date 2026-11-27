@@ -387,10 +387,12 @@ test_that("Bayesian false-positive propensity: repeat false positives rise with 
   expect_equal(ev("galleri", p, s1)["free_investigated", "Galleri"], ev("galleri", s = s1)["free_investigated", "Galleri"])
 })
 
-test_that("cancer risk after a false positive raises cancers only in the Galleri arm", {
+test_that("cancer risk after a false positive moves risk to false positives without adding cancers", {
   p <- p0; p$hr_ca_after_fp <- 2
-  expect_gt(ev("galleri", p)["clin_dx_lifetime", "Galleri"] + ev("galleri", p)["found_upper_gi", "Galleri"],
-            ev("galleri")["clin_dx_lifetime", "Galleri"] + ev("galleri")["found_upper_gi", "Galleri"])
+  tot <- function(m) m["clin_dx_lifetime", "Galleri"] + m["found_upper_gi", "Galleri"] - m["overdiagnosed_ugi", "Galleri"]
+  a <- ev("galleri"); b <- ev("galleri", p)
+  expect_equal(unname(tot(b)), unname(tot(a)), tolerance = 0.002)      # same lifetime cancers that matter
+  expect_gt(b["screen_tp", "Galleri"], a["screen_tp", "Galleri"] * 0.999)
 })
 
 test_that("site-specific sojourn scenario: longer sojourn, calibration still exact", {

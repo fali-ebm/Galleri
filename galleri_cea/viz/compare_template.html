@@ -82,8 +82,8 @@
 
 <section class="chapter" aria-labelledby="c6">
   <span class="num">06 · THE OTHER OPTION</span>
-  <h2 id="c6">A risk score and a yearly endoscopy <em>does harm</em></h2>
-  <p class="text note">The Kunzmann score flags 59.7% of men for an endoscopy every year. It prevents deaths, but the endoscopies take away more healthy life than the cancers they catch give back.</p>
+  <h2 id="c6">A one-time risk score and endoscopy <em>does harm</em></h2>
+  <p class="text note">The Kunzmann score (sensitivity 77.5%, specificity 64.4%) flags 35.7% of men for a single endoscopy at 50. It finds few cancers, and the endoscopies in the 99.9% who have none take away more healthy life than the cancers caught give back.</p>
   <div class="strip" id="kunz"></div>
 </section>
 
@@ -285,7 +285,7 @@ function drawMosaic() {
 /* 06 Kunzmann */
 function drawKunz() {
   const K = DATA.kunz, s = d3.select('#kunz'); s.selectAll('*').remove();
-  [[fmt(Math.round(K.egd)), 'endoscopies per 100,000 men', ''], [Math.round(K.averted), 'cancer deaths prevented', ''], [Math.round(K.perf_deaths), 'deaths from perforation', 'hot'],
+  [[fmt(Math.round(K.egd)), 'endoscopies per 100,000 men', ''], [K.averted.toFixed(1), 'cancer deaths prevented', ''], [K.perf_deaths.toFixed(1), 'deaths from perforation', 'hot'],
    [fmt(Math.round(K.qaly_net)), 'QALYs: a net loss', 'hot'], [money(K.cost), 'extra cost', '']]
     .forEach(([v, k, c]) => { const d = s.append('div'); d.append('span').attr('class', 'v ' + c).text(v); d.append('span').attr('class', 'k').text(k); });
 }

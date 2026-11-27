@@ -356,9 +356,13 @@ galleri_round <- function(X, T, t, nprev, curve, p, settings, wk) {
 tagged_step <- function(X, T, P, onset, p) {
   s <- 1 - P["well", "dead_other"]; pp <- P["pre", "early"] + P["pre", "late"]
   pl <- if (pp > 0) P["pre", "late"] / pp else 0
-  v <- 1 - exp(-1 / (p$t_visible %||% 1)); hr <- ifelse(T$k > 0, p$hr_ca_after_fp %||% 1, 1)
-  sp <- if (s > 0) pp / s else 0                                 # presentation among survivors
-  on <- pmin(1, onset * hr)
+  v <- 1 - exp(-1 / (p$t_visible %||% 1))
+  # hr_ca_after_fp: a false positive marks people already at higher risk; it does not
+  # cause cancer. Onset is raised in people with an earlier false positive and lowered
+  # in the rest so that total onset stays at the calibrated (usual care) level.
+  hr <- p$hr_ca_after_fp %||% 1; w1 <- sum(X[T$k > 0, "well"]); w0 <- sum(X[T$k == 0, "well"])
+  r0 <- if (hr != 1 && w0 > 0) max(0, (w0 + w1 - hr * w1) / w0) else 1
+  on <- pmin(1, onset * ifelse(T$k > 0, hr, r0))
   clin <- (X[, "pre"] + X[, "iv"] + X[, "pm"]) * pp
   Xn <- X * 0
   Xn[, "well"] <- X[, "well"] * s * (1 - on)
