@@ -2,8 +2,8 @@
 # PROJECT CONTRACT - Galleri upper GI screening & workup
 # (engine in galleri_engine.R, figures in galleri_plots.R)
 #
-# Annual screening (Galleri every year; EGD every year for people with a
-# Kunzmann score >= 8) from the start age to settings$screen_stop_age, lifetime
+# Galleri every year from the start age to settings$screen_stop_age; Kunzmann
+# score once with a one-time EGD for a score >= 8 (kunz_egd_rounds); lifetime
 # horizon. Natural history is calibrated to SEER incidence for each subgroup and
 # drives every arm. Base case: 50-year-old non-Hispanic White men (cohort.csv).
 #   analyses$galleri     usual care vs Galleri: benefits and harms per 100,000
@@ -119,6 +119,13 @@ METRICS <- tibble::tribble(
   "eus", "2. Screening & workup burden", "EUS procedures", "count", 0,
   "eus_sampling", "2. Screening & workup burden", "EUS samplings", "count", 0,
   "tumor_board", "2. Screening & workup burden", "Tumor board discussions", "count", 0,
+  "laparoscopy", "2. Screening & workup burden", "Diagnostic laparoscopies", "count", 1,
+  "surveillance_imaging", "2. Screening & workup burden", "Watchful-waiting imaging (pancreatobiliary)", "count", 1,
+  "egd_skipped_hold", "2. Screening & workup burden", "Positives inside the EGD hold (EGD skipped)", "count", 1,
+  "ugi_found_by_pet", "2. Screening & workup burden", "Upper GI cancers found by PET after a negative or skipped EGD", "count", 2,
+  "hidden_after_egd", "2. Screening & workup burden", "Upper GI cancers not yet visible after a +ve test (hidden)", "count", 2,
+  "missed_visible_after_egd", "2. Screening & workup burden", "Visible upper GI cancers missed after a +ve test", "count", 2,
+  "repeat_false_positives", "2. Screening & workup burden", "False positives in people with an earlier false positive", "count", 2,
   "invasive_total", "2. Screening & workup burden", "Invasive procedures (EGD/EUS/sampling)", "count", 0,
   "mean_days", "2. Screening & workup burden", "Mean days to resolution if investigated", "ratio", 0,
   "cost_tests", "2. Screening & workup burden", "Screening, workup and complication cost per person ($, discounted)", "person", 2,
@@ -140,6 +147,8 @@ METRICS <- tibble::tribble(
   "overdiagnosed_other", "4. Harm", "  - other sites", "count", 1,
   "overdiagnosis_share", "4. Harm", "Share of screen-detected cancers overdiagnosed", "ratio", 3,
   "free_investigated", "4b. False-positive burden", "Cancer-free people investigated (false positives)", "count", 0,
+  "laparoscopy_free", "4b. False-positive burden", "  - negative diagnostic laparoscopies", "count", 2,
+  "surveillance_free", "4b. False-positive burden", "  - watchful-waiting imaging", "count", 1,
   "egd_free", "4b. False-positive burden", "  - EGDs in cancer-free people", "count", 0,
   "ent_free", "4b. False-positive burden", "  - ENT evaluations in cancer-free people", "count", 0,
   "pet_ct_free", "4b. False-positive burden", "  - PET CTs in cancer-free people", "count", 0,
@@ -190,8 +199,11 @@ METRICS <- tibble::tribble(
   "fp_per_found", "6. Efficiency", "False positives investigated per cancer found", "ratio", 1,
   "invasive_per_found", "6. Efficiency", "Invasive procedures per cancer found", "ratio", 1)
 
-ALL_PARAMS <- c("sens_g_ugi", "sens_g_other", "fpr_g_es", "sens_egd", "p_egd_pos",
-  "p_ent_route", "p_ent_pos", "p_pet_pb", "p_pet_incid", "p_eus_pos", "p_eus_neg", "p_miss",
+ALL_PARAMS <- c("sens_g_ugi", "sens_g_other", "fpr_g_es", "sens_egd",
+  "p_ent_route", "p_ent_pos", "p_pet_pb", "p_pet_incid", "p_miss",
+  "fp_kappa", "hr_ca_after_fp", "egd_hold_years", "f_invisible", "t_visible", "p_pet_ugi", "p_pb_malig",
+  "p_eus_samp", "eus_tissue_sens", "p_tb_lap", "r_lap_after_eus", "r_lap_after_lap", "p_reeus_after_eus",
+  "p_reeus_after_lap", "sojourn_eac", "site_sojourn", "p_lap_cx", "t_lap", "c_lap", "c_surv",
   "p_incid_cancer", "p_late_screen", "or_late_clin", "sojourn_years", "m_early", "m_late", "p_perf_egd", "p_death_perf",
   "sae_ent", "sae_eus", "sae_eus_samp", "p_death_sae", "msv_pet", "risk_per_sv", "loss_rad_ca", "t_egd",
   "t_ent", "t_pet", "t_eus", "t_tb", "c_galleri", "c_kunz", "c_egd", "c_ent", "c_pet", "c_eus",
@@ -218,12 +230,12 @@ UNIT <- "per 100,000 (base case: 50-year-old non-Hispanic White men)"
 analyses <- list(
   galleri = make_analysis(
     "galleri", "Galleri: benefits and harms (annual screening)", c("Usual care", "Galleri"),
-    c("Galleri", "Usual care"), 100000, UNIT, setdiff(ALL_PARAMS, c("c_kunz", "sens_egd")),
+    c("Galleri", "Usual care"), 100000, UNIT, setdiff(ALL_PARAMS, "c_kunz"),
     list(workup_tree = plot_workup_tree, benefit_harm = plot_balance, icon_array = plot_icons,
          calibration = plot_calibration, markov_trace = plot_trace, cancer_states = plot_cancer_states,
          subgroups = plot_subgroups)),
   comparison = make_analysis(
-    "comparison", "Usual care vs Kunzmann vs Galleri (annual screening)", ARMS,
-    c("Galleri", "Kunzmann -> EGD"), 100000, UNIT, ALL_PARAMS,
+    "comparison", "Usual care vs one-time Kunzmann -> EGD vs annual Galleri", ARMS,
+    c("Galleri", "Kunzmann -> EGD"), 100000, UNIT, c(ALL_PARAMS, "kunz_sexspec"),
     list(strategy_tree = plot_strategy_tree, benefit_harm = plot_balance, calibration = plot_calibration,
          markov_trace = plot_trace, cancer_states = plot_cancer_states, subgroups = plot_subgroups)))

@@ -32,8 +32,7 @@ band_start <- function(x) as.character(as_num(sub("^\\s*(\\d+).*$", "\\1", x)))
 
 # ---- Sheet specifications ------------------------------------------------------
 # Parameters live on the numbered tree-step tabs ("1 Galleri test" ... "9 Utilities and DALYs"); every tab
-# whose name starts with a number is read. 'In model' = Yes... -> parameters.csv (read by the model now);
-# anything else ("After rebuild") -> parameters_pending.csv (revised tree, read once the engine is rebuilt).
+# whose name starts with a number is read into inputs/parameters.csv ('In model' is informational).
 PARAM_SPEC <- list(sheet_pattern = "^[0-9]+ ", key = "parameter",
   cols = c(Parameter = "parameter", Label = "label", Value = "value", Status = "status",
            `PSA distribution` = "dist", SE = "se", `n (beta/Dirichlet)` = "n", `Dirichlet group` = "group",
@@ -47,10 +46,7 @@ param_rows <- function(d) !is.na(d$parameter) & grepl("^[A-Za-z][A-Za-z0-9_.]*$"
 # cols: workbook header -> CSV column. keep: rows to keep. num: numeric CSV columns.
 # key: CSV columns identifying a row (for diffs). file: target, relative to project.
 SPECS <- list(
-  parameters = c(PARAM_SPEC, list(file = "inputs/parameters.csv",
-    keep = function(d) param_rows(d) & grepl("^yes", tolower(d$in_model)))),
-  pending = c(PARAM_SPEC, list(file = "inputs/parameters_pending.csv",
-    keep = function(d) param_rows(d) & !grepl("^yes", tolower(d$in_model)))),
+  parameters = c(PARAM_SPEC, list(file = "inputs/parameters.csv", keep = param_rows)),
   settings = list(sheet = "Settings", file = "inputs/settings.csv", key = "setting",
     cols = c(Key = "setting", Value = "value", Area = "area", Setting = "label", Note = "note", Refs = "refs"),
     num = character(0), keep = function(d) !is.na(d$setting)),
@@ -165,7 +161,7 @@ collector <- function() { v <- character(0); list(add = function(x) v <<- c(v, x
 
 validate_inputs <- function(X, errs, warns) {
   n <- function(x) as_num(x)
-  P <- if (!is.null(X$parameters)) rbind(X$parameters, X$pending) else NULL
+  P <- X$parameters
   if (!is.null(P)) {
     if (any(dup <- duplicated(P$parameter))) errs$add(paste("Parameters: duplicate", paste(unique(P$parameter[dup]), collapse = ", ")))
     for (i in seq_len(nrow(P))) {
@@ -184,9 +180,7 @@ validate_inputs <- function(X, errs, warns) {
     }
     P$analysis <- c(`Both analyses` = "both", `Comparison (Kunzmann arm)` = "comparison")[P$analysis] %|na|% tolower(P$analysis)
     P$refs[!is.na(P$refs) & P$refs == NONE_REF] <- NA
-    now <- P$parameter %in% X$parameters$parameter
-    X$pending <- P[!now, , drop = FALSE]; X$parameters <- P[now, , drop = FALSE]
-    rownames(X$pending) <- NULL; rownames(X$parameters) <- NULL
+    X$parameters <- P
   }
   S <- X$settings
   if (!is.null(S)) {

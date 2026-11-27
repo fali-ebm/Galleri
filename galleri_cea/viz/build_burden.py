@@ -56,6 +56,7 @@ fpc = lambda k: R[k]["value"]
 fpb = {"counts": [
     ["Negative EGDs", fpc("egd_free")], ["Negative PET CT scans", fpc("pet_ct_free")], ["Negative ENT exams", fpc("ent_free")],
     ["Negative endoscopic ultrasounds", fpc("eus_free")], ["  of which with a biopsy", fpc("eus_sampling_free")],
+    ["Negative diagnostic laparoscopies", fpc("laparoscopy_free")], ["Watchful-waiting imaging", fpc("surveillance_free")],
     ["Follow-ups of a harmless PET finding", fpc("incidental_followups_free")], ["Days waiting for the all-clear", fpc("days_free")],
     ["Still worried 6 months later", fpc("fp_worry_cases")], ["EGD perforations", fpc("perforations_free")],
     ["Other serious complications", fpc("fp_sae_other")], ["Deaths from complications", fpc("proc_deaths_free")],

@@ -5,19 +5,26 @@ ev <- function(name, p = p0, s = S) ceakit::evaluate(proj$analyses[[name]], p, D
 row1 <- D$cohort[1, ]
 sim <- function(arm, row = row1, p = p0, s = S) {
   prep <- E$prepare_row(row, D, p, s)
-  E$simulate_arm(arm, row, prep$curve, prep$cal, p, s, E$workup_summary(p), prep$V)
+  E$simulate_arm(arm, row, prep$curve, prep$cal, prep$p, s, E$workup_summary(prep$p), prep$V)
 }
 
 test_that("inputs are valid", {
   expect_length(ceakit::check_project(proj)$errors, 0)
 })
 
-test_that("workup tree probabilities sum to 1 and procedures are counted per path", {
-  d <- E$workup_paths(p0)
-  expect_equal(sum(d$prob), 1)
-  expect_equal(d$n_egd, rep(1, nrow(d)))
-  expect_equal(d$n_samp[d$leaf == "eus_pos"], 1)
-  expect_equal(d$n_tb[d$leaf == "egd_pos"], 0)
+test_that("rest-of-workup trees: probabilities sum to 1, procedures per path, laparoscopy falls with history", {
+  W <- E$workup_summary(p0)$rest
+  for (b in 1:3) {
+    d <- W[[b]]$paths
+    expect_equal(sum(d$prob), 1); expect_equal(sum(W[[b]]$to), 1)
+    expect_true(all(d$n_samp[startsWith(d$leaf, "euspos")] == 1))
+    expect_true(all(d$found + d$missed <= 1 + 1e-12))
+  }
+  expect_equal(sum(W[[1]]$paths$n_tb * W[[1]]$paths$prob), p0$p_pet_pb * (1 - p0$p_ent_route) *
+               (1 - p0$p_eus_samp * p0$p_pb_malig * p0$eus_tissue_sens), tolerance = 1e-12)   # tumor board after -ve or no sample
+  lap <- vapply(W, function(w) w$all[["n_lap"]], 0)
+  expect_true(lap[1] > lap[2] && lap[2] > lap[3])
+  expect_equal(W[[3]]$to, c(0, 0, 1))                                        # a negative laparoscopy flag is permanent
 })
 
 test_that("calibration: usual care reproduces SEER incidence at every age, for every subgroup", {
@@ -130,10 +137,9 @@ test_that("both analyses give the same usual care and Galleri results", {
 })
 
 test_that("the Galleri arm runs each positive through the workup flowchart", {
-  m <- ev("galleri")[, "Galleri"]; d <- E$workup_paths(p0)
-  expect_equal(m[["egd"]], m[["investigated"]])                       # every positive has an EGD
-  s_egd <- 1 - p0$p_perf_egd * p0$p_death_perf                          # a fatal perforation ends the workup
-  expect_equal(m[["pet_ct"]], m[["investigated"]] * s_egd * sum(d$prob * d$n_pet))
+  m <- ev("galleri")[, "Galleri"]
+  # every positive outside the hold has an EGD; PET-found cancers get a targeted EGD
+  expect_equal(m[["egd"]], m[["investigated"]] - m[["egd_skipped_hold"]] + m[["ugi_found_by_pet"]], tolerance = 1e-12)
   p <- p0; p$p_miss <- 0.5                                              # follow-up counts matter
   expect_lt(ev("galleri", p)["screen_detected", "Galleri"], m[["screen_detected"]])
   expect_equal(m[["screen_detected"]] + m[["missed_investigated"]] + m[["free_investigated"]],
@@ -159,9 +165,8 @@ test_that("Galleri 2x2: every test is exactly one of TP, FP, TN, FN, and TP + FP
   expect_equal(unname(ev("galleri", p)["screen_fn", "Galleri"]), 0)
   p <- p0; p$sens_g_other <- 0; p$fpr_g_es <- 0                            # perfect specificity: no false positives
   expect_equal(unname(ev("galleri", p)["screen_fp", "Galleri"]), 0)
-  m <- ev("galleri")[, "Galleri"]                                          # EGD +ve / -ve split of those investigated
-  expect_equal(m[["egd_positive"]] + m[["egd_negative_workup"]],
-               m[["investigated"]] * (1 - p0$p_perf_egd * p0$p_death_perf), tolerance = 1e-10)
+  m <- ev("galleri")[, "Galleri"]                                          # EGD +ve / -ve split of those given an EGD
+  expect_equal(m[["egd_positive"]] + m[["egd_negative_workup"]], m[["investigated"]] - m[["egd_skipped_hold"]], tolerance = 1e-10)
 })
 
 test_that("EGD perforation: counted on every EGD, fatal share follows p_death_perf, and it costs QALYs and money", {
@@ -204,7 +209,10 @@ test_that("overdiagnosis equals the excess lifetime diagnoses vs usual care (no 
 
 test_that("false-positive burden: counted only in cancer-free people and consistent with the totals", {
   m <- ev("galleri")[, "Galleri"]
-  expect_equal(m[["egd_free"]], m[["free_investigated"]])            # every false positive has an EGD
+  expect_lte(m[["egd_free"]], m[["free_investigated"]])               # false positives inside the hold skip the EGD
+  p <- p0; p$egd_hold_years <- 0
+  m_nh <- ev("galleri", p)[, "Galleri"]
+  expect_equal(m_nh[["egd_free"]], m_nh[["free_investigated"]])       # no hold: every false positive has an EGD
   for (k in c("ent", "pet_ct", "eus", "eus_sampling", "perforations"))
     expect_lte(m[[paste0(k, "_free")]], m[[k]] + 1e-15)
   expect_lte(m[["proc_deaths_free"]], m[["proc_deaths"]] + 1e-15)
@@ -260,8 +268,8 @@ test_that("scenario: Galleri price sharing scales only the test cost", {
 })
 
 test_that("incidental PET findings are followed up, and benign ones add false-positive burden", {
-  m <- ev("galleri")[, "Galleri"]; d <- E$workup_paths(p0); s_egd <- 1 - p0$p_perf_egd * p0$p_death_perf
-  expect_equal(m[["incidental_followups"]], m[["investigated"]] * s_egd * sum(d$prob * d$n_incid), tolerance = 1e-10)
+  m <- ev("galleri")[, "Galleri"]
+  expect_gt(m[["incidental_followups"]], m[["incidental_followups_free"]])
   expect_gt(m[["incidental_followups_free"]], 0)
   p <- p0; p$c_incid_fu <- p0$c_incid_fu * 2
   expect_gt(ev("galleri", p)["cost_fp", "Galleri"], m[["cost_fp"]])
@@ -285,13 +293,13 @@ test_that("workbook importer: the committed workbook validates, and bad edits ar
   expect_true(r$ok); expect_length(r$errors, 0)
   if (length(r$changes)) skip(paste("workbook is out of date with the CSVs - re-export it:", r$changes[1]))
   wb <- openxlsx::loadWorkbook(xl)
-  P <- openxlsx::read.xlsx(wb, "2 EGD"); i <- which(P$Parameter == "p_egd_pos")
+  P <- openxlsx::read.xlsx(wb, "2 EGD"); i <- which(P$Parameter == "sens_egd")
   openxlsx::writeData(wb, "2 EGD", 1.5, startCol = which(names(P) == "Value"), startRow = i + 1)
   bad <- tempfile(fileext = ".xlsx"); openxlsx::saveWorkbook(wb, bad)
   before <- tools::md5sum(file.path(proj_dir, "inputs", "parameters.csv"))
   r2 <- import_workbook(bad, proj_dir, apply = TRUE, quiet = TRUE)
   expect_false(r2$ok)
-  expect_true(any(grepl("p_egd_pos: proportions must be 0-1", r2$errors)))
+  expect_true(any(grepl("sens_egd: proportions must be 0-1", r2$errors)))
   expect_equal(tools::md5sum(file.path(proj_dir, "inputs", "parameters.csv")), before)
 })
 
@@ -337,4 +345,63 @@ test_that("Kunzmann arm: one-time score and one-time EGD for the flagged share",
   expect_equal(unname(m["screen_rounds", "Kunzmann -> EGD"]), S$kunz_share_male, tolerance = 1e-6)
   S2 <- S; S2$kunz_egd_rounds <- 3
   expect_equal(unname(ev("comparison", s = S2)["screen_rounds", "Kunzmann -> EGD"]), 3 * S$kunz_share_male, tolerance = 1e-3)
+})
+
+
+# ---- Revised tree (Nov 2026) -------------------------------------------------
+test_that("revised tree: people are conserved with every new feature switched on", {
+  p <- p0; p$fp_kappa <- 2900; p$hr_ca_after_fp <- 2; p$egd_hold_years <- 3; p$f_invisible <- 0.8; p$p_fn_persist <- 0.3
+  for (arm in E$ARMS) expect_equal(range(rowSums(sim(arm, p = p)$trace)), c(1, 1), tolerance = 1e-12)
+})
+
+test_that("revised tree: the Galleri changes leave usual care and Kunzmann untouched", {
+  p <- p0; p$fp_kappa <- 2900; p$egd_hold_years <- 0; p$f_invisible <- 0.8; p$p_tb_lap <- 0.5; p$p_pet_ugi <- 0
+  a <- ev("comparison"); b <- ev("comparison", p)
+  expect_equal(a[, c("Usual care", "Kunzmann -> EGD")], b[, c("Usual care", "Kunzmann -> EGD")])
+})
+
+test_that("EGD hold: none without a hold; skipped positives go straight to the rest of the workup", {
+  p <- p0; p$egd_hold_years <- 0
+  m <- ev("galleri", p)[, "Galleri"]
+  expect_equal(m[["egd_skipped_hold"]], 0)
+  expect_gt(ev("galleri")["egd_skipped_hold", "Galleri"], 0)
+  p <- p0; p$p_pet_ugi <- 0
+  expect_equal(unname(ev("galleri", p)["ugi_found_by_pet", "Galleri"]), 0)
+})
+
+test_that("hidden cancers: f_invisible 0 leaves none; more hidden cancers mean fewer found", {
+  p <- p0; p$f_invisible <- 0
+  expect_equal(unname(ev("galleri", p)["hidden_after_egd", "Galleri"]), 0, tolerance = 1e-15)
+  p1 <- p0; p1$f_invisible <- 1
+  expect_gt(ev("galleri", p1)["hidden_after_egd", "Galleri"], ev("galleri")["hidden_after_egd", "Galleri"])
+  expect_lt(ev("galleri", p1)["found_upper_gi", "Galleri"], ev("galleri", p)["found_upper_gi", "Galleri"])
+})
+
+test_that("Bayesian false-positive propensity: repeat false positives rise with persistence, the total barely moves", {
+  p <- p0; p$fp_kappa <- 3400
+  a <- ev("galleri")[, "Galleri"]; b <- ev("galleri", p)[, "Galleri"]
+  expect_gt(b[["repeat_false_positives"]], 1.5 * a[["repeat_false_positives"]])
+  expect_equal(b[["free_investigated"]], a[["free_investigated"]], tolerance = 0.01)   # marginal rate stays fpr_g_es
+  # one test per person: the posterior mean is exactly the population rate
+  s1 <- S; s1$screen_stop_age <- 50
+  expect_equal(ev("galleri", p, s1)["free_investigated", "Galleri"], ev("galleri", s = s1)["free_investigated", "Galleri"])
+})
+
+test_that("cancer risk after a false positive raises cancers only in the Galleri arm", {
+  p <- p0; p$hr_ca_after_fp <- 2
+  expect_gt(ev("galleri", p)["clin_dx_lifetime", "Galleri"] + ev("galleri", p)["found_upper_gi", "Galleri"],
+            ev("galleri")["clin_dx_lifetime", "Galleri"] + ev("galleri")["found_upper_gi", "Galleri"])
+})
+
+test_that("site-specific sojourn scenario: longer sojourn, calibration still exact", {
+  p <- p0; p$site_sojourn <- 1
+  prep <- E$prepare_row(row1, D, p, S)
+  expect_gt(prep$p$sojourn_years, p0$sojourn_years); expect_lt(prep$p$sojourn_years, p0$sojourn_eac)
+  ct <- E$calibration_table(p, D, S, "Usual care")
+  expect_equal(ct$model_clinical, ct$seer, tolerance = 1e-8)
+})
+
+test_that("Kunzmann sex-specific scenario switches the flagged share", {
+  p <- p0; p$kunz_sexspec <- 1
+  expect_equal(unname(ev("comparison", p)["screen_rounds", "Kunzmann -> EGD"]), 0.597, tolerance = 1e-6)
 })

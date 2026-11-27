@@ -9,43 +9,43 @@ STATE_COLS <- c("Well" = "#C9DCEB", "Undiagnosed cancer" = "#F2B701", "Early-sta
 dummy_note <- function(res) if (any(res$params$status == "DUMMY", na.rm = TRUE)) " (DUMMY inputs)" else ""
 
 plot_workup_tree <- function(res, p, data, cohort = 1000) {
-  paths <- workup_paths(p)
-  s_egd <- 1 - p$p_perf_egd * p$p_death_perf          # share surviving the EGD; the workup continues for them
-  nodes <- data.frame(
-    id = c("galleri", "egd", "egd_neg", "egd_pos", "perf", "perf_fatal", "perf_ok", "ent", "pet", "ent_neg", "ent_pos",
-           "pb_pos", "incid", "pet_neg", "tb1", "eus", "tb2", "eus_pos", "eus_neg", "no_eus", "tb3"),
-    label = c(sprintf("Galleri +ve for esophagus/stomach (n = %s)", ceakit::fmt(cohort)), "Upper GI endoscopy (EGD)",
-              "EGD -ve (false positive for upper GI): further workup", "EGD +ve (true positive)",
-              "EGD perforation", "Fatal", "Non-fatal: workup continues",
-              "ENT evaluation", "PET CT", "ENT -ve", "ENT +ve", "Pancreatobiliary +ve",
-              "Incidental non-GI/non-PB +ve", "PET -ve", "Tumor board discussion/workup complete", "EUS",
-              "Tumor board discussion/workup complete", "EUS sampling +ve", "EUS sampling -ve",
-              "No EUS sampling", "Tumor board discussion/workup complete"),
-    x = c(10.1, 10.1, 7.75, 12.75, 17.2, 15.9, 18.7, 3.45, 12.0, 1.6, 5.4, 10.9, 14.75, 18.4, 3.65, 10.9, 15.9, 8.55, 12.0, 15.5, 13.5),
-    y = c(9, 8, 7, 7, 7, 6, 6, 6, 6, 5, 5, 5, 5, 5, 4, 4, 4, 3, 3, 3, 2),
-    w = c(4.2, 3.4, 3.4, 3.2, 2.6, 1.6, 2.6, 3.2, 3.2, 3.2, 3.2, 3.2, 3.8, 3.2, 5.8, 3.2, 5.8, 3.2, 3.2, 3.2, 5.8),
-    stringsAsFactors = FALSE)
-  n_end <- stats::setNames(paths$prob * s_egd * cohort, paths$leaf)
-  term <- nodes$id %in% names(n_end)
-  nodes$label[term] <- sprintf("%s [%s]", nodes$label[term], ceakit::fmt(n_end[nodes$id[term]]))
-  nodes$fill <- ifelse(nodes$id %in% c("egd_pos", "ent_pos", "eus_pos", "incid"), "#9CC3E6",
-                       ifelse(nodes$id %in% c("perf", "perf_fatal", "perf_ok"), "#F4B183", "#FCCD2A"))
-  edges <- data.frame(
-    from = c("galleri", "egd", "egd", "egd", "perf", "perf", "egd_neg", "egd_neg", "ent", "ent", "ent_neg", "pet", "pet", "pet",
-             "pb_pos", "incid", "pet_neg", "eus", "eus", "eus", "eus_neg", "no_eus"),
-    to = c("egd", "egd_neg", "egd_pos", "perf", "perf_fatal", "perf_ok", "ent", "pet", "ent_neg", "ent_pos", "tb1", "pb_pos", "incid", "pet_neg",
-           "eus", "tb2", "tb2", "eus_pos", "eus_neg", "no_eus", "tb3", "tb3"),
-    prob = c(NA, 1 - p$p_egd_pos, p$p_egd_pos, p$p_perf_egd, p$p_death_perf, 1 - p$p_death_perf,
-             p$p_ent_route, 1 - p$p_ent_route, 1 - p$p_ent_pos, p$p_ent_pos, NA,
-             p$p_pet_pb, p$p_pet_incid, 1 - p$p_pet_pb - p$p_pet_incid, NA, NA, NA,
-             p$p_eus_pos, p$p_eus_neg, 1 - p$p_eus_pos - p$p_eus_neg, NA, NA))
-  f <- sum(paths$prob * paths$found) * s_egd; m <- sum(paths$prob * paths$missed) * s_egd
-  ceakit::draw_tree(nodes, edges,
-    sprintf("Galleri +ve workup: branch probabilities and [people per %s]%s", ceakit::fmt(cohort), dummy_note(res)),
-    sprintf("Blue = cancer found. Orange = EGD perforation, which can occur with either EGD result: %s per 100,000 positives, %s fatal.\nFound %s | missed despite workup %s | cancer-free worked up %s (per %s). Each end state enters the lifetime Markov model.",
-            format(signif(p$p_perf_egd * 1e5, 3)), format(signif(p$p_perf_egd * p$p_death_perf * 1e5, 2)),
-            ceakit::fmt(f * cohort), ceakit::fmt(m * cohort), ceakit::fmt((1 - f - m) * cohort), ceakit::fmt(cohort)),
-    xlim = c(-0.2, 20.2), ylim = c(1.5, 9.5))
+  g <- res$base[, "Galleri"]
+  egd_pos <- g[["egd_positive"]] / max(1e-15, g[["egd_positive"]] + g[["egd_negative_workup"]])
+  d <- rest_summary(p, 1)$paths
+  E <- unique(do.call(rbind, lapply(strsplit(d$path, " > ", fixed = TRUE), function(z)
+    data.frame(from = head(z, -1), to = z[-1]))))
+  rt <- rest_tree_edges(p)
+  E$prob <- rt$prob[match(paste(E$from, E$to), paste(rt$from, rt$to))]
+  E <- rbind(data.frame(from = c("galleri", "egd", "egd"), to = c("egd", "egd_pos", "start"), prob = c(NA, egd_pos, 1 - egd_pos)), E)
+  lab <- function(id) {
+    t <- sub("\\..*$", "", id)
+    unname(c(galleri = sprintf("Galleri +ve, esophagus/stomach (n = %s), outside the EGD hold", ceakit::fmt(cohort)),
+             egd = "Upper GI endoscopy (EGD)", egd_pos = "EGD +ve: cancer found", start = "EGD -ve: rest of workup",
+             ent = "ENT exam", pet = "PET CT", ent_pos = "ENT +ve", ent_neg = "ENT -ve", pb = "Pancreato-biliary +ve",
+             incid = "Incidental finding", pet_neg = "PET -ve", eus = "EUS", samp = "FNA/FNB", nosamp = "No sample",
+             euspos = "Sample +ve", eusneg = "Sample -ve", tb = "Tumor board", lap = "Laparo-scopy", lappos = "Lap +ve",
+             lapneg = "Lap -ve", ww = "Watchful waiting")[t])
+  }
+  ids <- unique(c(E$from, E$to)); kids <- split(E$to, E$from)
+  depth <- setNames(numeric(length(ids)), ids); x <- setNames(numeric(length(ids)), ids); nx <- 0
+  place <- function(id, dpt) {
+    depth[id] <<- dpt; ch <- kids[[id]]
+    if (is.null(ch)) { nx <<- nx + 1; x[id] <<- nx } else { for (c2 in ch) place(c2, dpt + 1); x[id] <<- mean(x[ch]) }
+  }
+  place("galleri", 0)
+  nodes <- data.frame(id = ids, label = vapply(ids, lab, ""), x = x[ids] * 1.55, y = -depth[ids] * 1.15, w = 1.45,
+                      stringsAsFactors = FALSE)
+  nodes$w[nodes$id == "galleri"] <- 5
+  found <- c("egd_pos", "ent_pos", "euspos.a", "lappos.n", "lappos.s", "incid")
+  nodes$fill <- ifelse(nodes$id %in% found, "#9CC3E6", ifelse(startsWith(nodes$id, "ww") | startsWith(nodes$id, "tb"), "#D9D2E9", "#FCCD2A"))
+  ceakit::draw_tree(nodes, E,
+    sprintf("Galleri +ve workup (first pancreatobiliary finding)%s", dummy_note(res)),
+    sprintf(paste("Blue = cancer can be found; purple = tumor board and watchful waiting. Inside the %s-year hold after a negative EGD,\n",
+                  "positives skip the EGD and start at 'rest of workup'. After a prior negative EUS or laparoscopy,\n",
+                  "a repeat pancreatobiliary finding leads to laparoscopy %s%% / %s%%, repeat EUS %s%% / %s%%, otherwise watchful waiting."),
+            p$egd_hold_years, round(100 * p$p_tb_lap * p$r_lap_after_eus, 1), round(100 * p$p_tb_lap * p$r_lap_after_lap, 1),
+            round(100 * p$p_reeus_after_eus), round(100 * p$p_reeus_after_lap)),
+    wrap = 7, cex = 0.62, pcex = 0.55)
 }
 
 plot_strategy_tree <- function(res, p, data) {

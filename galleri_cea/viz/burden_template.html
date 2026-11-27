@@ -330,8 +330,8 @@ function drawSankey() {
   const nice = n => n.replace(' (false positive)', '').replace(' (true positive)', ': cancer').replace(/-ve/g, '\u2212ve');
   DATA.links.forEach(l => { l.source = nice(l.source); l.target = nice(l.target); });
   const names = Array.from(new Set(DATA.links.flatMap(l => [l.source, l.target])));
-  const foundN = new Set(['EGD +ve: cancer', 'ENT +ve: cancer', 'EUS sampling +ve: cancer', 'Incidental: cancer']);
-  const harmN = new Set(['ENT \u2212ve', 'PET \u2212ve', 'EUS sampling \u2212ve', 'No sampling', 'Incidental: benign', 'Fatal perforation']);
+  const foundN = new Set(['EGD +ve: cancer found', 'ENT +ve: cancer', 'EUS sample +ve: cancer', 'Incidental: cancer', 'Upper GI cancer on PET']);
+  const harmN = new Set(['ENT \u2212ve', 'PET \u2212ve', 'Watchful waiting', 'Diagnostic laparoscopy', 'Incidental: benign', 'Fatal perforation']);
   const graph = d3.sankey().nodeId(d => d.name).nodeWidth(10).nodePadding(26).nodeAlign(d3.sankeyLeft).extent([[4, 28], [W - 230, H - 10]])({
     nodes: names.map(name => ({ name })), links: DATA.links.map(l => ({ ...l, value: Math.max(l.value, 0.6) })) });
   const col = n => foundN.has(n.name) ? C.found : harmN.has(n.name) ? C.alarm : C.mute;

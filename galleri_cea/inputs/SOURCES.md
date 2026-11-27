@@ -33,11 +33,11 @@ all of these.
 
 | Parameter | Value | Derivation |
 |---|---|---|
-| `p_egd_pos` | 0.50 | PPV of the stomach/esophagus signal 64.6% (NHS-Galleri, 3 rounds) × first signal-origin prediction correct 87% (real-world, 111,080 tests) × EGD sensitivity 88.7%. Cross-check: the model's own Galleri accuracy inputs give a PPV of 67.6% among E/S positives, close to the 64.6% observed. |
+| `p_egd_pos` | 0.50 | **Validation target only since Nov 2026** (the model's EGD +ve share now follows from Galleri sensitivity, prevalence and EGD sensitivity; base case 45.6%). PPV of the stomach/esophagus signal 64.6% (NHS-Galleri, 3 rounds) × first signal-origin prediction correct 87% (real-world, 111,080 tests) × EGD sensitivity 88.7%. Cross-check: the model's own Galleri accuracy inputs give a PPV of 67.6% among E/S positives, close to the 64.6% observed. |
 | `p_ent_route` | 0.30 | **ASSUMPTION**: a local pathway choice, so there are no published data. |
 | `p_ent_pos` | 0.10 | **ASSUMPTION**: only case series exist (3 early oropharyngeal cancers found after a Galleri head and neck signal). |
 | `p_pet_pb`, `p_pet_incid` | 0.087, 0.159 | **ASSUMPTION**, anchored on PATHFINDER 2: PET/CT after a negative targeted workup found cancer in 7/63 (11.1%). Half of that yield is assumed to come from pancreatobiliary findings (70% malignant × EUS sensitivity 91%) and half from incidental findings (one-third malignant). |
-| `p_eus_pos`, `p_eus_neg` | 0.64, 0.26 | **ASSUMPTION**: 70% of PET pancreatobiliary findings malignant × EUS-guided tissue acquisition sensitivity 91% (newer-generation needles 91-94%); 90% of EUS include sampling. |
+| `p_pb_malig`, `eus_tissue_sens` | 0.70, 0.91 | Replace `p_eus_pos`, `p_eus_neg` (Nov 2026). **ASSUMPTION**: 70% of PET pancreatobiliary findings malignant; EUS-guided tissue acquisition sensitivity 91% (newer-generation needles 91-94%) [24]. Whether a sample is taken is `p_eus_samp`. |
 | `p_miss` | 0.034 | PATHFINDER 2: 4 of about 117 positives with no cancer at diagnostic resolution had cancer diagnosed within 12 months. This matches the study's ratio of cancers found to missed among positives (173 vs 4). Scenario: 17.8% of NHS-Galleri round-1 false positives had cancer diagnosed over the next 2 rounds (includes new cancers). |
 | `p_incid_cancer` | 0.33 | Incidental FDG PET/CT findings are malignant about one-third of the time (thyroid 30.8%, meta-analysis of 5,151 nodules; breast 33.5%; prostate 21.3%). Scenario: 19.4% (nationwide Dutch thyroid cohort). |
 
@@ -180,9 +180,9 @@ how many true and false positives occur, so PPV, NPV and the number of cancer-fr
 people worked up per cancer found vary by attained age, sex and race.
 
 
-## Revised tree inputs (pending engine rebuild)
+## Revised tree (November 2026)
 
-`inputs/parameters_pending.csv` holds the inputs of the revised decision tree agreed in November 2026. The current engine does not read them yet. In the workbook they are the purple "After rebuild" rows on the numbered tree-step tabs.
+The revised decision tree is in the engine. Each undiagnosed person in the Galleri arm carries a history: earlier esophagus/stomach false positives (0, 1, 2+), rounds left in the EGD hold, and pancreatobiliary history (none, negative EUS, negative laparoscopy). A negative EGD can hide a visible lesion that was missed (returns to the visible preclinical state) or a cancer not yet visible (a separate state that becomes visible at rate 1/`t_visible`). Galleri detects both at the same sensitivity. The history only changes how a positive is worked up; calibration to SEER is unchanged.
 
 | Parameter | Value | Basis |
 |---|---|---|
@@ -192,8 +192,10 @@ people worked up per cancer found vary by attained age, sex and race.
 | `f_invisible` | 0.26 (0.09–0.83) | Share of EGD misses (1 − `sens_egd`) not yet visible: root-cause categories A + C [48]; upper bound 5 of 6 [50] |
 | `t_visible` | 1 y (0.5–2) | Time for a hidden cancer to become visible; 17-month mean interval [47], ~1-year Galleri window [46]. **ASSUMPTION** |
 | `p_pet_ugi` | 0.5 | **DUMMY** placeholder: PET CT sensitivity for upper GI cancer when the EGD is skipped |
-| `p_eus_samp`, `p_eus_pos_samp` | 0.5 (beta(2, 2)), 0.71 | FNA/FNB as a coin toss; sample yield as before [24]. Replace `p_eus_pos`, `p_eus_neg` |
+| `p_eus_samp`, `eus_tissue_sens`, `p_pb_malig` | 0.5 (beta(2, 2)), 0.91, 0.70 | FNA/FNB as a coin toss (independent of malignancy); a malignant lesion sampled is positive with probability 0.91 [24]. Replace `p_eus_pos`, `p_eus_neg` |
 | `p_tb_lap`, `r_lap_after_eus`, `r_lap_after_lap` | 0.10, 0.5, 0.1 | Tumor board → laparoscopy, falling after each negative result. **ASSUMPTION** |
 | `p_reeus_after_eus`, `p_reeus_after_lap` | 0.15, 0.06 | Repeat EUS shares. **ASSUMPTION** |
-| `sojourn_eac` | 4.9 (4.9–7.1) | CISNET esophageal adenocarcinoma sojourn, men [43]; site-specific scenario only |
+| `sojourn_eac`, `site_sojourn` | 4.9 (4.9–7.1), 0 | CISNET esophageal adenocarcinoma sojourn, men [43]. `site_sojourn` = 1 (scenario) sets each subgroup's sojourn to its SEER mix of esophageal adenocarcinoma and other upper GI cancer |
+| `kunz_sexspec` | 0 | Scenario switch: 1 = Kunzmann 2018 sex-specific split (59.7% / 3.5% flagged) instead of the pooled evidence profile [8] |
+| `p_egd_pos` | 0.50 | Validation target only |
 | `p_lap_cx`, `t_lap`, `c_lap`, `c_surv` | 0.02, 21 d, $5,000, $600 | **DUMMY** placeholders, to source |

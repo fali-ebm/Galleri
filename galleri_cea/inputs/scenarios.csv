@@ -10,7 +10,7 @@ Late-stage continuing cost = early,c_fu_late,7141,14
 Lower procedure disutility,d_proc,0.002,
 Missed after negative workup at NHS-Galleri 2-year rate,p_miss,0.178,2
 Incidental PET findings malignant at nationwide thyroid rate,p_incid_cancer,0.194,21
-EGD finds fewer (PPV 50%; lower NHS-Galleri round),p_egd_pos,0.39,2
+EGD misses more (sensitivity 83.4%; Menon 2014 upper 95% CI of misses),sens_egd,0.834,6
 Missed cancers stay missed by Galleri,p_fn_persist,1,
 Galleri price shared across all cancers it detects,galleri_cost_share,0.077,2
 Same Galleri sensitivity in every round,sens_g_rep_ratio,1,2
@@ -20,3 +20,20 @@ False positives: lowest Matza pathway (0.031),dfp_pet,0.031,38
 False positives: lowest Matza pathway (0.031),dfp_ext,0.031,38
 Anxiety while waiting rated moderate (GBD 0.133),dw_anx,0.133,18
 No persisting worry after the all-clear,p_worry,0,
+No EGD hold (EGD at every positive),egd_hold_years,0,
+EGD hold 3 years,egd_hold_years,3,"7, 43"
+"False positives persist in the same person, 1.8x (kappa 3,400; all-site retests)",fp_kappa,3400,"52, 53"
+"False positives persist in the same person, 1.96x (kappa 2,900; mammography)",fp_kappa,2900,51
+Cancer risk doubles after a false positive (mammography analog),hr_ca_after_fp,2,54
+Most EGD misses not yet visible (83%),f_invisible,0.83,50
+Fewest EGD misses not yet visible (9%),f_invisible,0.09,48
+Hidden cancers visible sooner (0.5 years),t_visible,0.5,47
+Hidden cancers visible later (2 years),t_visible,2,47
+PET never shows an upper GI cancer when EGD is skipped,p_pet_ugi,0,
+EUS sample always taken,p_eus_samp,1,
+EUS sample rarely taken (10%),p_eus_samp,0.1,
+Tumor board sends 25% to laparoscopy,p_tb_lap,0.25,
+Site-specific sojourn (esophageal adenocarcinoma 4.9 years),site_sojourn,1,"7, 43"
+Site-specific sojourn (esophageal adenocarcinoma 7.1 years),site_sojourn,1,"7, 43"
+Site-specific sojourn (esophageal adenocarcinoma 7.1 years),sojourn_eac,7.1,43
+Kunzmann flags by sex (59.7% of men),kunz_sexspec,1,8

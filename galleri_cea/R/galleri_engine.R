@@ -161,88 +161,83 @@ values_by_cycle <- function(Ps, Rs, settings) {
   V[seq_len(n)]
 }
 
-# ---- Galleri +ve workup decision tree (flowchart) --------------------------
-workup_edges <- function(p) data.frame(
-  from = c("galleri", "egd", "egd", "egd_neg", "egd_neg", "ent", "ent", "pet", "pet", "pet",
-           "pb_pos", "eus", "eus", "eus"),
-  to   = c("egd", "egd_pos", "egd_neg", "ent", "pet", "ent_pos", "ent_neg", "pb_pos", "incid", "pet_neg",
-           "eus", "eus_pos", "eus_neg", "no_eus"),
-  prob = c(1, p$p_egd_pos, 1 - p$p_egd_pos, p$p_ent_route, 1 - p$p_ent_route, p$p_ent_pos, 1 - p$p_ent_pos,
-           p$p_pet_pb, p$p_pet_incid, 1 - p$p_pet_pb - p$p_pet_incid,
-           1, p$p_eus_pos, p$p_eus_neg, 1 - p$p_eus_pos - p$p_eus_neg))
+# ---- Galleri +ve workup (revised Nov 2026) ----------------------------------
+# Step 1, the EGD, is applied in galleri_round(): it is skipped inside the hold after
+# a negative EGD (egd_hold_years). Step 2, the rest of the workup after a negative
+# or skipped EGD, is the tree below. It depends on pancreatobiliary history:
+# 1 = none, 2 = prior negative EUS, 3 = prior negative laparoscopy.
+PB <- c("none", "eus", "lap")
 
-WORKUP_NODES <- data.frame(   # procedures done at each node (summed along each path)
-  id     = c("egd", "ent", "pet", "eus", "eus_pos", "eus_neg", "ent_neg", "no_eus", "incid", "pet_neg"),
-  n_egd  = c(1, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  n_ent  = c(0, 1, 0, 0, 0, 0, 0, 0, 0, 0),
-  n_pet  = c(0, 0, 1, 0, 0, 0, 0, 0, 0, 0),
-  n_eus  = c(0, 0, 0, 1, 0, 0, 0, 0, 0, 0),
-  n_samp = c(0, 0, 0, 0, 1, 1, 0, 0, 0, 0),
-  n_tb   = c(0, 0, 0, 0, 0, 1, 1, 1, 1, 1),
-  n_incid = c(0, 0, 0, 0, 0, 0, 0, 0, 1, 0))   # follow-up of an incidental PET finding (cancer or benign)
-
-workup_paths <- function(p) {
-  d <- ceakit::tree_paths(workup_edges(p), WORKUP_NODES)
-  found <- c(egd_pos = 1, ent_pos = 1, eus_pos = 1, incid = p$p_incid_cancer)
-  site <- c(egd_pos = "Upper GI", ent_pos = "Head & neck", eus_pos = "Pancreatobiliary", incid = "Other (incidental)")
-  d$found <- ifelse(d$leaf %in% names(found), found[d$leaf], 0)
-  d$missed <- ifelse(d$leaf %in% c("ent_neg", "eus_neg", "no_eus", "pet_neg"), p$p_miss, 0)
-  d$site <- unname(site[d$leaf])
-  # whole-pathway QALY loss for a cancer-free person, by where the workup ends (Matza 2024)
-  dfp <- c(egd_pos = p$dfp_endo, ent_pos = p$dfp_endo, ent_neg = p$dfp_endo, pet_neg = p$dfp_pet,
-           eus_pos = p$dfp_ext, eus_neg = p$dfp_ext, no_eus = p$dfp_ext, incid = p$dfp_ext)
-  d$dfp <- unname(dfp[d$leaf]) %||% 0; d$dfp[is.na(d$dfp)] <- 0
-  add_path_details(d, p)
-}
-
-add_path_details <- function(d, p) {
-  d$free <- 1 - d$found - d$missed
-  d$n_invasive <- d$n_egd + d$n_eus + d$n_samp
-  # serious complications after the EGD (EGD perforation is handled separately in workup_summary)
-  d$sae <- d$n_ent * p$sae_ent + d$n_eus * p$sae_eus + d$n_samp * p$sae_eus_samp
-  d$rad_ca <- d$n_pet * p$msv_pet / 1000 * p$risk_per_sv
-  d$days <- d$n_egd * p$t_egd + d$n_ent * p$t_ent + d$n_pet * p$t_pet + d$n_eus * p$t_eus + d$n_tb * p$t_tb
-  d$cost_dx <- d$n_egd * p$c_egd + d$n_ent * p$c_ent + d$n_pet * p$c_pet + d$n_eus * p$c_eus +
-               d$n_samp * p$c_eus_samp + d$n_tb * p$c_tb + d$n_incid * (p$c_incid_fu %||% 0)
+rest_tree <- function(p, pb, edges_only = FALSE) {
+  M <- p$p_pb_malig; se <- p$eus_tissue_sens; ps <- p$p_eus_samp
+  E <- list(); L <- list()
+  edge <- function(f, t, pr) E[[length(E) + 1]] <<- data.frame(from = f, to = t, prob = pr)
+  leaf <- function(id, found, missed, flag) L[[length(L) + 1]] <<- data.frame(leaf = id, found = found, missed = missed, flag = flag)
+  edge("start", "ent", p$p_ent_route); edge("start", "pet", 1 - p$p_ent_route)
+  edge("ent", "ent_pos", p$p_ent_pos); edge("ent", "ent_neg", 1 - p$p_ent_pos)
+  leaf("ent_pos", 1, 0, pb); leaf("ent_neg", 0, p$p_miss, pb)
+  edge("pet", "pb", p$p_pet_pb); edge("pet", "incid", p$p_pet_incid); edge("pet", "pet_neg", 1 - p$p_pet_pb - p$p_pet_incid)
+  leaf("incid", p$p_incid_cancer, 0, pb); leaf("pet_neg", 0, p$p_miss, pb)
+  lap <- function(from, pr, m, tag) {                     # diagnostic laparoscopy (finds malignancy present)
+    edge(from, paste0("lap.", tag), pr)
+    edge(paste0("lap.", tag), paste0("lappos.", tag), m); edge(paste0("lap.", tag), paste0("lapneg.", tag), 1 - m)
+    leaf(paste0("lappos.", tag), 1, 0, 3); leaf(paste0("lapneg.", tag), 0, 0, 3)
+  }
+  ww <- function(from, pr, m, tag, flag) {                # watchful waiting: cancers present are missed for now
+    edge(from, paste0("ww.", tag), pr); leaf(paste0("ww.", tag), 0, m, flag)
+  }
+  eus <- function(from, pr, m, tag) {                     # EUS; FNA/FNB a coin toss
+    n <- paste0("eus.", tag); edge(from, n, pr)
+    edge(n, paste0("samp.", tag), ps); edge(n, paste0("nosamp.", tag), 1 - ps)
+    edge(paste0("samp.", tag), paste0("euspos.", tag), m * se); edge(paste0("samp.", tag), paste0("eusneg.", tag), 1 - m * se)
+    leaf(paste0("euspos.", tag), 1, 0, 2)
+    list(neg = paste0("eusneg.", tag), m_neg = m * (1 - se) / (1 - m * se), nos = paste0("nosamp.", tag), m_nos = m)
+  }
+  if (pb == 1) {                                          # first finding: EUS, then tumor board
+    r <- eus("pb", 1, M, "a")
+    for (z in list(list(r$neg, r$m_neg, "n"), list(r$nos, r$m_nos, "s"))) {
+      tb <- paste0("tb.", z[[3]]); edge(z[[1]], tb, 1)
+      lap(tb, p$p_tb_lap, z[[2]], z[[3]]); ww(tb, 1 - p$p_tb_lap, z[[2]], z[[3]], 2)
+    }
+  } else {                                                # repeat finding: laparoscopy less likely
+    pl <- p$p_tb_lap * if (pb == 2) p$r_lap_after_eus else p$r_lap_after_lap
+    pe <- if (pb == 2) p$p_reeus_after_eus else p$p_reeus_after_lap
+    lap("pb", pl, M, "r")
+    r <- eus("pb", pe, M, "r")
+    ww(r$neg, 1, r$m_neg, "rn", pb); ww(r$nos, 1, r$m_nos, "rs", pb)
+    ww("pb", 1 - pl - pe, M, "r0", pb)
+  }
+  if (isTRUE(edges_only)) return(do.call(rbind, E))
+  d <- ceakit::tree_paths(do.call(rbind, E))
+  d <- merge(d, do.call(rbind, L), by = "leaf", sort = FALSE)
+  tok <- strsplit(d$path, " > ", fixed = TRUE)
+  cnt <- function(type) vapply(tok, function(z) sum(sub("\\..*$", "", z) == type), 0)
+  for (k in c("ent", "pet", "eus", "samp", "tb", "lap", "ww", "incid")) d[[paste0("n_", k)]] <- cnt(k)
+  d$free <- pmax(0, 1 - d$found - d$missed)
+  d$cost <- d$n_ent * p$c_ent + d$n_pet * p$c_pet + d$n_eus * p$c_eus + d$n_samp * p$c_eus_samp + d$n_tb * p$c_tb +
+            d$n_lap * p$c_lap + d$n_ww * p$c_surv + d$n_incid * (p$c_incid_fu %||% 0)
+  d$days <- d$n_ent * p$t_ent + d$n_pet * p$t_pet + d$n_eus * p$t_eus + d$n_tb * p$t_tb + d$n_lap * p$t_lap
+  d$sae <- d$n_ent * p$sae_ent + d$n_eus * p$sae_eus + d$n_samp * p$sae_eus_samp + d$n_lap * p$p_lap_cx
+  d$rad <- d$n_pet * p$msv_pet / 1000 * p$risk_per_sv
+  d$invasive <- d$n_eus + d$n_samp + d$n_lap
+  d$dfp <- ifelse(startsWith(d$leaf, "ent"), p$dfp_endo, ifelse(d$leaf == "pet_neg", p$dfp_pet, p$dfp_ext))
   d
 }
 
-# Per-positive averages of the workup tree, plus the share of cancers among
-# positives that the workup finds: found / (found + missed).
-# Every Galleri +ve has the EGD. The EGD can perforate (p_perf_egd); a fatal
-# perforation (p_death_perf) ends the workup, so every step after the EGD is
-# scaled by the share surviving it, s_egd. Cancers among the very few fatal
-# perforations are not removed from the cancer pool (procedure deaths are taken
-# from the cancer-free well state), a negligible approximation.
-workup_summary <- function(p) {
-  d <- workup_paths(p); s <- function(x) sum(d$prob * x)
-  perf <- p$p_perf_egd; perf_death <- perf * p$p_death_perf; s_egd <- 1 - perf_death
-  yf <- s(d$found); ym <- s(d$missed)
-  after <- function(x, egd_part) egd_part + s_egd * (s(x) - egd_part)   # EGD itself happens for everyone
-  c(n_egd = 1, n_ent = s_egd * s(d$n_ent), n_pet = s_egd * s(d$n_pet), n_eus = s_egd * s(d$n_eus),
-    n_samp = s_egd * s(d$n_samp), n_tb = s_egd * s(d$n_tb), n_incid = s_egd * s(d$n_incid),
-    n_invasive = after(d$n_invasive, 1),
-    perf = perf, perf_death = perf_death, sae_other = s_egd * s(d$sae), sae = perf + s_egd * s(d$sae),
-    rad_ca = s_egd * s(d$rad_ca), days = after(d$days, p$t_egd), cost_dx = after(d$cost_dx, p$c_egd),
-    egd_pos = p$p_egd_pos * s_egd, egd_neg = (1 - p$p_egd_pos) * s_egd,
-    det = if (yf + ym > 0) yf / (yf + ym) else 0,
-    free_summary(d, p, perf, perf_death, s_egd))
+# Averages over the rest of the workup: for people with another cancer (all paths,
+# weighted by probability) and for people with no cancer outside the upper GI tract
+# (paths weighted by their cancer-free share), plus where the latter's
+# pancreatobiliary history ends up.
+REST_COLS <- c("n_ent", "n_pet", "n_eus", "n_samp", "n_tb", "n_lap", "n_ww", "n_incid", "cost", "days", "sae", "rad", "invasive", "dfp")
+rest_summary <- function(p, pb) {
+  d <- rest_tree(p, pb)
+  a <- colSums(d[REST_COLS] * d$prob)
+  w <- d$prob * d$free; f <- colSums(d[REST_COLS] * w) / sum(w)
+  to <- vapply(1:3, function(b) sum(w[d$flag == b]) / sum(w), 0)
+  list(all = a, free = f, det_o = sum(d$prob * d$found) / sum(d$prob * (d$found + d$missed)), to = to, paths = d)
 }
-
-# Averages for a CANCER-FREE person worked up (false positive): the workup paths
-# weighted by each path's cancer-free share, so false positives follow the paths
-# they actually take (e.g. mostly to PET -ve / ENT -ve), not the average path.
-free_summary <- function(d, p, perf, perf_death, s_egd) {
-  w <- d$prob * d$free; wf <- sum(w)
-  a <- function(x) if (wf > 0) sum(w * x) / wf else 0
-  sae_o <- s_egd * a(d$sae)
-  c(f_n_ent = s_egd * a(d$n_ent), f_n_pet = s_egd * a(d$n_pet), f_n_eus = s_egd * a(d$n_eus),
-    f_n_samp = s_egd * a(d$n_samp), f_n_tb = s_egd * a(d$n_tb), f_n_incid = s_egd * a(d$n_incid),
-    f_n_invasive = 1 + s_egd * (a(d$n_invasive) - 1), f_sae_other = sae_o, f_sae = perf + sae_o,
-    f_deaths = perf_death + sae_o * p$p_death_sae, f_rad_ca = s_egd * a(d$rad_ca),
-    f_days = p$t_egd + s_egd * (a(d$days) - p$t_egd), f_cost_dx = p$c_egd + s_egd * (a(d$cost_dx) - p$c_egd),
-    f_dfp = s_egd * a(d$dfp))
-}
+workup_summary <- function(p) list(rest = lapply(1:3, function(b) rest_summary(p, b)))
+rest_tree_edges <- function(p, pb = 1) rest_tree(p, pb, edges_only = TRUE)
 
 # Probability that a preclinical cancer present at the start of cycle t would
 # NEVER be diagnosed with symptoms within the horizon (other-cause death first, or
@@ -259,13 +254,122 @@ overdx_prob <- function(curve, cal, p) {
 }
 
 # ---- One cohort row, one arm: annual simulation -----------------------------
-EVENTS <- c("kunz", "tests", "investigated", "egd", "ent", "pet", "eus", "samp", "tb", "invasive",
+EVENTS <- c("kunz", "tests", "investigated", "egd", "ent", "pet", "eus", "samp", "tb", "lap", "surv", "invasive",
             "invasive_free", "free_inv", "sae", "sae_free", "proc_deaths", "rad_ca", "days", "found_ugi",
             "found_other", "missed_inv", "late_screen", "rounds",
             "tp", "fp", "fp_other_ca", "tn", "fn", "fn_symp", "egd_pos", "egd_neg", "perf", "perf_deaths",
-            "overdx_ugi", "overdx_other", "egd_free", "ent_free", "pet_free", "eus_free", "samp_free",
+            "overdx_ugi", "overdx_other", "egd_free", "ent_free", "pet_free", "eus_free", "samp_free", "lap_free", "surv_free",
             "perf_free", "deaths_free", "rad_free", "days_free", "incid", "incid_free", "fn_persist",
-            "worry", "sae_other_free")
+            "worry", "sae_other_free", "egd_skipped", "found_pet_ugi", "hidden_new", "missed_visible", "repeat_fp")
+
+# History tags carried by people not yet diagnosed in the Galleri arm (Nov 2026):
+#   k  = earlier esophagus/stomach false positives (0, 1, 2+): each person's false-positive
+#        propensity is beta(m kappa, (1 - m) kappa), updated by Bayes with every result;
+#   h  = annual rounds left in the EGD hold after a negative EGD (0 = EGD if positive);
+#   b  = pancreatobiliary history (none, prior negative EUS, prior negative laparoscopy).
+# Health columns: well, pre (preclinical, visible on EGD), iv (preclinical, not yet
+# visible), pm (missed by Galleri and staying undetectable: scenario p_fn_persist).
+HCOLS <- c("well", "pre", "iv", "pm")
+tag_grid <- function(H) expand.grid(k = 0:2, h = 0:H, b = 1:3)
+tag_id <- function(T, k, h, b) which(T$k == k & T$h == h & T$b == b)
+
+# One screening round of the Galleri arm, all history tags at once (vectorised).
+tag_idx <- function(k, h, b, H) 1 + k + 3 * h + 3 * (H + 1) * (b - 1)   # row of tag_grid(H)
+acc_rows <- function(z, j, v) { r <- rowsum(v, j); i <- as.integer(rownames(r)); z[i] <- z[i] + r[, 1]; z }
+galleri_round <- function(X, T, t, nprev, curve, p, settings, wk) {
+  H <- max(T$h); interval <- max(1, settings$screen_interval); n <- nrow(T)
+  rep_m <- if (nprev > 0) p$sens_g_rep_ratio %||% 1 else 1
+  m <- p$fpr_g_es; kap <- p$fp_kappa %||% 1e6
+  sE <- 1 - p$p_perf_egd * p$p_death_perf; fi <- p$f_invisible %||% 0; se_egd <- p$sens_egd
+  reach_pet <- 1 - p$p_ent_route; ppu <- p$p_pet_ugi %||% 0
+  Fm <- do.call(rbind, lapply(wk$rest, `[[`, "free"))[T$b, , drop = FALSE]   # per tag: cancer-free averages
+  Am <- do.call(rbind, lapply(wk$rest, `[[`, "all"))[T$b, , drop = FALSE]    # per tag: other-cancer averages
+  det <- vapply(wk$rest, `[[`, 0, "det_o")[T$b]
+  TO <- do.call(rbind, lapply(wk$rest, `[[`, "to"))[T$b, , drop = FALSE]
+  W <- X[, "well"]; U <- X[, "pre"]; I <- X[, "iv"]; Mm <- X[, "pm"]
+  k <- T$k; h <- T$h; b <- T$b
+  theta <- (m * kap + k) / (kap + nprev)                           # posterior mean false-positive propensity
+  pool_o <- W * curve$inc_other[t] * (if (t == 1) p$sojourn_years else interval)
+  a_u <- U * p$sens_g_ugi * rep_m; a_i <- I * p$sens_g_ugi * rep_m
+  a_o <- pool_o * p$sens_g_other * rep_m; a_f <- (W - pool_o) * theta
+  gp <- a_u + a_i + a_o + a_f
+  egd <- h == 0; s_e <- ifelse(egd, sE, 1)
+  fu1 <- ifelse(egd, a_u * se_egd, 0)
+  mv <- ifelse(egd, a_u * (1 - se_egd) * (1 - fi), a_u)          # visible, missed (or EGD skipped)
+  mi <- ifelse(egd, a_u * (1 - se_egd) * fi, 0) + a_i              # not yet visible
+  fu2 <- mv * s_e * reach_pet * ppu                                # seen on PET -> targeted EGD
+  fo <- a_o * s_e * det
+  n_egd <- ifelse(egd, gp, 0) + fu2
+  rest_free <- (a_f + mv + mi) * s_e; rest_o <- a_o * s_e
+  R <- function(col) sum(rest_free * Fm[, col] + rest_o * Am[, col])
+  perf <- n_egd * p$p_perf_egd; sae_o_v <- rest_free * Fm[, "sae"] + rest_o * Am[, "sae"]
+  pd <- perf * p$p_death_perf + sae_o_v * p$p_death_sae
+  ff <- a_f * s_e; pf <- ifelse(egd, a_f * p$p_perf_egd, 0); af_e <- ifelse(egd, a_f, 0)
+  FF <- function(col) sum(ff * Fm[, col])
+  e <- setNames(as.list(numeric(length(EVENTS))), EVENTS)
+  e$tests <- sum(W + U + I + Mm); e$investigated <- sum(gp); e$free_inv <- sum(a_f)
+  e$found_ugi <- sum(fu1 + fu2); e$found_other <- sum(fo); e$found_pet_ugi <- sum(fu2)
+  e$missed_inv <- sum(a_u + a_i + a_o - fu1 - fu2 - fo); e$egd_skipped <- sum(gp[!egd])
+  e$egd <- sum(n_egd); e$egd_pos <- sum(fu1); e$egd_neg <- sum(gp[egd]) - sum(fu1)
+  for (kk in c("ent", "pet", "eus", "samp", "tb", "lap")) e[[kk]] <- R(paste0("n_", kk))
+  e$surv <- R("n_ww"); e$incid <- R("n_incid")
+  e$invasive <- sum(n_egd) + R("invasive"); e$perf <- sum(perf); e$perf_deaths <- sum(perf) * p$p_death_perf
+  e$sae <- sum(perf) + sum(sae_o_v); e$rad_ca <- R("rad")
+  e$days <- sum(gp[egd]) * p$t_egd + R("days")
+  e$tp <- sum(a_u + a_i); e$fp <- sum(a_o + a_f); e$fp_other_ca <- sum(a_o); e$tn <- sum(W - a_o - a_f)
+  e$fn <- sum(U + I - a_u - a_i + Mm)
+  e$hidden_new <- sum(mi); e$missed_visible <- sum(mv - fu2); e$repeat_fp <- sum(a_f[k > 0])
+  e$egd_free <- sum(af_e); e$perf_free <- sum(pf)
+  for (kk in c("ent", "pet", "eus", "samp", "incid", "lap")) e[[paste0(kk, "_free")]] <- FF(paste0("n_", kk))
+  e$surv_free <- FF("n_ww")
+  e$invasive_free <- sum(af_e) + FF("invasive")
+  e$sae_other_free <- FF("sae"); e$sae_free <- sum(pf) + FF("sae")
+  e$deaths_free <- sum(pf) * p$p_death_perf + FF("sae") * p$p_death_sae
+  e$rad_free <- FF("rad"); e$days_free <- sum(af_e) * p$t_egd + FF("days")
+  e$worry <- sum(a_f) * (p$p_worry %||% 0)
+  persist <- (U - a_u) * (p$p_fn_persist %||% 0); e$fn_persist <- sum(persist)
+  q_path <- FF("dfp")
+  fp_cost <- sum(af_e) * (p$c_egd + p$p_perf_egd * p$c_perf) + FF("cost") + FF("sae") * p$c_sae
+  cost_t <- sum(W + U + I + Mm) * p$c_galleri * (p$galleri_cost_share %||% 1) + sum(n_egd) * p$c_egd + R("cost")
+  # where everyone goes next round
+  h_after <- pmax(h - 1, 0); h_pos <- ifelse(egd, H, h_after)
+  stay <- tag_idx(k, h_after, b, H)
+  Xn <- X * 0
+  Xn[, "well"] <- acc_rows(Xn[, "well"], stay, W - a_o - a_f - pd)
+  Xn[, "pre"]  <- acc_rows(Xn[, "pre"], stay, U - a_u - persist)
+  Xn[, "iv"]   <- acc_rows(Xn[, "iv"], stay, I - a_i)
+  Xn[, "pm"]   <- acc_rows(Xn[, "pm"], stay, Mm + persist)
+  for (b2 in 1:3) {                                                # positives not diagnosed: hold and history updated
+    w2 <- TO[, b2]
+    j_fp <- tag_idx(pmin(k + 1, 2), h_pos, b2, H); j <- tag_idx(k, h_pos, b2, H)
+    Xn[, "well"] <- acc_rows(Xn[, "well"], j_fp, a_f * w2)
+    Xn[, "well"] <- acc_rows(Xn[, "well"], j, a_o * w2)
+    Xn[, "pre"]  <- acc_rows(Xn[, "pre"], j, (mv - fu2) * w2)
+    Xn[, "iv"]   <- acc_rows(Xn[, "iv"], j, mi * w2)
+  }
+  list(X = Xn, e = lapply(e, function(v) unname(v)), q_path = unname(q_path), fp_cost = unname(fp_cost),
+       cost_t = unname(cost_t), sae_other = unname(sum(sae_o_v)), pd = unname(sum(pd)))
+}
+
+# Natural history for the tagged people (the same transitions as transition_matrix);
+# returns the next tagged matrix and the flows into diagnosed and dead states.
+tagged_step <- function(X, T, P, onset, p) {
+  s <- 1 - P["well", "dead_other"]; pp <- P["pre", "early"] + P["pre", "late"]
+  pl <- if (pp > 0) P["pre", "late"] / pp else 0
+  v <- 1 - exp(-1 / (p$t_visible %||% 1)); hr <- ifelse(T$k > 0, p$hr_ca_after_fp %||% 1, 1)
+  sp <- if (s > 0) pp / s else 0                                 # presentation among survivors
+  on <- pmin(1, onset * hr)
+  clin <- (X[, "pre"] + X[, "iv"] + X[, "pm"]) * pp
+  Xn <- X * 0
+  Xn[, "well"] <- X[, "well"] * s * (1 - on)
+  Xn[, "pre"] <- X[, "well"] * s * on + X[, "pre"] * (s - pp) + X[, "iv"] * (s - pp) * v
+  Xn[, "iv"] <- X[, "iv"] * (s - pp) * (1 - v)
+  Xn[, "pm"] <- X[, "pm"] * (s - pp)
+  list(X = Xn, early = unname(sum(clin) * (1 - pl)), late = unname(sum(clin) * pl), dead_other = unname(sum(X) * (1 - s)))
+}
+
+agg_state <- function(X, y) { x <- y; x[["well"]] <- sum(X[, "well"]); x[["pre"]] <- sum(X[, "pre"]) + sum(X[, "iv"])
+  x[["pre_m"]] <- sum(X[, "pm"]); x }
 
 simulate_arm <- function(arm, row, curve, cal, p, settings, wk, V, q_od = overdx_prob(curve, cal, p)) {
   n <- nrow(curve); pls <- p$p_late_screen; x <- cal$x0
@@ -279,90 +383,71 @@ simulate_arm <- function(arm, row, curve, cal, p, settings, wk, V, q_od = overdx
   ev_t <- matrix(0, n, length(EVENTS), dimnames = list(NULL, EVENTS))        # screening events by cycle
   acc_t <- matrix(0, n, length(CHANNELS), dimnames = list(NULL, CHANNELS))   # undiscounted channel flows by cycle
   interval <- max(1, settings$screen_interval)
+  is_g <- arm == "Galleri"
+  if (is_g) {                                                   # tagged people (history), all start untagged
+    T <- tag_grid(max(0, round(p$egd_hold_years %||% 0)))
+    X <- matrix(0, nrow(T), length(HCOLS), dimnames = list(NULL, HCOLS))
+    X[tag_idx(0, 0, 1, max(T$h)), c("well", "pre", "pm")] <- c(x[["well"]], x[["pre"]], x[["pre_m"]])
+  }
   for (t in seq_len(n)) {
     age <- row$start_age + t - 1
     df <- disc_vec(settings, t)
     P <- transition_matrix(curve$mort_other[t], cal$onset[t], p, cal$pl[t])
     if (arm == "Kunzmann -> EGD" && t == 1) { ev["kunz"] <- 1; cost0 <- cost0 + df[["cost"]] * p$c_kunz }
     screen <- arm != "Usual care" && age <= settings$screen_stop_age && (t - 1) %% interval == 0 &&
-              (arm == "Galleri" || (isTRUE(row$kunzmann_scoped == 1) &&
-                                    ev[["rounds"]] < (settings$kunz_egd_rounds %||% Inf)))   # one-time EGD by default
+              (is_g || (isTRUE(row$kunzmann_scoped == 1) &&
+                        ev[["rounds"]] < (settings$kunz_egd_rounds %||% Inf)))   # Kunzmann: one-time EGD by default
     if (screen) {
-      W <- x[["well"]]; U <- x[["pre"]]; e <- list()
-      if (arm == "Galleri") {
-        Um <- x[["pre_m"]]                                     # missed before and still undetectable
-        rep_m <- if (ev[["rounds"]] > 0) p$sens_g_rep_ratio %||% 1 else 1   # repeat (incidence) rounds
-        pool_o <- W * curve$inc_other[t] * (if (t == 1) p$sojourn_years else interval)
-        a_u <- U * p$sens_g_ugi * rep_m; a_o <- pool_o * p$sens_g_other * rep_m; a_f <- (W - pool_o) * p$fpr_g_es
-        gp <- a_u + a_o + a_f
-        e$found_ugi <- a_u * wk[["det"]]; e$found_other <- a_o * wk[["det"]]
-        e$missed_inv <- (a_u + a_o) - e$found_ugi - e$found_other
-        e$tests <- W + U + Um; e$investigated <- gp; e$free_inv <- a_f
-        for (k in c("egd", "ent", "pet", "eus", "samp", "tb")) e[[k]] <- gp * wk[[paste0("n_", k)]]
-        e$invasive <- gp * wk[["n_invasive"]]; e$invasive_free <- a_f * wk[["f_n_invasive"]]
-        e$sae <- gp * wk[["sae"]]; e$sae_free <- a_f * wk[["f_sae"]]; e$rad_ca <- gp * wk[["rad_ca"]]
-        # burden in cancer-free people worked up (false positives with no cancer)
-        e$egd_free <- a_f; e$ent_free <- a_f * wk[["f_n_ent"]]; e$pet_free <- a_f * wk[["f_n_pet"]]
-        e$eus_free <- a_f * wk[["f_n_eus"]]; e$samp_free <- a_f * wk[["f_n_samp"]]
-        e$perf_free <- a_f * wk[["perf"]]; e$deaths_free <- a_f * wk[["f_deaths"]]
-        e$sae_other_free <- a_f * wk[["f_sae_other"]]; e$worry <- a_f * (p$p_worry %||% 0)
-        e$rad_free <- a_f * wk[["f_rad_ca"]]; e$days_free <- a_f * wk[["f_days"]]
-        fp_cost <- a_f * (wk[["f_cost_dx"]] + wk[["perf"]] * p$c_perf + wk[["f_sae_other"]] * p$c_sae)   # f_cost_dx includes incidental follow-up
-        e$days <- gp * wk[["days"]]
-        e$perf <- gp * wk[["perf"]]; e$perf_deaths <- gp * wk[["perf_death"]]; sae_other <- gp * wk[["sae_other"]]
-        e$egd_pos <- gp * wk[["egd_pos"]]; e$egd_neg <- gp * wk[["egd_neg"]]
-        # Galleri 2x2 against the target condition (preclinical upper GI cancer):
-        # TP = cancer & +ve; FP = no upper GI cancer & +ve (another cancer or none);
-        # FN = cancer & -ve (stays undiagnosed: symptoms later, or found at a later round); TN = rest
-        e$tp <- a_u; e$fp <- a_o + a_f; e$fp_other_ca <- a_o; e$fn <- U - a_u + Um; e$tn <- W - a_o - a_f
-        e$incid <- gp * wk[["n_incid"]]; e$incid_free <- a_f * wk[["f_n_incid"]]
-        e$fn_persist <- (U - a_u) * (p$p_fn_persist %||% 0)    # newly missed cancers Galleri will keep missing
-        cost_t <- (W + U + Um) * p$c_galleri * (p$galleri_cost_share %||% 1) + gp * wk[["cost_dx"]]
+      if (is_g) {
+        W <- sum(X[, "well"])
+        g <- galleri_round(X, T, t, ev[["rounds"]], curve, p, settings, wk)
+        X <- g$X; e <- g$e; sae_other <- g$sae_other; fp_cost <- g$fp_cost; cost_t <- g$cost_t
+        pd <- g$pd
       } else {
+        W <- x[["well"]]; U <- x[["pre"]]; e <- setNames(as.list(numeric(length(EVENTS))), EVENTS)
         egd <- W + U
-        e$found_ugi <- U * p$sens_egd; e$found_other <- 0; e$missed_inv <- U - e$found_ugi
-        e$tests <- 0; e$investigated <- egd; e$free_inv <- W
+        e$found_ugi <- U * p$sens_egd; e$missed_inv <- U - e$found_ugi
+        e$investigated <- egd; e$free_inv <- W
         e$egd <- egd; e$invasive <- egd; e$invasive_free <- W
         e$perf <- egd * p$p_perf_egd; e$perf_deaths <- e$perf * p$p_death_perf; sae_other <- 0
-        e$egd_free <- W; e$ent_free <- 0; e$pet_free <- 0; e$eus_free <- 0; e$samp_free <- 0
-        e$perf_free <- W * p$p_perf_egd; e$deaths_free <- e$perf_free * p$p_death_perf
-        e$rad_free <- 0; e$days_free <- W * p$t_egd
+        e$egd_free <- W; e$perf_free <- W * p$p_perf_egd; e$deaths_free <- e$perf_free * p$p_death_perf
+        e$days_free <- W * p$t_egd
         fp_cost <- W * (p$c_egd + p$p_perf_egd * p$c_perf)
-        e$sae <- e$perf; e$sae_free <- W * p$p_perf_egd; e$rad_ca <- 0; e$days <- egd * p$t_egd
+        e$sae <- e$perf; e$sae_free <- W * p$p_perf_egd; e$days <- egd * p$t_egd
         e$egd_pos <- e$found_ugi; e$egd_neg <- egd - e$found_ugi   # EGD is the screening test here
-        e$tp <- e$found_ugi; e$fp <- 0; e$fp_other_ca <- 0; e$fn <- U - e$found_ugi; e$tn <- W
-        e$incid <- 0; e$incid_free <- 0; e$fn_persist <- 0; e$worry <- 0; e$sae_other_free <- 0
+        e$tp <- e$found_ugi; e$fn <- U - e$found_ugi; e$tn <- W
         cost_t <- egd * p$c_egd
+        pd <- min(W * 0.5, e$perf_deaths)
       }
       e$fn_symp <- e$fn * (P["pre", "early"] + P["pre", "late"])   # false negatives presenting with symptoms within a year
       fu <- e$found_ugi; fo <- e$found_other
       e$overdx_ugi <- fu * q_od[t]; e$overdx_other <- fo * q_od[t]
-      pd <- min(W * 0.5, e$perf_deaths + sae_other * p$p_death_sae)
       # Burden in cancer-free people worked up. Galleri false positives: the whole workup
       # pathway (procedures and uncertainty) is valued with Matza 2024 TTO disutilities
       # (fp_tto = 1) or per procedure (d_proc); persisting worry, complications, deaths and
       # radiation cancers are added. DALYs: GBD anxiety weight x days of uncertainty, worry,
       # complications, YLL of deaths, radiation cancers. Kunzmann: per screening EGD.
-      n_proc_free <- e$egd_free + e$ent_free + e$pet_free + e$eus_free + e$incid_free
-      is_g <- arm == "Galleri"; dw_a <- p$dw_anx %||% 0
-      q_path <- if (is_g && (p$fp_tto %||% 0) == 1) a_f * wk[["f_dfp"]] else n_proc_free * p$d_proc
+      n_proc_free <- e$egd_free + e$ent_free + e$pet_free + e$eus_free + e$incid_free + e$lap_free + e$surv_free
+      dw_a <- p$dw_anx %||% 0
+      q_path <- if (is_g && (p$fp_tto %||% 0) == 1) g$q_path else n_proc_free * p$d_proc
       worry_w <- e$worry * (p$dur_worry %||% 0) * dw_a
       q_comp <- (e$sae_free - e$deaths_free) * p$d_sae; q_rad <- e$rad_free * p$loss_rad_ca
       fq <- c(q_path, worry_w, q_comp, e$deaths_free * V[[t]]["well", "qaly"], q_rad)
-      fd <- c(if (is_g) a_f * wk[["f_days"]] / 365.25 * dw_a else n_proc_free * p$d_proc, worry_w, q_comp,
+      fd <- c(if (is_g) e$days_free / 365.25 * dw_a else n_proc_free * p$d_proc, worry_w, q_comp,
               e$deaths_free * curve$daly_ref_le[t], q_rad)
       fpq <- fpq + df[["qaly"]] * fq; fpd <- fpd + df[["daly"]] * fd
       qaly_fp <- qaly_fp + df[["qaly"]] * sum(fq)
       cost_fp <- cost_fp + df[["cost"]] * fp_cost
       e$proc_deaths <- pd; e$late_screen <- (fu + fo) * pls; e$rounds <- 1
       for (k in names(e)) { ev[k] <- ev[k] + e[[k]]; ev_t[t, k] <- e[[k]] }
-      # move screen-detected upper GI cancers into lead time; procedure deaths out of well
-      x["pre"] <- x["pre"] - fu - e$fn_persist; x["pre_m"] <- x["pre_m"] + e$fn_persist
+      # screen-detected upper GI cancers into lead time; procedure deaths out of well
+      if (!is_g) { x["pre"] <- x["pre"] - fu; x["well"] <- x["well"] - pd }
       x["lead_early"] <- x["lead_early"] + fu * (1 - pls); x["lead_late"] <- x["lead_late"] + fu * pls
-      x["well"] <- x["well"] - pd; x["dead_other"] <- x["dead_other"] + pd
+      x["dead_other"] <- x["dead_other"] + pd
+      if (is_g) x <- agg_state(X, x)
       tx_first <- (fu + fo) * ((1 - pls) * p$c_tx_first_early + pls * p$c_tx_first_late)
       cost0 <- cost0 + df[["cost"]] * (cost_t + tx_first + e$perf * p$c_perf + sae_other * p$c_sae)
-      n_proc <- e$egd + (e$ent %||% 0) + (e$pet %||% 0) + (e$eus %||% 0) + e$incid
+      n_proc <- e$egd + e$ent + e$pet + e$eus + e$incid + e$lap + e$surv
       # people with cancer keep the per-procedure loss; cancer-free Galleri positives use fq/fd above
       n_nf <- n_proc - (if (is_g) n_proc_free else 0)
       oth <- (e$sae - pd) * p$d_sae + e$rad_ca * p$loss_rad_ca
@@ -380,7 +465,15 @@ simulate_arm <- function(arm, row, curve, cal, p, settings, wk, V, q_od = overdx
     R <- cycle_rewards(P, curve, t, p)
     acc_t[t, ] <- drop(x %*% R)
     acc <- acc + acc_t[t, ] * df
-    x <- drop(x %*% P); trace[t + 1, ] <- x
+    if (is_g) {
+      st <- tagged_step(X, T, P, cal$onset[t], p)
+      y <- x; y[c("well", "pre", "pre_m")] <- 0
+      y <- drop(y %*% P)
+      y[["early"]] <- y[["early"]] + st$early; y[["late"]] <- y[["late"]] + st$late
+      y[["dead_other"]] <- y[["dead_other"]] + st$dead_other
+      X <- st$X; x <- agg_state(X, y)
+    } else x <- drop(x %*% P)
+    trace[t + 1, ] <- x
   }
   list(ev = ev, acc = acc, cost0 = cost0, q_harm = q_harm, d_harm = d_harm, trace = trace,
        pre0 = cal$x0[["pre"]], cost_fp = cost_fp, qaly_fp = qaly_fp, fpq = fpq, fpd = fpd, ev_t = ev_t, acc_t = acc_t)
@@ -398,25 +491,54 @@ ADDITIVE <- c("total_cancers", "cancer_free", "kunz_scores", "galleri_tests", "s
   "perforations_symptomatic", "fn_persistent", "fp_worry_cases", "fp_sae_other",
   "fp_qaly_pathway", "fp_qaly_worry", "fp_qaly_complications", "fp_qaly_deaths", "fp_qaly_radiation",
   "fp_daly_anxiety", "fp_daly_worry", "fp_daly_complications", "fp_daly_deaths", "fp_daly_radiation", "daly_fp",
-  "investigated",
+  "investigated", "laparoscopy", "surveillance_imaging", "laparoscopy_free", "surveillance_free",
+  "egd_skipped_hold", "ugi_found_by_pet", "hidden_after_egd", "missed_visible_after_egd", "repeat_false_positives",
   "egd", "ent", "pet_ct", "eus", "eus_sampling", "tumor_board", "invasive_total", "days_x_inv",
   "cost_tests", "cost_total", "screen_detected", "found_upper_gi", "found_other",
   "late_lifetime", "clin_dx_lifetime", "ca_deaths", "oc_deaths", "ly_total", "free_investigated",
   "invasive_free", "sae_total", "sae_free", "proc_deaths", "dose_sv", "radiation_cancers",
   "missed_investigated", "qaly_total", "qaly_harms", "daly_total", "daly_harms")
 
+# Site-specific sojourn scenario (site_sojourn = 1): the subgroup's mix of esophageal
+# adenocarcinoma (sojourn_eac) and other upper GI cancer (sojourn_years), by SEER incidence.
+row_params <- function(p, curve, row, settings) {
+  if (!isTRUE((p$site_sojourn %||% 0) == 1)) return(p)
+  rr <- kunz_rr(row$risk_group, settings, row$sex)
+  eac <- curve$inc_eso * curve$eac_share * rr; tot <- target_ugi(curve, row, settings)
+  w <- sum(eac) / sum(tot)
+  p$sojourn_years <- w * p$sojourn_eac + (1 - w) * p$sojourn_years
+  p
+}
+
+# Kunzmann sex-specific scenario (kunz_sexspec = 1): Kunzmann 2018 shares by sex
+KUNZ_SEX <- list(kunz_share_male = 0.597, kunz_share_female = 0.035, kunz_capture_male = 0.881, kunz_capture_female = 0.153)
+kunz_settings <- function(p, settings) {
+  if (isTRUE((p$kunz_sexspec %||% 0) == 1)) settings[names(KUNZ_SEX)] <- KUNZ_SEX
+  settings
+}
+kunz_cohort <- function(cohort, settings) {
+  for (i in seq_len(nrow(cohort))) {
+    k <- settings[[paste0("kunz_share_", cohort$sex[i])]]
+    if (cohort$risk_group[i] == "kunzmann_high") cohort$share[i] <- k
+    if (cohort$risk_group[i] == "kunzmann_low") cohort$share[i] <- 1 - k
+  }
+  cohort
+}
+
 prepare_row <- function(row, data, p, settings) {
   curve <- baseline_for(data, row, settings)
+  p <- row_params(p, curve, row, settings)
   cal <- calibrate(curve, target_ugi(curve, row, settings), p, target_late(curve, row, settings, p))
   Ps <- lapply(seq_len(nrow(curve)), function(t) transition_matrix(curve$mort_other[t], cal$onset[t], p, cal$pl[t]))
   Rs <- lapply(seq_len(nrow(curve)), function(t) cycle_rewards(Ps[[t]], curve, t, p))
   q <- numeric(length(Ps) + 1); q[length(q)] <- 1                    # overdiagnosis probability (see overdx_prob)
   for (t in rev(seq_along(Ps))) q[t] <- Ps[[t]]["pre", "dead_other"] + Ps[[t]]["pre", "pre"] * q[t + 1]
-  list(curve = curve, cal = cal, V = values_by_cycle(Ps, Rs, settings), q = q[seq_along(Ps)])
+  list(curve = curve, cal = cal, V = values_by_cycle(Ps, Rs, settings), q = q[seq_along(Ps)], p = p)
 }
 
-row_outcomes <- function(row, data, p, settings, arms, prep = prepare_row(row, data, p, settings)) {
-  wk <- workup_summary(p)
+row_outcomes <- function(row, data, p, settings, arms, prep = prepare_row(row, data, p, settings),
+                         wk = workup_summary(p)) {
+  p <- prep$p
   one <- function(a) {
     s <- simulate_arm(a, row, prep$curve, prep$cal, p, settings, wk, prep$V, prep$q); e <- s$ev; l <- s$acc
     c(total_cancers = s$pre0, cancer_free = 1 - s$pre0, kunz_scores = e[["kunz"]], galleri_tests = e[["tests"]],
@@ -436,7 +558,11 @@ row_outcomes <- function(row, data, p, settings, arms, prep = prepare_row(row, d
       fp_qaly_pathway = s$fpq[["pathway"]], fp_qaly_worry = s$fpq[["worry"]], fp_qaly_complications = s$fpq[["complications"]],
       fp_qaly_deaths = s$fpq[["deaths"]], fp_qaly_radiation = s$fpq[["radiation"]],
       fp_daly_anxiety = s$fpd[["anxiety"]], fp_daly_worry = s$fpd[["worry"]], fp_daly_complications = s$fpd[["complications"]],
-      fp_daly_deaths = s$fpd[["deaths"]], fp_daly_radiation = s$fpd[["radiation"]], daly_fp = sum(s$fpd), investigated = e[["investigated"]], egd = e[["egd"]], ent = e[["ent"]],
+      fp_daly_deaths = s$fpd[["deaths"]], fp_daly_radiation = s$fpd[["radiation"]], daly_fp = sum(s$fpd), investigated = e[["investigated"]],
+      laparoscopy = e[["lap"]], surveillance_imaging = e[["surv"]], laparoscopy_free = e[["lap_free"]],
+      surveillance_free = e[["surv_free"]], egd_skipped_hold = e[["egd_skipped"]], ugi_found_by_pet = e[["found_pet_ugi"]],
+      hidden_after_egd = e[["hidden_new"]], missed_visible_after_egd = e[["missed_visible"]],
+      repeat_false_positives = e[["repeat_fp"]], egd = e[["egd"]], ent = e[["ent"]],
       pet_ct = e[["pet"]], eus = e[["eus"]], eus_sampling = e[["samp"]], tumor_board = e[["tb"]],
       invasive_total = e[["invasive"]], days_x_inv = e[["days"]],
       cost_tests = s$cost0, cost_total = s$cost0 + l[["cost"]],
@@ -455,7 +581,9 @@ row_outcomes <- function(row, data, p, settings, arms, prep = prepare_row(row, d
 cohort_rows <- function(data, population = POPULATION) data$cohort[data$cohort$population == population, ]
 
 run_population <- function(p, data, settings, arms, cohort = cohort_rows(data)) {
-  mats <- lapply(seq_len(nrow(cohort)), function(i) row_outcomes(cohort[i, ], data, p, settings, arms))
+  settings <- kunz_settings(p, settings); cohort <- kunz_cohort(cohort, settings)
+  wk <- workup_summary(p)
+  mats <- lapply(seq_len(nrow(cohort)), function(i) row_outcomes(cohort[i, ], data, p, settings, arms, wk = wk))
   list(cohort = cohort, rows = mats, total = Reduce(`+`, Map(`*`, mats, cohort$share)))
 }
 
@@ -485,6 +613,7 @@ subgroup_cohort <- function(age, sex, race, settings) data.frame(
   kunzmann_scoped = c(1, 0), stringsAsFactors = FALSE)
 
 subgroup_grid <- function(p, data, settings, arms, cohort_n = 1e5) {
+  settings <- kunz_settings(p, settings)
   g <- expand.grid(start_age = settings$subgroups$ages, sex = settings$subgroups$sexes,
                    race_eth = settings$subgroups$races, stringsAsFactors = FALSE)
   purrr::map_dfr(seq_len(nrow(g)), function(i) {
@@ -525,7 +654,7 @@ accuracy_table <- function(p, data, settings, start_age = 50, cohort_n = 1e5) {
     C <- subgroup_cohort(start_age, g$sex[i], g$race_eth[i], settings); tot <- NULL
     for (j in seq_len(nrow(C))) {
       row <- C[j, ]; prep <- prepare_row(row, data, p, settings)
-      s <- simulate_arm("Galleri", row, prep$curve, prep$cal, p, settings, wk, prep$V, prep$q)
+      s <- simulate_arm("Galleri", row, prep$curve, prep$cal, prep$p, settings, wk, prep$V, prep$q)
       m <- s$ev_t[, c("tests", "tp", "fp", "fp_other_ca", "free_inv", "tn", "fn", "found_ugi", "overdx_ugi")] * row$share
       tot <- if (is.null(tot)) m else tot + m
     }
@@ -551,12 +680,12 @@ calibration_table <- function(p, data, settings, arms = ARMS, cohort = cohort_ro
     row <- cohort[i, ]; prep <- prepare_row(row, data, p, settings); curve <- prep$curve
     target <- target_ugi(curve, row, settings)
     purrr::map_dfr(arms, function(a) {
-      s <- simulate_arm(a, row, curve, prep$cal, p, settings, wk, prep$V)
+      s <- simulate_arm(a, row, curve, prep$cal, prep$p, settings, wk, prep$V)
       tr <- s$trace[seq_len(nrow(curve)), , drop = FALSE]
       alive <- rowSums(tr[, !STATES %in% DEAD, drop = FALSE])
-      pp <- 1 - exp(-1 / p$sojourn_years)
+      pp <- 1 - exp(-1 / prep$p$sojourn_years)
       flows <- t(vapply(seq_len(nrow(curve)), function(t) {
-        P <- transition_matrix(curve$mort_other[t], prep$cal$onset[t], p, prep$cal$pl[t])
+        P <- transition_matrix(curve$mort_other[t], prep$cal$onset[t], prep$p, prep$cal$pl[t])
         tr[t, "pre"] * c(P["pre", "early"] + P["pre", "late"], P["pre", "late"])
       }, numeric(2)))
       tibble::tibble(race_eth = row$race_eth, sex = row$sex, risk_group = row$risk_group, share = row$share,
@@ -573,7 +702,7 @@ trace_table <- function(p, data, settings, arms) {
   purrr::map_dfr(seq_len(nrow(C)), function(i) {
     row <- C[i, ]; prep <- prepare_row(row, data, p, settings)
     purrr::map_dfr(arms, function(a) {
-      tr <- simulate_arm(a, row, prep$curve, prep$cal, p, settings, wk, prep$V)$trace
+      tr <- simulate_arm(a, row, prep$curve, prep$cal, prep$p, settings, wk, prep$V)$trace
       tibble::as_tibble(tr) |> dplyr::mutate(cycle = seq_len(nrow(tr)) - 1, arm = a, share = row$share)
     })
   }) |>

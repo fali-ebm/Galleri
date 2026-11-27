@@ -79,10 +79,10 @@ lines = [
     ("", ""),
     ("Model in one paragraph", "h"),
     ("Annual-cycle cohort model, lifetime horizon (to age 100), US payer perspective, 2025 USD, 3% discounting of costs and QALYs. Arms: usual care; Kunzmann score once -> one-time EGD if score >= 8; Galleri every year: +ve -> EGD (EGD +ve = true positive; EGD -ve = false positive -> rest of the workup; any EGD can perforate), -ve -> true negative (stays well) or false negative (symptomatic cancer later or found at a later round), then usual care. Screening runs from the start age to 85. Natural history is calibrated to SEER for every subgroup: onset of preclinical upper GI cancer is solved so that, without screening, symptomatic diagnoses reproduce SEER incidence by age, sex and race/ethnicity, and their stage reproduces SEER stage at diagnosis. Base case: 50-year-old non-Hispanic White men.", ""),
-    ("Revised tree (Nov 2026, not yet in the engine): a 2-year hold on repeat EGDs after a negative EGD; a negative EGD can hide a visible lesion that was missed or a cancer not yet visible; Bayesian update of each person's false-positive propensity; EUS sampling as a coin toss; tumor board -> laparoscopy or watchful waiting, with laparoscopy less likely after each negative result. Its inputs are the purple 'After rebuild' rows on the tree-step tabs.", ""),
+    ("Revised tree (Nov 2026, in the engine): a 2-year hold on repeat EGDs after a negative EGD; a negative EGD can hide a visible lesion that was missed or a cancer not yet visible; Bayesian update of each person's false-positive propensity; EUS sampling as a coin toss; tumor board -> laparoscopy or watchful waiting, with laparoscopy less likely after each negative result. Its inputs are on the tree-step tabs.", ""),
     ("", ""),
     ("Sheets", "h"),
-    ("1 Galleri test ... 9 Utilities and DALYs - every scalar input, one tab per step of the decision tree: value, one-way range, PSA distribution, status, whether the current model uses it (In model), and source. New rows of the revised tree are purple and marked After rebuild.", ""),
+    ("1 Galleri test ... 10 Utilities and DALYs - every scalar input, one tab per step of the decision tree: value, one-way range, PSA distribution, status, whether the current model uses it (In model), and source.", ""),
     ("References - numbered sources; Refs columns elsewhere point to these numbers.", ""),
     ("Settings - analysis settings: willingness to pay, discounting, horizon, screening schedule, Kunzmann split, subgroup grid, PSA size.", ""),
     ("Cohort - base-case cohort rows (start age, sex, race/ethnicity). The Kunzmann shares are linked to Settings.", ""),
@@ -112,29 +112,29 @@ for i, (txt, kind) in enumerate(lines, 1):
 ws.column_dimensions["A"].width = 110; ws.column_dimensions["B"].width = 70
 
 # ---------------------------------------------------------------- Parameters, one tab per tree step
-# Tabs whose names start with a number are read by the importer; 'In model' says which file a row goes to:
-# "Yes..." -> inputs/parameters.csv (the model reads it now); "After rebuild" -> inputs/parameters_pending.csv
-# (parameters of the revised tree, read once the engine is rebuilt).
+# Tabs whose names start with a number are read by the importer into inputs/parameters.csv.
 STEPS = [
     ("1 Galleri test", "Annual Galleri test. Chance of a positive result with an esophagus/stomach (E/S) signal for each true health state, how sensitivity falls after round 1, and whether false positives repeat in the same person.",
      ["sens_g_ugi", "sens_g_other", "fpr_g_es", "sens_g_rep_ratio", "p_fn_persist", "fp_kappa", "hr_ca_after_fp"]),
     ("2 EGD", "Galleri +ve: EGD unless inside the hold after a negative EGD. What the EGD finds, what it misses (visible lesion missed vs cancer not yet visible), and perforation.",
-     ["p_egd_pos", "sens_egd", "f_invisible", "t_visible", "egd_hold_years", "p_perf_egd", "p_death_perf"]),
+     ["sens_egd", "f_invisible", "t_visible", "egd_hold_years", "p_perf_egd", "p_death_perf"]),
     ("3 ENT and PET CT", "EGD -ve or skipped: routed to ENT exam or PET CT. What each finds.",
-     ["p_ent_route", "p_ent_pos", "p_pet_pb", "p_pet_incid", "p_pet_ugi", "p_incid_cancer", "p_miss"]),
+     ["p_ent_route", "p_ent_pos", "p_pet_pb", "p_pet_incid", "p_pet_ugi", "p_incid_cancer", "p_miss", "p_egd_pos"]),
     ("4 Pancreatobiliary", "PET pancreatobiliary +ve: EUS (FNA/FNB a coin toss), tumor board after a negative or unsampled EUS, laparoscopy or watchful waiting. After a prior negative EUS or laparoscopy, laparoscopy becomes less likely.",
-     ["p_eus_pos", "p_eus_neg", "p_eus_samp", "p_eus_pos_samp", "p_tb_lap", "r_lap_after_eus", "r_lap_after_lap",
+     ["p_pb_malig", "p_eus_samp", "eus_tissue_sens", "p_tb_lap", "r_lap_after_eus", "r_lap_after_lap",
       "p_reeus_after_eus", "p_reeus_after_lap"]),
-    ("5 Natural history", "Preclinical sojourn, stage at screen detection and at symptoms, and cancer mortality by stage.",
-     ["sojourn_years", "sojourn_eac", "p_late_screen", "or_late_clin", "m_early", "m_late"]),
-    ("6 Procedure harms", "Serious adverse events of each procedure and radiation from PET CT. EGD perforation is on the EGD tab.",
+    ("5 Kunzmann arm", "Kunzmann score once at the start age; a one-time EGD for a score of 8 or more. The flagged share and sensitivity are on the Settings tab; this switch runs the sex-specific split as a scenario.",
+     ["kunz_sexspec"]),
+    ("6 Natural history", "Preclinical sojourn, stage at screen detection and at symptoms, and cancer mortality by stage.",
+     ["sojourn_years", "sojourn_eac", "site_sojourn", "p_late_screen", "or_late_clin", "m_early", "m_late"]),
+    ("7 Procedure harms", "Serious adverse events of each procedure and radiation from PET CT. EGD perforation is on the EGD tab.",
      ["sae_ent", "sae_eus", "sae_eus_samp", "p_lap_cx", "p_death_sae", "msv_pet", "risk_per_sv", "loss_rad_ca"]),
-    ("7 Time to each step", "Days from one workup step to the next (time spent waiting for the all-clear).",
+    ("8 Time to each step", "Days from one workup step to the next (time spent waiting for the all-clear).",
      ["t_egd", "t_ent", "t_pet", "t_eus", "t_tb", "t_lap"]),
-    ("8 Costs", "Costs in USD, inflated to the Settings cost year. Rows with a published price: edit Price as published and Price year.",
+    ("9 Costs", "Costs in USD, inflated to the Settings cost year. Rows with a published price: edit Price as published and Price year.",
      ["c_galleri", "galleri_cost_share", "c_kunz", "c_egd", "c_ent", "c_pet", "c_eus", "c_eus_samp", "c_tb", "c_lap", "c_surv",
       "c_incid_fu", "c_symp_dx", "c_tx_first_early", "c_tx_first_late", "c_fu_early", "c_fu_late", "c_eol", "c_sae", "c_perf"]),
-    ("9 Utilities and DALYs", "Quality-of-life multipliers, disutilities of procedures and false positives, and disability weights.",
+    ("10 Utilities and DALYs", "Quality-of-life multipliers, disutilities of procedures and false positives, and disability weights.",
      ["u_mult_early", "u_mult_late", "d_proc", "d_sae", "dfp_endo", "dfp_pet", "dfp_ext", "fp_tto", "dw_anx", "p_worry",
       "dur_worry", "dw_early", "dw_late"]),
 ]
@@ -143,8 +143,7 @@ P_NEW = {r["parameter"]: r for r in rd("inputs/parameters_pending.csv")} if os.p
 P = {**P_NOW, **P_NEW}
 allk = sum((v for _, _, v in STEPS), [])
 assert sorted(allk) == sorted(P) and len(allk) == len(set(allk)), set(P) ^ set(allk)
-IN_MODEL_NOTE = {"p_eus_pos": "Yes (replaced at rebuild)", "p_eus_neg": "Yes (replaced at rebuild)",
-                 "sens_egd": "Yes (both arms after rebuild)"}
+IN_MODEL_NOTE = {"p_egd_pos": "Yes (validation target only)"}
 hdr = ["Parameter", "Label", "Value", "Low (OWSA)", "High (OWSA)", "PSA distribution", "SE", "n (beta/Dirichlet)",
        "Dirichlet group", "Status", "In model", "Unit", "Description", "Source / derivation", "Refs (see References)",
        "Used in", "Price as published (USD)", "Price year"]
@@ -182,7 +181,7 @@ for title, blurb, keys in STEPS:
     n0 = ws.max_row + 2
     notes = [blurb,
              "Edit the blue cells: Value is the base case; Low/High are one-way sensitivity bounds (blank = +/-25%); PSA distribution with SE or n sets the probabilistic range (beta and Dirichlet use n as the effective sample size).",
-             "In model: 'Yes' = the current model reads it; 'After rebuild' (purple) = part of the revised tree, used once the engine is rebuilt. Status DUMMY = placeholder with no source yet."]
+             "Status: SOURCED = from a published source; ASSUMPTION = reasoned, no direct source; DUMMY = placeholder with no source yet (edit it)."]
     for j, t in enumerate(notes):
         c = ws.cell(n0 + j, 1, t); c.font = BOLD if j == 0 else BASE
         ws.merge_cells(start_row=n0 + j, start_column=1, end_row=n0 + j, end_column=14)

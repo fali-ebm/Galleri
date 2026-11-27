@@ -13,11 +13,21 @@ three arms and **annual screening from the start age to 85**:
    Everyone then follows usual care.
 3. **Galleri**: a test every year, scored against preclinical upper GI
    cancer as a 2×2 table:
-   - **Galleri +ve** (esophagus/stomach signal) → EGD. **EGD +ve** is a true
-     positive. **EGD -ve** is treated as a false positive for upper GI
-     cancer and goes on to the rest of the workup (ENT or PET CT, then EUS ±
-     sampling, then tumor board). Any EGD can **perforate**
+   - **Galleri +ve** (esophagus/stomach signal) → EGD, unless the person
+     had a negative EGD in the last `egd_hold_years` (2) rounds; then the EGD
+     is skipped. **EGD +ve** finds the cancer (sensitivity `sens_egd`). A
+     negative EGD can hide a visible lesion that was missed or a cancer not
+     yet visible (`f_invisible`, visible after about `t_visible` years). The
+     rest of the workup is ENT or PET CT (PET can show an upper GI cancer the
+     EGD missed or skipped), and for a pancreatobiliary finding EUS (FNA/FNB a
+     coin toss), then tumor board → diagnostic laparoscopy (`p_tb_lap`) or
+     watchful waiting. After a negative EUS or laparoscopy, a repeat finding
+     makes laparoscopy much less likely. Any EGD can **perforate**
      (`p_perf_egd`); a fatal perforation (`p_death_perf`) ends the workup.
+   - **False positives and Bayes**: each person's false-positive propensity
+     is beta-distributed around `fpr_g_es` with concentration `fp_kappa`
+     (very large = independent tests in the base case), updated by each
+     result; the cohort tracks 0, 1 or 2+ earlier false positives.
    - **Galleri -ve** → usual care. **True negatives** stay well and are
      rescreened next round. **False negatives** keep their undiagnosed
      cancer: they present with symptoms later (reported as
