@@ -285,7 +285,7 @@ test_that("symptomatic diagnoses carry EGD perforation risk in every arm", {
 
 test_that("workbook importer: the committed workbook validates, and bad edits are rejected without writing", {
   xl <- testthat::test_path("..", "..", "Galleri_model_inputs.xlsx")
-  skip_if_not(file.exists(xl), "no inputs workbook (python3 tools/export_inputs_xlsx.py)")
+  skip_if_not(file.exists(xl), "no inputs workbook (Rscript tools/export_inputs_xlsx.R)")
   skip_if_not_installed("openxlsx")
   source(testthat::test_path("..", "..", "tools", "import_inputs.R"), local = TRUE)
   proj_dir <- testthat::test_path("..", "..")
@@ -428,4 +428,63 @@ test_that("microsimulation: arms share the same people; everyone dies or reaches
   expect_true(all(!g$screen_detected | !g$clin_dx))         # found by screening or by symptoms, not both
   expect_true(all(g$found_other <= g$fp_other_cancer))      # an other-site cancer is found at most once per positive
   expect_true(all(u$tests == 0) && all(g$tests >= 1))
+})
+
+# ---- MISCAN-ESO natural history for esophageal adenocarcinoma (scenario, Nov 2026) ----
+pm <- p0; pm$miscan_eac <- 1
+
+test_that("MISCAN-ESO rates: the closed form meets the sojourn, late-share and dwell-ratio targets", {
+  for (r in c(0.5, 1, 2)) {
+    m <- E$miscan_rates(4.9, 0.8, r)
+    expect_equal(1 / m$a + m$L / m$hL, 4.9)                 # mean sojourn
+    expect_equal(m$lam / (m$hE + m$lam), 0.8)               # late share without competing death
+    expect_equal(m$hL / m$a, r)                             # mean PE dwell / mean PL dwell
+    y <- E$miscan_year(m)
+    expect_equal(sum(y[c("pe_pe", "pe_pl", "pe_early", "pe_late")]), 1)
+    expect_equal(sum(y[c("pl_pl", "pl_late")]), 1)
+  }
+})
+
+test_that("MISCAN-ESO off: no one enters the EAC states and the base case is untouched", {
+  prep <- E$prepare_row(row1, D, p0, S)
+  expect_equal(sum(prep$cal$onset_e), 0)
+  for (a in E$ARMS) {
+    tr <- sim(a)$trace
+    expect_equal(sum(tr[, c("pre_ee", "pre_el", "lead_ee", "lead_el", "early_e", "late_e")]), 0)
+  }
+})
+
+test_that("MISCAN-ESO: transition rows sum to 1 and usual care reproduces SEER incidence and EAC stage", {
+  prep <- E$prepare_row(row1, D, pm, S)
+  for (t in c(1, 20, 45)) expect_equal(unname(rowSums(E$tm_at(prep$curve, prep$cal, prep$p, t))), rep(1, length(E$STATES)))
+  ct <- E$calibration_table(pm, D, S, "Usual care")
+  expect_equal(ct$model_clinical, ct$seer, tolerance = 1e-8)
+  expect_equal(unique(ct$clipped), 0)
+  tg <- E$eac_targets(pm, prep$curve, row1, S)
+  expect_equal(prep$cal$eac_late / prep$cal$eac_clin, tg$L, tolerance = 1e-8)   # lifetime late share = SEER
+  expect_equal(prep$cal$eac$S, if (row1$sex == "female") pm$sojourn_eac_female else pm$sojourn_eac_male)
+})
+
+test_that("MISCAN-ESO: a test that finds nothing only adds cost; finding EAC early shifts stage", {
+  p <- pm; p$sens_g_ugi <- 0; p$sens_g_other <- 0; p$fpr_g_es <- 0
+  m <- ev("galleri", p)
+  expect_equal(unname(m["qaly_total", "Galleri"]), unname(m["qaly_total", 1]))
+  expect_equal(unname(m["ca_deaths", "Galleri"]), unname(m["ca_deaths", 1]))
+  m <- ev("galleri", pm)
+  expect_gt(m["late_averted", "Galleri"], 0)
+  expect_gt(m["ca_deaths_averted", "Galleri"], 0)
+  # screen-detected EAC go to lead-time states, by the stage they were found in
+  tr <- sim("Galleri", p = pm)$trace
+  expect_gt(max(tr[, "lead_ee"]), 0); expect_gt(max(tr[, "lead_el"]), 0)
+  expect_equal(unname(rowSums(tr)), rep(1, nrow(tr)), tolerance = 1e-10)        # trace conservation
+})
+
+test_that("MISCAN-ESO: a longer early phase makes screen-detected EAC earlier", {
+  lead_share <- function(r) { p <- pm; p$eac_dwell_ratio <- r; tr <- sim("Galleri", p = p)$trace
+    s <- colSums(tr[, c("lead_ee", "lead_el")]); s[["lead_ee"]] / sum(s) }
+  expect_gt(lead_share(2), lead_share(1)); expect_gt(lead_share(1), lead_share(0.5))
+})
+
+test_that("microsimulation refuses the MISCAN-ESO scenario (cohort model only)", {
+  expect_error(E$ms_row(row1, D, pm, S, E$ARMS, 10, 1), "cohort model only")
 })

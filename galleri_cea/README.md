@@ -71,7 +71,7 @@ Rscript run.R
 The importer validates on a scratch copy (types, ranges, keys, complete raw
 tables, then a model load and calibration check) before touching anything,
 and backs up replaced files to `data-raw/import_backup/`. After editing the
-CSVs directly, refresh the workbook with `python3 tools/export_inputs_xlsx.py`.
+CSVs directly, refresh the workbook with `Rscript tools/export_inputs_xlsx.R`.
 
 **False-positive burden (QALYs and DALYs).** Cancer-free people worked up after a
 Galleri positive lose the whole-pathway QALYs measured by Matza 2024 (0.079-0.111
@@ -186,6 +186,35 @@ added to `inputs/counts.csv`.
 To use other packages, call `ceakit::psa_matrices(res)`. It returns cost,
 effect and parameter matrices for `dampack::make_psa_obj()`,
 `BCEA::bcea()` and the `voi` package.
+
+## MISCAN-ESO natural history for esophageal adenocarcinoma (scenario)
+
+`miscan_eac = 1` gives esophageal adenocarcinoma (EAC) its own natural history,
+calibrated to the CISNET MISCAN-ESO model: sex-specific mean preclinical
+sojourn (men 4.9 y, women 4.5 y; Kong 2014), and progression from preclinical
+early to preclinical late before symptoms, so a screen-detected EAC is early
+or late depending on when it is found. Gastric and other esophageal cancer
+keep the base-case natural history. Onset is still solved to reproduce SEER
+incidence exactly, and the late share at symptomatic diagnosis reproduces SEER
+exactly (solved net of other-cause death). Diagnosed EAC has esophagus-specific
+survival. Scenarios: `MISCAN-ESO natural history for esophageal
+adenocarcinoma`, and variants with a shorter or longer early phase and a
+4.0-year sojourn.
+
+`Rscript tools/calibrate_miscan_eac.R` writes the targets, the fitted rates,
+the fit by age and an external validation against CISNET lifetime EAC cases
+and deaths (Rubenstein 2022) to `outputs/miscan_eac/`. Derivations:
+`inputs/SOURCES.md`. Cohort model only (the microsimulation refuses it).
+
+## Reproducing everything (R only)
+
+`Rscript make_all.R` runs the cohort model, the microsimulation, the
+MISCAN-ESO calibration, the page data, the three pages, the inputs workbook
+and its round-trip check, and records `session_info.txt`. Every step is an R
+script that can also be run on its own (listed at the top of `make_all.R`).
+Required R packages: ceakit (this repository), hesim, data.table, openxlsx2,
+readxl, readr, jsonlite, dplyr, tidyr, purrr, tibble, testthat, rmarkdown,
+targets, voi (optional, EVPPI).
 
 ## Microsimulation (per-patient outcomes)
 

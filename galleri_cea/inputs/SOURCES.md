@@ -199,3 +199,25 @@ The revised decision tree is in the engine. Each undiagnosed person in the Galle
 | `kunz_sexspec` | 0 | Scenario switch: 1 = Kunzmann 2018 sex-specific split (59.7% / 3.5% flagged) instead of the pooled evidence profile [8] |
 | `p_egd_pos` | 0.50 | Validation target only |
 | `p_lap_cx`, `t_lap`, `c_lap`, `c_surv` | 0.02, 21 d, $5,000, $600 | **DUMMY** placeholders, to source |
+
+## MISCAN-ESO natural history for esophageal adenocarcinoma (scenario, November 2026)
+
+Switch `miscan_eac` = 1 (scenario; base case 0). Calibration and validation script: `Rscript tools/calibrate_miscan_eac.R` → `outputs/miscan_eac/` (`targets.csv`, `rates.csv`, `by_age.csv`, `miscan_eac_calibration.png`).
+
+Esophageal adenocarcinoma (EAC = SEER esophageal incidence × adenocarcinoma share × Kunzmann relative risk) is split from the rest of upper GI cancer (gastric and non-adenocarcinoma esophageal cancer), which keeps `sojourn_years` and its own SEER stage mix. EAC follows the structure of CISNET MISCAN-ESO (Erasmus/UW) [55]: preclinical cancer moves through stages before symptoms with exponential durations. Here the stages are collapsed to SEER summary stage: preclinical early (PE, localized) → symptoms early (rate hE) or → preclinical late (PL, rate λ); PL → symptoms late (rate hL). A screen-detected EAC is early if found in PE and late if found in PL, so its stage comes from the natural history instead of `p_late_screen`. Lead time after screen detection is exponential with the mean remaining sojourn (S from PE, 1/hL from PL). Diagnosed EAC has esophagus-specific survival.
+
+| Target / parameter | Value | Basis | Fit |
+|---|---|---|---|
+| `sojourn_eac_male`, `sojourn_eac_female` | 4.9, 4.5 y (range 4.0–5.0) | UW-MISCAN-Esophagus mean preclinical sojourn, all men / women [43]; MISCAN-ESO profile calibration target 4–5 y (model 5.0) [55] | exact (closed form) |
+| EAC late share at symptomatic diagnosis | SEER esophagus, regional + distant among staged, by race and sex, EAC-incidence-weighted over ages (NH White men 80.4%, women 74.7%) | [26] | exact: the death-free share is solved by root finding so that the calibrated usual-care cohort, with other-cause death, reproduces SEER |
+| EAC incidence by age | SEER 21 2013–2017 esophagus × adenocarcinoma share | [26] | exact at every age (onset solved year by year) |
+| `eac_dwell_ratio` | 1 (0.5–2) | Mean time in PE / in PL. MISCAN-ESO does not publish the split of the sojourn by stage. **ASSUMPTION** | — |
+| `m_early_eac`, `m_late_eac` | 0.134, 0.308 per year | SEER 5-y relative survival, esophagus: localized 48.6%; regional 29.1% and distant 5.3%, weighted by SEER stage for White men (33% / 41%) = 15.9%; 1 − S^(1/5) [29, 26] | — |
+
+Rates for non-Hispanic White men: hE 0.067, λ 0.304, hL 0.371 per year (mean 2.7 y in each of PE and PL); women: 0.091, 0.301, 0.393.
+
+**External validation** (not used in calibration), lifetime per 100,000 with no screening, CISNET three-model average for White people born 1950, followed from age 40 [56]: men 654 EAC cases and 536 EAC deaths; model (non-Hispanic White men from 50, SEER 2013–2017 rates) 667 and 546 (+2.0%, +1.8%). Women: CISNET 125 and 103; model 182 and 146 (+46%, +42%). The excess in women comes from the adenocarcinoma share, which SEER Table 8.22 gives by race only (White 71.4%), so it is applied to both sexes although women have relatively more squamous cell carcinoma. Base case (men) is unaffected.
+
+**Out of scope:** MISCAN-ESO's Barrett's esophagus layer (BE prevalence 1.4% at 60–64, progression 0.18%/y, dwell 6.7 / 1.0 / 1.1 y, regression) [55]. The model screens for cancer; Barrett's surveillance and ablation are not modelled. The microsimulation runs the base-case natural history only (it stops if `miscan_eac` = 1).
+
+References: [55] CISNET MISCAN-ESO model profile (Erasmus/UW), 2018. [56] Rubenstein JH, et al. Gastroenterology 2022;163:163-73.

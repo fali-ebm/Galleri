@@ -24,7 +24,7 @@ for (arm in E$ARMS) {
     n <- nrow(s$ev_t)
     m <- cbind(s$ev_t[, ev_keys], s$acc_t[, acc_keys],
                alive = rowSums(s$trace[seq_len(n), !E$STATES %in% E$DEAD]),
-               undiagnosed = s$trace[seq_len(n), "pre"] + s$trace[seq_len(n), "pre_m"],
+               undiagnosed = rowSums(s$trace[seq_len(n), c("pre", "pre_m", "pre_ee", "pre_el"), drop = FALSE]),
                dead_cancer = s$trace[seq_len(n) + 1, "dead_cancer"]) * row$share * N
     tot <- if (is.null(tot)) m else tot + m
   }

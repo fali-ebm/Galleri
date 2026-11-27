@@ -295,6 +295,8 @@ ms_outcomes <- function(nh, sc, prep, settings) {
 
 # One cohort row, all arms, the same simulated people (in chunks to bound memory).
 ms_row <- function(row, data, p, settings, arms, n, seed, chunk = 2e5) {
+  if (miscan_on(p)) stop("the MISCAN-ESO scenario (miscan_eac = 1) runs in the cohort model only; ",
+                         "the microsimulation uses the base-case natural history")
   prep <- prepare_row(row, data, p, settings); wk <- workup_summary(prep$p)
   starts <- seq(1, n, by = chunk); out <- list(); inc <- NULL
   for (ci in seq_along(starts)) {

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Galleri Decision Model</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>{{CSS}}</style></head>
+<body><main class="wrap">
+<header class="stack col">
+  <span class="eyebrow">Galleri upper GI screening · cost-effectiveness model · updated {{TODAY}}</span>
+  <h1>Galleri decision model, step by step</h1>
+  <p class="lede">The revised decision trees (EGD hold, two kinds of EGD miss, pancreatobiliary history, Bayesian repeat tests), the natural history they feed, and the results from both the cohort model and the new person-level microsimulation. Green marks a cancer found; rose a harm or a miss; dashed a placeholder or a scenario-only path.</p>
+</header>
+
+<section class="stack" aria-labelledby="res">
+  <h2 id="res">Base case at a glance</h2>
+  <p class="col">50-year-old non-Hispanic White men, annual Galleri to {{STOP}}, lifetime horizon, 2025 USD, 3% discounting, per 100,000 people (cohort model).</p>
+  <div class="kpis">{{KPIS}}</div>
+  <div class="tablebox"><table><thead><tr><th>Per 100,000 (lifetime)</th><th>Galleri vs usual care</th><th>One-time Kunzmann → EGD vs usual care</th></tr></thead><tbody>{{RES_ROWS}}</tbody></table></div>
+</section>
+
+<section class="figure" aria-labelledby="f1">
+  <div class="head"><h2 id="f1">1 · Three arms</h2><span class="eyebrow">Kunzmann once · Galleri every year</span></div>
+  {{FIG_ARMS}}
+  <p class="caption">Kunzmann is scored once at the start age; {{KSHARE}} score 8 or more (GRADE evidence profile, sensitivity {{KCAP}}, specificity 64.4%) and get one EGD, then usual care. Galleri sensitivity is {{SENS_G}} in round 1 and ×{{REP}} after. Every end state feeds the natural-history model (figure 5).</p>
+</section>
+
+<section class="figure" aria-labelledby="f2">
+  <div class="head"><h2 id="f2">2 · Galleri +ve: the EGD step</h2><span class="eyebrow">hold · two kinds of miss</span></div>
+  {{FIG_EGD}}
+  <p class="caption">After a negative EGD, repeat positives skip EGD for {{HOLD}} years (the shorter of the gastric 2.37-year and esophageal adenocarcinoma 4.9-year sojourn estimates) and go straight to ENT or PET CT. EGD finds {{SE}} of cancers present (Menon 2014). Of the misses, {{FI}} are cancers not yet visible (Kamran 2023 root causes A + C), which become visible after {{TVIS}} year; the rest are visible lesions that were missed.</p>
+</section>
+
+<section class="figure" aria-labelledby="f3">
+  <div class="head"><h2 id="f3">3 · After a negative or skipped EGD</h2><span class="eyebrow">ENT or PET CT</span></div>
+  {{FIG_REST}}
+  <p class="caption">A missed visible upper GI cancer can be seen on PET CT (*{{PETUGI}}, a DUMMY placeholder) and is then found by a targeted EGD. Incidental findings are followed up; the benign ones count toward the false-positive burden.</p>
+</section>
+
+<section class="figure" aria-labelledby="f4">
+  <div class="head"><h2 id="f4">4 · Pancreatobiliary finding, by history</h2><span class="eyebrow">tumor board · coin-toss sampling</span></div>
+  {{FIG_PB1}}
+  {{FIG_PB2}}
+  <p class="caption">First finding: EUS, with FNA/FNB a coin toss (beta(2,2)); a negative or unsampled EUS goes to tumor board, which sends {{TL}} to diagnostic laparoscopy and the rest to watchful waiting. A repeat finding is a personalised decision: after a negative EUS, laparoscopy is half as likely ({{PL2}}) and repeat EUS {{PE2}}; after a negative laparoscopy, laparoscopy is a tenth as likely ({{PL3}}) and repeat EUS {{PE3}}. The history is permanent.</p>
+</section>
+
+<section class="stack col" aria-labelledby="bay">
+  <h2 id="bay">Repeat positives after a negative workup</h2>
+  <p>Each person has their own false-positive propensity, drawn from beta(mκ, (1−m)κ) with mean m = {{FPR}} per test. After k earlier false positives in t − 1 tests, the chance the next test is falsely positive is <code>(mκ + k) / (κ + t − 1)</code>. The base case uses κ = {{KAPPA}} (tests independent); the scenarios κ = 3,400 and 2,900 make a second false positive 1.8× and 1.96× as likely. The cohort model carries tags for 0, 1 and 2+ earlier false positives; the microsimulation draws each person's propensity.</p>
+</section>
+
+<section class="figure" aria-labelledby="f5">
+  <div class="head"><h2 id="f5">5 · Natural history</h2><span class="eyebrow">same in every arm</span></div>
+  {{FIG_NH}}
+  <p class="caption">Onset is solved so that, without screening, symptomatic diagnoses reproduce SEER incidence by age, sex and race/ethnicity, and their stage reproduces SEER's stage mix. Screen-detected cancers wait in lead-time states until they would have caused symptoms, so screening earns stage shift only. The cohort model steps once a year; the microsimulation runs the same hazards in continuous time (hesim).</p>
+</section>
+
+<section class="figure" aria-labelledby="f6">
+  <div class="head"><h2 id="f6">6 · Esophageal adenocarcinoma calibrated to MISCAN-ESO</h2><span class="eyebrow">scenario · cohort model</span></div>
+  {{FIG_EAC}}
+  <p class="caption">In the MISCAN-ESO scenario, esophageal adenocarcinoma (EAC) follows the CISNET MISCAN-ESO structure: preclinical cancer moves from an early to a late stage before symptoms, with exponential durations. Mean sojourn {{EAC_S_M}} years in men and {{EAC_S_F}} in women (Kong 2014). The three rates are solved so that the sojourn, SEER's late-stage share at diagnosis (net of other-cause death) and the early/late dwell ratio are met exactly. A screen-detected EAC is early if found in the early phase, so its stage comes from the natural history. Gastric and other esophageal cancer keep the base-case natural history. Diagnosed EAC has esophagus-specific survival.</p>
+  <div class="two">
+    <div class="tablebox"><table><thead><tr><th>Target (NH White)</th><th>Kind</th><th>Target</th><th>Model</th></tr></thead><tbody>{{EAC_TARGETS}}</tbody></table></div>
+    <div class="stack">
+      <div class="tablebox"><table><thead><tr><th>Galleri vs usual care</th><th>Cost per QALY</th></tr></thead><tbody>{{EAC_SCEN}}</tbody></table></div>
+      <p class="caption">CISNET targets: three-model average for White people born 1950, followed from age 40 (Rubenstein 2022); the model starts at 50 with 2013–2017 SEER rates. The excess in women comes from the adenocarcinoma share, which SEER gives by race only. Barrett's esophagus prevalence and progression (also in MISCAN-ESO) are outside this model. Built by <code>tools/calibrate_miscan_eac.R</code>.</p>
+    </div>
+  </div>
+</section>
+
+<section class="stack" aria-labelledby="ms">
+  <h2 id="ms">Microsimulation: following each person</h2>
+  <p class="col">The same inputs run through a hesim individual-level model: 1,000,000 simulated people, each followed through all three arms with the same random draws, so every person's outcome under Galleri can be compared with their own outcome under usual care.</p>
+  <div class="kpis">
+    <div class="kpi"><span class="v">{{MS_ICER}}</span><span class="l">Galleri cost per QALY (cohort {{MS_COHORT}})</span></div>
+    <div class="kpi"><span class="v">{{MS_QALY}}</span><span class="l">QALYs gained per person (± {{MS_QALY95}})</span></div>
+    <div class="kpi"><span class="v">{{MS_COST}}</span><span class="l">extra cost per person</span></div>
+    <div class="kpi"><span class="v">{{MS_LOSS}}</span><span class="l">of people worse off with Galleri ({{MS_GAIN}} better off)</span></div>
+  </div>
+  <div class="two">
+    <div class="tablebox"><table><thead><tr><th>Galleri arm, per 100,000</th><th>Cohort</th><th>Microsim</th><th>Diff.</th></tr></thead><tbody>{{VT}}</tbody></table></div>
+    <div class="stack">
+      <div class="tablebox"><table><thead><tr><th>Per person</th><th>Microsim</th></tr></thead><tbody>{{FACTS}}</tbody></table></div>
+      <div class="tablebox"><table><thead><tr><th>Positive tests over a lifetime</th><th>People per 100,000</th></tr></thead><tbody>{{POSBAR}}</tbody></table></div>
+    </div>
+  </div>
+  <p class="caption col">Usual care agrees within about 1% (life-years, QALYs, cost, symptomatic cancers). Workup counts agree within a few percent. The microsimulation finds about 23% fewer cancers by screening because, in continuous time, some cancers start and cause symptoms between two annual tests; the cohort model's yearly steps give every cancer at least one test. That is why its ICER is higher.</p>
+</section>
+
+<section class="stack" aria-labelledby="sc">
+  <h2 id="sc">Scenarios, lowest to highest cost per QALY</h2>
+  <div class="tablebox"><table><thead><tr><th>Scenario</th><th>Galleri cost per QALY</th></tr></thead><tbody>{{SCROWS}}</tbody></table></div>
+</section>
+
+<section class="stack" aria-labelledby="rv">
+  <h2 id="rv">Inputs to review</h2>
+  <p class="col">Rose rows are DUMMY placeholders still to source. Edit any of them on the numbered tabs of <code>Galleri_model_inputs.xlsx</code> and import with <code>Rscript import_inputs_xlsx.R</code>.</p>
+  <div class="tablebox"><table><thead><tr><th>Input</th><th>Value</th><th>Status</th><th>Parameter</th></tr></thead><tbody>{{RV}}</tbody></table></div>
+</section>
+
+<section class="stack col" aria-labelledby="g">
+  <h2 id="g">What changed since the last version</h2>
+  <ul class="gaps">
+    <li><b>EGD hold</b> of {{HOLD}} years after a negative EGD; repeat positives go straight to ENT or PET CT.</li>
+    <li><b>Two kinds of EGD miss:</b> a visible lesion missed, and a cancer not yet visible.</li>
+    <li><b>Pancreatobiliary workup by history:</b> coin-toss FNA/FNB, tumor board, laparoscopy less likely after each negative result.</li>
+    <li><b>Bayesian repeat positives</b> (κ scenarios), and <b>Kunzmann as a one-time test</b> from the GRADE evidence profile.</li>
+    <li><b>Person-level microsimulation</b> (hesim) that cross-checks the cohort model; it also corrected how workup paths are weighted for people with cancers outside the upper GI tract.</li>
+    <li><b>MISCAN-ESO calibration</b> of esophageal adenocarcinoma (scenario): sex-specific sojourn, early → late preclinical progression, stage of screen-detected EAC from the natural history, esophagus-specific survival; validated against CISNET lifetime cases and deaths.</li>
+    <li><b>Reproducible in R only:</b> the inputs workbook and all three pages are now built by R scripts; <code>Rscript make_all.R</code> reruns everything.</li>
+  </ul>
+  <p class="caption">Still not modelled: stage varying with age within a race-sex group, the natural history of other-site cancers (they borrow upper GI's), and a hold that depends on a Bayesian probability threshold.</p>
+</section>
+
+<p class="foot col">Built by <code>viz/build_model_page.R</code> from <code>inputs/parameters.csv</code> and the model outputs on branch <code>us-sourced-inputs</code> (github.com/fali-ebm/Galleri, PR #1). Sources: <code>inputs/SOURCES.md</code> and the References tab of the inputs workbook.</p>
+</main></body></html>

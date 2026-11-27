@@ -23,8 +23,14 @@
 
 # pre_m: preclinical cancer already missed by Galleri that stays undetectable by
 # Galleri (scenario p_fn_persist > 0); otherwise it behaves exactly like pre.
-STATES <- c("well", "pre", "pre_m", "lead_early", "lead_late", "early", "late", "dead_cancer", "dead_other")
-PRE <- c("pre", "pre_m")
+# pre_ee / pre_el: preclinical esophageal adenocarcinoma (EAC), early / late stage, and
+# lead_ee / lead_el its screen-detected lead-time states. They are used only in the MISCAN-ESO
+# scenario (miscan_eac = 1, see miscan_rates()); otherwise no one enters them.
+# early_e / late_e: diagnosed EAC with esophagus-specific survival (m_early_eac, m_late_eac).
+STATES <- c("well", "pre", "pre_m", "pre_ee", "pre_el", "lead_early", "lead_late", "lead_ee", "lead_el",
+            "early", "late", "early_e", "late_e", "dead_cancer", "dead_other")
+DX_EARLY <- c("early", "early_e"); DX_LATE <- c("late", "late_e")
+PRE <- c("pre", "pre_m", "pre_ee", "pre_el")
 DEAD <- c("dead_cancer", "dead_other")
 CHANNELS <- c("cost", "qaly", "daly", "ly", "clin_dx", "clin_late", "ca_death", "oc_death", "symp_perf")
 ARMS <- c("Usual care", "Kunzmann -> EGD", "Galleri")
@@ -59,6 +65,17 @@ target_ugi <- function(curve, row, settings) {
   curve$inc_eso * (curve$eac_share * rr + 1 - curve$eac_share) + curve$inc_stom
 }
 
+# MISCAN-ESO scenario: esophageal adenocarcinoma, and the rest of upper GI cancer.
+target_eac <- function(curve, row, settings)
+  curve$inc_eso * curve$eac_share * kunz_rr(row$risk_group, settings, row$sex)
+target_other <- function(curve, row, settings) curve$inc_eso * (1 - curve$eac_share) + curve$inc_stom
+late_other <- function(curve, p) {
+  eso <- curve$inc_eso * (1 - curve$eac_share); stom <- curve$inc_stom
+  pl <- (eso * curve$late_eso + stom * curve$late_stom) / (eso + stom)
+  or <- p$or_late_clin %||% 1
+  pl * or / (1 - pl + pl * or)
+}
+
 # SEER stage at symptomatic diagnosis for this subgroup, by age: share
 # regional/distant, weighted by the esophagus vs stomach mix of the target.
 # or_late_clin (default 1) shifts the odds for probabilistic analysis.
@@ -70,16 +87,81 @@ target_late <- function(curve, row, settings, p) {
   pl * or / (1 - pl + pl * or)
 }
 
-transition_matrix <- function(mo, onset, p, pl) {
+# ---- MISCAN-ESO natural history for esophageal adenocarcinoma (scenario) -----------
+# In MISCAN-ESO (CISNET; Kong 2014) preclinical EAC moves through stages before symptoms.
+# Here: preclinical early (PE) -> symptoms, early stage (rate hE), or -> preclinical late (PL)
+# (rate lam); PL -> symptoms, late stage (rate hL). Exponential durations, as in MISCAN. The
+# three rates follow from three targets:
+#   S  mean sojourn, onset to symptoms (MISCAN-ESO: men 4.9 y, women 4.5 y)
+#        S = 1 / (hE + lam) + L / hL
+#   L  share late (regional/distant) at symptomatic diagnosis (SEER esophagus, subgroup)
+#        L = lam / (hE + lam)
+#   r  mean time in PE / mean time in PL (eac_dwell_ratio; 1 = equal, assumption)
+#        r = hL / (hE + lam)
+# Solution: hL = (r + L) / S, a = hE + lam = hL / r, hE = a (1 - L), lam = a L.
+# A screen-detected EAC is early if found in PE and late if found in PL, so the stage of
+# screen-detected EAC comes out of the natural history instead of p_late_screen.
+miscan_rates <- function(S, L, r = 1) {
+  stopifnot(S > 0, L > 0, L < 1, r > 0)
+  hL <- (r + L) / S; a <- hL / r
+  list(a = a, hE = a * (1 - L), lam = a * L, hL = hL, S = S, L = L, r = r)
+}
+# One-year transition probabilities of the PE/PL process (no other-cause death).
+miscan_year <- function(m) {
+  a <- m$a; b <- m$hL; ea <- exp(-a); eb <- exp(-b)
+  pe_pl <- if (abs(a - b) < 1e-10) m$lam * ea else m$lam * (eb - ea) / (a - b)   # in PL at year end
+  c(pe_pe = ea, pe_pl = pe_pl, pe_early = m$hE / a * (1 - ea),
+    pe_late = m$lam / a * (1 - ea) - pe_pl, pl_pl = eb, pl_late = 1 - eb)
+}
+# EAC targets for one subgroup row: sex-specific sojourn S, dwell ratio r and the
+# incidence-weighted SEER late share L. Other-cause death removes more people on the longer
+# path to late-stage symptoms, so the late share seen at diagnosis is below lam / (hE + lam);
+# prepare_row() therefore solves the death-free share so that the calibrated usual-care
+# cohort reproduces L exactly (eac_late_share()).
+eac_targets <- function(p, curve, row, settings) {
+  S <- if (identical(row$sex, "female")) p$sojourn_eac_female %||% 4.5 else p$sojourn_eac_male %||% 4.9
+  w <- curve$inc_eso * curve$eac_share; L <- sum(w * curve$late_eso) / sum(w)
+  or <- p$or_late_clin %||% 1
+  list(S = S, r = p$eac_dwell_ratio %||% 1, L = L * or / (1 - L + L * or))
+}
+eac_rates <- function(p, curve, row, settings) {           # rates with the death-free share solved
+  tg <- eac_targets(p, curve, row, settings)
+  calib_eac(curve, row, settings, p, tg)$eac
+}
+# Calibrate both cancers and solve the death-free late share Ls so that the lifetime late
+# share of symptomatic EAC in the usual-care cohort equals the SEER target.
+calib_eac <- function(curve, row, settings, p, tg = eac_targets(p, curve, row, settings)) {
+  run <- function(Ls) calibrate(curve, target_other(curve, row, settings), p, late_other(curve, p),
+                                target_eac(curve, row, settings), miscan_rates(tg$S, Ls, tg$r))
+  gap <- function(Ls) { cal <- run(Ls); cal$eac_late / cal$eac_clin - tg$L }
+  Ls <- if (gap(0.9999) <= 0) 0.9999 else stats::uniroot(gap, c(tg$L, 0.9999), tol = 1e-10)$root
+  cal <- run(Ls); cal$eac$L_seen <- tg$L
+  cal
+}
+miscan_on <- function(p) isTRUE((p$miscan_eac %||% 0) == 1)
+
+transition_matrix <- function(mo, onset, p, pl, onset_e = 0, eac = NULL) {
   pp <- 1 - exp(-1 / p$sojourn_years); s <- 1 - mo
   n <- length(STATES)
   P <- matrix(0, n, n, dimnames = list(STATES, STATES))
   P[, "dead_other"] <- mo
-  P["well", c("well", "pre")] <- s * c(1 - onset, onset)
+  P["well", c("well", "pre", "pre_ee")] <- s * c(1 - onset - onset_e, onset, onset_e)
   P["pre", c("pre", "early", "late")] <- s * c(1 - pp, pp * (1 - pl), pp * pl)
   P["pre_m", c("pre_m", "early", "late")] <- s * c(1 - pp, pp * (1 - pl), pp * pl)
   P["lead_early", c("lead_early", "early")] <- s * c(1 - pp, pp)
   P["lead_late", c("lead_late", "late")] <- s * c(1 - pp, pp)
+  if (is.null(eac)) eac <- miscan_rates(p$sojourn_years, max(min(pl, 0.999), 0.001))   # unused unless onset_e > 0
+  y <- miscan_year(eac)
+  P["pre_ee", c("pre_ee", "pre_el", "early_e", "late_e")] <- s * y[c("pe_pe", "pe_pl", "pe_early", "pe_late")]
+  P["pre_el", c("pre_el", "late_e")] <- s * y[c("pl_pl", "pl_late")]
+  # lead time of a screen-detected EAC: exponential with the mean remaining sojourn
+  # (S from PE, 1 / hL from PL), so the would-be symptom time keeps MISCAN's mean
+  ql <- exp(-1 / eac$S); qll <- exp(-eac$hL)
+  P["lead_ee", c("lead_ee", "early_e")] <- s * c(ql, 1 - ql)
+  P["lead_el", c("lead_el", "late_e")] <- s * c(qll, 1 - qll)
+  me <- p$m_early_eac %||% p$m_early; ml <- p$m_late_eac %||% p$m_late
+  P["early_e", c("early_e", "dead_cancer")] <- s * c(1 - me, me)
+  P["late_e", c("late_e", "dead_cancer")] <- s * c(1 - ml, ml)
   P["early", c("early", "dead_cancer")] <- s * c(1 - p$m_early, p$m_early)
   P["late", c("late", "dead_cancer")] <- s * c(1 - p$m_late, p$m_late)
   P[DEAD, ] <- 0; P["dead_cancer", "dead_cancer"] <- 1; P["dead_other", "dead_other"] <- 1
@@ -90,52 +172,88 @@ transition_matrix <- function(mo, onset, p, pl) {
 # equals the SEER target at every age (closed form, one year at a time).
 # Returns the onset vector, the starting state (preclinical prevalence implied
 # by the target) and the fit.
-calibrate <- function(curve, target, p, pl) {
+#
+# MISCAN-ESO scenario (target_e and eac given): esophageal adenocarcinoma has its own
+# target and its own two-stage preclinical process; 'target' is then the rest of upper GI
+# cancer (gastric and other esophageal). Both onsets are solved the same way: the EAC onset
+# puts enough people in PE that next year's EAC presentations (from PE and PL) per living
+# person equal target_e. Without target_e the result is identical to the original model.
+calibrate <- function(curve, target, p, pl, target_e = NULL, eac = NULL) {
   n <- nrow(curve); pp <- 1 - exp(-1 / p$sojourn_years); s <- 1 - curve$mort_other
+  use_e <- !is.null(target_e)
   x <- setNames(numeric(length(STATES)), STATES)
-  x["pre"] <- min(0.5, target[1] / (s[1] * pp)); x["well"] <- 1 - x["pre"]
-  x0 <- x; onset <- numeric(n); clipped <- 0
+  x["pre"] <- min(0.5, target[1] / (s[1] * pp))
+  if (use_e) {
+    y <- miscan_year(eac); cE <- y[["pe_early"]] + y[["pe_late"]]; cL <- y[["pl_late"]]
+    k <- eac$lam / eac$hL                       # steady state: PL / PE = lam / hL
+    x["pre_ee"] <- min(0.2, target_e[1] / (s[1] * (cE + k * cL))); x["pre_el"] <- k * x[["pre_ee"]]
+  }
+  x["well"] <- 1 - x[["pre"]] - x[["pre_ee"]] - x[["pre_el"]]
+  x0 <- x; onset <- numeric(n); onset_e <- numeric(n); clipped <- 0; eac_clin <- 0; eac_late <- 0
   for (t in seq_len(n)) {
     if (t < n) {
-      P0 <- transition_matrix(curve$mort_other[t], 0, p, pl[t])
+      P0 <- transition_matrix(curve$mort_other[t], 0, p, pl[t], 0, eac)
       nxt <- drop(x %*% P0)                       # next state with no new onset
       alive_next <- sum(nxt[!STATES %in% DEAD])
       pre_goal <- target[t + 1] * alive_next / (s[t + 1] * pp)
       o <- (pre_goal - nxt[["pre"]]) / max(1e-12, nxt[["well"]])
       if (o < 0 || o > 1) clipped <- clipped + 1
       onset[t] <- min(1, max(0, o))
-    } else onset[t] <- onset[max(1, t - 1)]
-    x <- drop(x %*% transition_matrix(curve$mort_other[t], onset[t], p, pl[t]))
+      if (use_e) {
+        pe_goal <- (target_e[t + 1] * alive_next - nxt[["pre_el"]] * s[t + 1] * cL) / (s[t + 1] * cE)
+        oe <- (pe_goal - nxt[["pre_ee"]]) / max(1e-12, nxt[["well"]])
+        if (oe < 0 || oe > 1) clipped <- clipped + 1
+        onset_e[t] <- min(1 - onset[t], max(0, oe))
+      }
+    } else { onset[t] <- onset[max(1, t - 1)]; onset_e[t] <- onset_e[max(1, t - 1)] }
+    Pt <- transition_matrix(curve$mort_other[t], onset[t], p, pl[t], onset_e[t], eac)
+    if (use_e) {
+      eac_late <- eac_late + x[["pre_ee"]] * Pt["pre_ee", "late_e"] + x[["pre_el"]] * Pt["pre_el", "late_e"]
+      eac_clin <- eac_clin + x[["pre_ee"]] * Pt["pre_ee", "early_e"] + x[["pre_ee"]] * Pt["pre_ee", "late_e"] +
+                  x[["pre_el"]] * Pt["pre_el", "late_e"]
+    }
+    x <- drop(x %*% Pt)
   }
-  list(onset = onset, x0 = x0, clipped = clipped, pl = pl)
+  list(onset = onset, onset_e = onset_e, x0 = x0, clipped = clipped, pl = pl, eac = eac,
+       eac_clin = eac_clin, eac_late = eac_late)
 }
+# transition matrix of cycle t for a calibrated row
+tm_at <- function(curve, cal, p, t)
+  transition_matrix(curve$mort_other[t], cal$onset[t], p, cal$pl[t], cal$onset_e[t] %||% 0, cal$eac)
 
 # ---- Rewards per cycle (as before; onset now comes from calibration) --------
 cycle_rewards <- function(P, curve, t, p) {
   alive <- setNames(ceakit::alive_fraction(P, DEAD), STATES)
   live <- !STATES %in% DEAD
   R <- matrix(0, length(STATES), length(CHANNELS), dimnames = list(STATES, CHANNELS))
-  u <- c(well = 1, pre = 1, pre_m = 1, lead_early = p$u_mult_early, lead_late = p$u_mult_late,
-         early = p$u_mult_early, late = p$u_mult_late, dead_cancer = 0, dead_other = 0)
-  dw <- c(well = 0, pre = 0, pre_m = 0, lead_early = p$dw_early, lead_late = p$dw_late,
-          early = p$dw_early, late = p$dw_late, dead_cancer = 0, dead_other = 0)
+  u <- c(well = 1, pre = 1, pre_m = 1, pre_ee = 1, pre_el = 1, lead_early = p$u_mult_early, lead_late = p$u_mult_late,
+         lead_ee = p$u_mult_early, lead_el = p$u_mult_late,
+         early = p$u_mult_early, late = p$u_mult_late, early_e = p$u_mult_early, late_e = p$u_mult_late,
+         dead_cancer = 0, dead_other = 0)
+  dw <- c(well = 0, pre = 0, pre_m = 0, pre_ee = 0, pre_el = 0, lead_early = p$dw_early, lead_late = p$dw_late,
+          lead_ee = p$dw_early, lead_el = p$dw_late,
+          early = p$dw_early, late = p$dw_late, early_e = p$dw_early, late_e = p$dw_late, dead_cancer = 0, dead_other = 0)
   R[, "ly"] <- alive
   R[, "qaly"] <- alive * curve$utility_well[t] * u[STATES]
   R["lead_early", "cost"] <- alive[["lead_early"]] * p$c_fu_early
   R["lead_late", "cost"]  <- alive[["lead_late"]] * p$c_fu_late
+  R["lead_ee", "cost"] <- alive[["lead_ee"]] * p$c_fu_early
+  R["lead_el", "cost"] <- alive[["lead_el"]] * p$c_fu_late
   R["early", "cost"] <- alive[["early"]] * p$c_fu_early + P["early", "dead_cancer"] * p$c_eol
   R["late", "cost"]  <- alive[["late"]] * p$c_fu_late  + P["late", "dead_cancer"]  * p$c_eol
+  R["early_e", "cost"] <- alive[["early_e"]] * p$c_fu_early + P["early_e", "dead_cancer"] * p$c_eol
+  R["late_e", "cost"]  <- alive[["late_e"]] * p$c_fu_late  + P["late_e", "dead_cancer"]  * p$c_eol
   R[, "daly"] <- alive * dw[STATES] + P[, "dead_cancer"] * curve$daly_ref_le[t] * live
   # symptomatic diagnosis: workup (incl. an EGD that can perforate) and first-year treatment
   perf <- p$p_perf_egd %||% 0; harm_perf <- perf * (1 - (p$p_death_perf %||% 0)) * (p$d_sae %||% 0)
   for (st in PRE) {
-    dx <- P[st, "early"] + P[st, "late"]
-    R[st, "cost"] <- P[st, "early"] * (p$c_symp_dx + p$c_tx_first_early) +
-                     P[st, "late"]  * (p$c_symp_dx + p$c_tx_first_late) + dx * perf * (p$c_perf %||% 0)
+    pe <- sum(P[st, DX_EARLY]); pl_ <- sum(P[st, DX_LATE]); dx <- pe + pl_
+    R[st, "cost"] <- pe * (p$c_symp_dx + p$c_tx_first_early) +
+                     pl_ * (p$c_symp_dx + p$c_tx_first_late) + dx * perf * (p$c_perf %||% 0)
     R[st, "qaly"] <- R[st, "qaly"] - dx * harm_perf
     R[st, "daly"] <- R[st, "daly"] + dx * harm_perf
     R[st, "clin_dx"] <- dx
-    R[st, "clin_late"] <- P[st, "late"]
+    R[st, "clin_late"] <- pl_
     R[st, "symp_perf"] <- dx * perf
   }
   R[, "ca_death"] <- P[, "dead_cancer"] * live
@@ -244,14 +362,19 @@ rest_tree_edges <- function(p, pb = 1) rest_tree(p, pb, edges_only = TRUE)
 # still preclinical at max_age). A screen-detected cancer with this outcome is an
 # overdiagnosis. Lead-time states progress and die exactly like 'pre', so this is
 # exact for upper GI cancers; other-site cancers found share the same natural history.
-overdx_prob <- function(curve, cal, p) {
-  n <- nrow(curve); q <- numeric(n + 1); q[n + 1] <- 1
+# Returns a matrix (cycles x pre, ee, el): the same probability for a cancer in pre, in
+# preclinical early EAC and in preclinical late EAC (MISCAN-ESO scenario).
+overdx_from <- function(Ps) {
+  n <- length(Ps); q <- matrix(1, n + 1, 3, dimnames = list(NULL, c("pre", "ee", "el")))
   for (t in n:1) {
-    P <- transition_matrix(curve$mort_other[t], cal$onset[t], p, cal$pl[t])
-    q[t] <- P["pre", "dead_other"] + P["pre", "pre"] * q[t + 1]
+    P <- Ps[[t]]
+    q[t, "pre"] <- P["pre", "dead_other"] + P["pre", "pre"] * q[t + 1, "pre"]
+    q[t, "el"] <- P["pre_el", "dead_other"] + P["pre_el", "pre_el"] * q[t + 1, "el"]
+    q[t, "ee"] <- P["pre_ee", "dead_other"] + P["pre_ee", "pre_ee"] * q[t + 1, "ee"] + P["pre_ee", "pre_el"] * q[t + 1, "el"]
   }
-  q[seq_len(n)]
+  q[seq_len(n), , drop = FALSE]
 }
+overdx_prob <- function(curve, cal, p) overdx_from(lapply(seq_len(nrow(curve)), function(t) tm_at(curve, cal, p, t)))
 
 # ---- One cohort row, one arm: annual simulation -----------------------------
 EVENTS <- c("kunz", "tests", "investigated", "egd", "ent", "pet", "eus", "samp", "tb", "lap", "surv", "invasive",
@@ -269,7 +392,8 @@ EVENTS <- c("kunz", "tests", "investigated", "egd", "ent", "pet", "eus", "samp",
 #   b  = pancreatobiliary history (none, prior negative EUS, prior negative laparoscopy).
 # Health columns: well, pre (preclinical, visible on EGD), iv (preclinical, not yet
 # visible), pm (missed by Galleri and staying undetectable: scenario p_fn_persist).
-HCOLS <- c("well", "pre", "iv", "pm")
+# ee / el: preclinical esophageal adenocarcinoma, early / late (MISCAN-ESO scenario only).
+HCOLS <- c("well", "pre", "iv", "pm", "ee", "el")
 tag_grid <- function(H) expand.grid(k = 0:2, h = 0:H, b = 1:3)
 tag_id <- function(T, k, h, b) which(T$k == k & T$h == h & T$b == b)
 
@@ -286,39 +410,45 @@ galleri_round <- function(X, T, t, nprev, curve, p, settings, wk) {
   Am <- do.call(rbind, lapply(wk$rest, `[[`, "all"))[T$b, , drop = FALSE]    # per tag: other-cancer averages
   det <- vapply(wk$rest, `[[`, 0, "det_o")[T$b]
   TO <- do.call(rbind, lapply(wk$rest, `[[`, "to"))[T$b, , drop = FALSE]
-  W <- X[, "well"]; U <- X[, "pre"]; I <- X[, "iv"]; Mm <- X[, "pm"]
+  W <- X[, "well"]; U <- X[, "pre"]; I <- X[, "iv"]; Mm <- X[, "pm"]; Ee <- X[, "ee"]; El <- X[, "el"]
   k <- T$k; h <- T$h; b <- T$b
   theta <- (m * kap + k) / (kap + nprev)                           # posterior mean false-positive propensity
   pool_o <- W * curve$inc_other[t] * (if (t == 1) p$sojourn_years else interval)
   a_u <- U * p$sens_g_ugi * rep_m; a_i <- I * p$sens_g_ugi * rep_m
   a_o <- pool_o * p$sens_g_other * rep_m; a_f <- (W - pool_o) * theta
-  gp <- a_u + a_i + a_o + a_f
+  a_ee <- Ee * p$sens_g_ugi * rep_m; a_el <- El * p$sens_g_ugi * rep_m   # EAC (MISCAN-ESO scenario)
+  gp <- a_u + a_i + a_o + a_f + a_ee + a_el
   egd <- h == 0; s_e <- ifelse(egd, sE, 1)
   fu1 <- ifelse(egd, a_u * se_egd, 0)
   mv <- ifelse(egd, a_u * (1 - se_egd) * (1 - fi), a_u)          # visible, missed (or EGD skipped)
   mi <- ifelse(egd, a_u * (1 - se_egd) * fi, 0) + a_i              # not yet visible
   fu2 <- mv * s_e * reach_pet * ppu                                # seen on PET -> targeted EGD
+  # EAC: found at EGD by stage; every EAC miss stays visible (in its own stage) and can be seen on PET
+  fe1 <- ifelse(egd, a_ee * se_egd, 0); fl1 <- ifelse(egd, a_el * se_egd, 0)
+  mve <- a_ee - fe1; mvl <- a_el - fl1
+  fe2 <- mve * s_e * reach_pet * ppu; fl2 <- mvl * s_e * reach_pet * ppu
   fo <- a_o * s_e * det
-  n_egd <- ifelse(egd, gp, 0) + fu2
-  rest_free <- (a_f + mv + mi) * s_e; rest_o <- a_o * s_e
+  n_egd <- ifelse(egd, gp, 0) + fu2 + fe2 + fl2
+  rest_free <- (a_f + mv + mi + mve + mvl) * s_e; rest_o <- a_o * s_e
   R <- function(col) sum(rest_free * Fm[, col] + rest_o * Am[, col])
   perf <- n_egd * p$p_perf_egd; sae_o_v <- rest_free * Fm[, "sae"] + rest_o * Am[, "sae"]
   pd <- perf * p$p_death_perf + sae_o_v * p$p_death_sae
   ff <- a_f * s_e; pf <- ifelse(egd, a_f * p$p_perf_egd, 0); af_e <- ifelse(egd, a_f, 0)
   FF <- function(col) sum(ff * Fm[, col])
   e <- setNames(as.list(numeric(length(EVENTS))), EVENTS)
-  e$tests <- sum(W + U + I + Mm); e$investigated <- sum(gp); e$free_inv <- sum(a_f)
-  e$found_ugi <- sum(fu1 + fu2); e$found_other <- sum(fo); e$found_pet_ugi <- sum(fu2)
-  e$missed_inv <- sum(a_u + a_i + a_o - fu1 - fu2 - fo); e$egd_skipped <- sum(gp[!egd])
-  e$egd <- sum(n_egd); e$egd_pos <- sum(fu1); e$egd_neg <- sum(gp[egd]) - sum(fu1)
+  e$tests <- sum(W + U + I + Mm + Ee + El); e$investigated <- sum(gp); e$free_inv <- sum(a_f)
+  fe <- fe1 + fe2; fl <- fl1 + fl2
+  e$found_ugi <- sum(fu1 + fu2 + fe + fl); e$found_other <- sum(fo); e$found_pet_ugi <- sum(fu2 + fe2 + fl2)
+  e$missed_inv <- sum(a_u + a_i + a_o + a_ee + a_el - fu1 - fu2 - fe - fl - fo); e$egd_skipped <- sum(gp[!egd])
+  e$egd <- sum(n_egd); e$egd_pos <- sum(fu1 + fe1 + fl1); e$egd_neg <- sum(gp[egd]) - sum(fu1 + fe1 + fl1)
   for (kk in c("ent", "pet", "eus", "samp", "tb", "lap")) e[[kk]] <- R(paste0("n_", kk))
   e$surv <- R("n_ww"); e$incid <- R("n_incid")
   e$invasive <- sum(n_egd) + R("invasive"); e$perf <- sum(perf); e$perf_deaths <- sum(perf) * p$p_death_perf
   e$sae <- sum(perf) + sum(sae_o_v); e$rad_ca <- R("rad")
   e$days <- sum(gp[egd]) * p$t_egd + R("days")
-  e$tp <- sum(a_u + a_i); e$fp <- sum(a_o + a_f); e$fp_other_ca <- sum(a_o); e$tn <- sum(W - a_o - a_f)
-  e$fn <- sum(U + I - a_u - a_i + Mm)
-  e$hidden_new <- sum(mi); e$missed_visible <- sum(mv - fu2); e$repeat_fp <- sum(a_f[k > 0])
+  e$tp <- sum(a_u + a_i + a_ee + a_el); e$fp <- sum(a_o + a_f); e$fp_other_ca <- sum(a_o); e$tn <- sum(W - a_o - a_f)
+  e$fn <- sum(U + I - a_u - a_i + Mm + Ee + El - a_ee - a_el)
+  e$hidden_new <- sum(mi); e$missed_visible <- sum(mv - fu2 + mve - fe2 + mvl - fl2); e$repeat_fp <- sum(a_f[k > 0])
   e$egd_free <- sum(af_e); e$perf_free <- sum(pf)
   for (kk in c("ent", "pet", "eus", "samp", "incid", "lap")) e[[paste0(kk, "_free")]] <- FF(paste0("n_", kk))
   e$surv_free <- FF("n_ww")
@@ -330,7 +460,7 @@ galleri_round <- function(X, T, t, nprev, curve, p, settings, wk) {
   persist <- (U - a_u) * (p$p_fn_persist %||% 0); e$fn_persist <- sum(persist)
   q_path <- FF("dfp")
   fp_cost <- sum(af_e) * (p$c_egd + p$p_perf_egd * p$c_perf) + FF("cost") + FF("sae") * p$c_sae
-  cost_t <- sum(W + U + I + Mm) * p$c_galleri * (p$galleri_cost_share %||% 1) + sum(n_egd) * p$c_egd + R("cost")
+  cost_t <- sum(W + U + I + Mm + Ee + El) * p$c_galleri * (p$galleri_cost_share %||% 1) + sum(n_egd) * p$c_egd + R("cost")
   # where everyone goes next round
   h_after <- pmax(h - 1, 0); h_pos <- ifelse(egd, H, h_after)
   stay <- tag_idx(k, h_after, b, H)
@@ -339,6 +469,8 @@ galleri_round <- function(X, T, t, nprev, curve, p, settings, wk) {
   Xn[, "pre"]  <- acc_rows(Xn[, "pre"], stay, U - a_u - persist)
   Xn[, "iv"]   <- acc_rows(Xn[, "iv"], stay, I - a_i)
   Xn[, "pm"]   <- acc_rows(Xn[, "pm"], stay, Mm + persist)
+  Xn[, "ee"]   <- acc_rows(Xn[, "ee"], stay, Ee - a_ee)
+  Xn[, "el"]   <- acc_rows(Xn[, "el"], stay, El - a_el)
   for (b2 in 1:3) {                                                # positives not diagnosed: hold and history updated
     w2 <- TO[, b2]
     j_fp <- tag_idx(pmin(k + 1, 2), h_pos, b2, H); j <- tag_idx(k, h_pos, b2, H)
@@ -346,14 +478,17 @@ galleri_round <- function(X, T, t, nprev, curve, p, settings, wk) {
     Xn[, "well"] <- acc_rows(Xn[, "well"], j, a_o * w2)
     Xn[, "pre"]  <- acc_rows(Xn[, "pre"], j, (mv - fu2) * w2)
     Xn[, "iv"]   <- acc_rows(Xn[, "iv"], j, mi * w2)
+    Xn[, "ee"]   <- acc_rows(Xn[, "ee"], j, (mve - fe2) * w2)
+    Xn[, "el"]   <- acc_rows(Xn[, "el"], j, (mvl - fl2) * w2)
   }
   list(X = Xn, e = lapply(e, function(v) unname(v)), q_path = unname(q_path), fp_cost = unname(fp_cost),
-       cost_t = unname(cost_t), sae_other = unname(sum(sae_o_v)), pd = unname(sum(pd)))
+       cost_t = unname(cost_t), sae_other = unname(sum(sae_o_v)), pd = unname(sum(pd)),
+       fe = unname(sum(fe)), fl = unname(sum(fl)))
 }
 
 # Natural history for the tagged people (the same transitions as transition_matrix);
 # returns the next tagged matrix and the flows into diagnosed and dead states.
-tagged_step <- function(X, T, P, onset, p) {
+tagged_step <- function(X, T, P, onset, p, onset_e = 0) {
   s <- 1 - P["well", "dead_other"]; pp <- P["pre", "early"] + P["pre", "late"]
   pl <- if (pp > 0) P["pre", "late"] / pp else 0
   v <- 1 - exp(-1 / (p$t_visible %||% 1))
@@ -362,18 +497,25 @@ tagged_step <- function(X, T, P, onset, p) {
   # in the rest so that total onset stays at the calibrated (usual care) level.
   hr <- p$hr_ca_after_fp %||% 1; w1 <- sum(X[T$k > 0, "well"]); w0 <- sum(X[T$k == 0, "well"])
   r0 <- if (hr != 1 && w0 > 0) max(0, (w0 + w1 - hr * w1) / w0) else 1
-  on <- pmin(1, onset * ifelse(T$k > 0, hr, r0))
+  mult <- ifelse(T$k > 0, hr, r0)
+  on <- pmin(1, onset * mult); on_e <- pmin(1 - on, onset_e * mult)
   clin <- (X[, "pre"] + X[, "iv"] + X[, "pm"]) * pp
   Xn <- X * 0
-  Xn[, "well"] <- X[, "well"] * s * (1 - on)
+  Xn[, "well"] <- X[, "well"] * s * (1 - on - on_e)
   Xn[, "pre"] <- X[, "well"] * s * on + X[, "pre"] * (s - pp) + X[, "iv"] * (s - pp) * v
   Xn[, "iv"] <- X[, "iv"] * (s - pp) * (1 - v)
   Xn[, "pm"] <- X[, "pm"] * (s - pp)
-  list(X = Xn, early = unname(sum(clin) * (1 - pl)), late = unname(sum(clin) * pl), dead_other = unname(sum(X) * (1 - s)))
+  # esophageal adenocarcinoma, MISCAN-ESO scenario (P rows already include survival s)
+  Xn[, "ee"] <- X[, "well"] * s * on_e + X[, "ee"] * P["pre_ee", "pre_ee"]
+  Xn[, "el"] <- X[, "ee"] * P["pre_ee", "pre_el"] + X[, "el"] * P["pre_el", "pre_el"]
+  e_early <- sum(X[, "ee"]) * P["pre_ee", "early_e"]
+  e_late <- sum(X[, "ee"]) * P["pre_ee", "late_e"] + sum(X[, "el"]) * P["pre_el", "late_e"]
+  list(X = Xn, early = unname(sum(clin) * (1 - pl)), late = unname(sum(clin) * pl),
+       early_e = unname(e_early), late_e = unname(e_late), dead_other = unname(sum(X) * (1 - s)))
 }
 
 agg_state <- function(X, y) { x <- y; x[["well"]] <- sum(X[, "well"]); x[["pre"]] <- sum(X[, "pre"]) + sum(X[, "iv"])
-  x[["pre_m"]] <- sum(X[, "pm"]); x }
+  x[["pre_m"]] <- sum(X[, "pm"]); x[["pre_ee"]] <- sum(X[, "ee"]); x[["pre_el"]] <- sum(X[, "el"]); x }
 
 simulate_arm <- function(arm, row, curve, cal, p, settings, wk, V, q_od = overdx_prob(curve, cal, p)) {
   n <- nrow(curve); pls <- p$p_late_screen; x <- cal$x0
@@ -391,12 +533,12 @@ simulate_arm <- function(arm, row, curve, cal, p, settings, wk, V, q_od = overdx
   if (is_g) {                                                   # tagged people (history), all start untagged
     T <- tag_grid(max(0, round(p$egd_hold_years %||% 0)))
     X <- matrix(0, nrow(T), length(HCOLS), dimnames = list(NULL, HCOLS))
-    X[tag_idx(0, 0, 1, max(T$h)), c("well", "pre", "pm")] <- c(x[["well"]], x[["pre"]], x[["pre_m"]])
+    X[tag_idx(0, 0, 1, max(T$h)), c("well", "pre", "pm", "ee", "el")] <- c(x[["well"]], x[["pre"]], x[["pre_m"]], x[["pre_ee"]], x[["pre_el"]])
   }
   for (t in seq_len(n)) {
     age <- row$start_age + t - 1
     df <- disc_vec(settings, t)
-    P <- transition_matrix(curve$mort_other[t], cal$onset[t], p, cal$pl[t])
+    P <- tm_at(curve, cal, p, t)
     if (arm == "Kunzmann -> EGD" && t == 1) { ev["kunz"] <- 1; cost0 <- cost0 + df[["cost"]] * p$c_kunz }
     screen <- arm != "Usual care" && age <= settings$screen_stop_age && (t - 1) %% interval == 0 &&
               (is_g || (isTRUE(row$kunzmann_scoped == 1) &&
@@ -406,11 +548,13 @@ simulate_arm <- function(arm, row, curve, cal, p, settings, wk, V, q_od = overdx
         W <- sum(X[, "well"])
         g <- galleri_round(X, T, t, ev[["rounds"]], curve, p, settings, wk)
         X <- g$X; e <- g$e; sae_other <- g$sae_other; fp_cost <- g$fp_cost; cost_t <- g$cost_t
-        pd <- g$pd
+        pd <- g$pd; fe <- g$fe; fl <- g$fl
       } else {
         W <- x[["well"]]; U <- x[["pre"]]; e <- setNames(as.list(numeric(length(EVENTS))), EVENTS)
-        egd <- W + U
-        e$found_ugi <- U * p$sens_egd; e$missed_inv <- U - e$found_ugi
+        Ue <- x[["pre_ee"]]; Ul <- x[["pre_el"]]                    # EAC (MISCAN-ESO scenario)
+        fe <- Ue * p$sens_egd; fl <- Ul * p$sens_egd
+        egd <- W + U + Ue + Ul
+        e$found_ugi <- U * p$sens_egd + fe + fl; e$missed_inv <- U + Ue + Ul - e$found_ugi
         e$investigated <- egd; e$free_inv <- W
         e$egd <- egd; e$invasive <- egd; e$invasive_free <- W
         e$perf <- egd * p$p_perf_egd; e$perf_deaths <- e$perf * p$p_death_perf; sae_other <- 0
@@ -419,13 +563,15 @@ simulate_arm <- function(arm, row, curve, cal, p, settings, wk, V, q_od = overdx
         fp_cost <- W * (p$c_egd + p$p_perf_egd * p$c_perf)
         e$sae <- e$perf; e$sae_free <- W * p$p_perf_egd; e$days <- egd * p$t_egd
         e$egd_pos <- e$found_ugi; e$egd_neg <- egd - e$found_ugi   # EGD is the screening test here
-        e$tp <- e$found_ugi; e$fn <- U - e$found_ugi; e$tn <- W
+        e$tp <- e$found_ugi; e$fn <- U + Ue + Ul - e$found_ugi; e$tn <- W
         cost_t <- egd * p$c_egd
         pd <- min(W * 0.5, e$perf_deaths)
       }
       e$fn_symp <- e$fn * (P["pre", "early"] + P["pre", "late"])   # false negatives presenting with symptoms within a year
-      fu <- e$found_ugi; fo <- e$found_other
-      e$overdx_ugi <- fu * q_od[t]; e$overdx_other <- fo * q_od[t]
+      # fu: upper GI cancers found with the default natural history (stage at detection p_late_screen);
+      # fe / fl: esophageal adenocarcinoma found in preclinical early / late (MISCAN-ESO scenario)
+      fu <- e$found_ugi - fe - fl; fo <- e$found_other
+      e$overdx_ugi <- fu * q_od[t, "pre"] + fe * q_od[t, "ee"] + fl * q_od[t, "el"]; e$overdx_other <- fo * q_od[t, "pre"]
       # Burden in cancer-free people worked up. Galleri false positives: the whole workup
       # pathway (procedures and uncertainty) is valued with Matza 2024 TTO disutilities
       # (fp_tto = 1) or per procedure (d_proc); persisting worry, complications, deaths and
@@ -442,14 +588,17 @@ simulate_arm <- function(arm, row, curve, cal, p, settings, wk, V, q_od = overdx
       fpq <- fpq + df[["qaly"]] * fq; fpd <- fpd + df[["daly"]] * fd
       qaly_fp <- qaly_fp + df[["qaly"]] * sum(fq)
       cost_fp <- cost_fp + df[["cost"]] * fp_cost
-      e$proc_deaths <- pd; e$late_screen <- (fu + fo) * pls; e$rounds <- 1
+      e$proc_deaths <- pd; e$late_screen <- (fu + fo) * pls + fl; e$rounds <- 1
       for (k in names(e)) { ev[k] <- ev[k] + e[[k]]; ev_t[t, k] <- e[[k]] }
       # screen-detected upper GI cancers into lead time; procedure deaths out of well
-      if (!is_g) { x["pre"] <- x["pre"] - fu; x["well"] <- x["well"] - pd }
+      if (!is_g) { x["pre"] <- x["pre"] - fu; x["pre_ee"] <- x["pre_ee"] - fe; x["pre_el"] <- x["pre_el"] - fl
+                   x["well"] <- x["well"] - pd }
       x["lead_early"] <- x["lead_early"] + fu * (1 - pls); x["lead_late"] <- x["lead_late"] + fu * pls
+      x["lead_ee"] <- x["lead_ee"] + fe; x["lead_el"] <- x["lead_el"] + fl
       x["dead_other"] <- x["dead_other"] + pd
       if (is_g) x <- agg_state(X, x)
-      tx_first <- (fu + fo) * ((1 - pls) * p$c_tx_first_early + pls * p$c_tx_first_late)
+      tx_first <- (fu + fo) * ((1 - pls) * p$c_tx_first_early + pls * p$c_tx_first_late) +
+                  fe * p$c_tx_first_early + fl * p$c_tx_first_late
       cost0 <- cost0 + df[["cost"]] * (cost_t + tx_first + e$perf * p$c_perf + sae_other * p$c_sae)
       n_proc <- e$egd + e$ent + e$pet + e$eus + e$incid + e$lap + e$surv
       # people with cancer keep the per-procedure loss; cancer-free Galleri positives use fq/fd above
@@ -470,17 +619,18 @@ simulate_arm <- function(arm, row, curve, cal, p, settings, wk, V, q_od = overdx
     acc_t[t, ] <- drop(x %*% R)
     acc <- acc + acc_t[t, ] * df
     if (is_g) {
-      st <- tagged_step(X, T, P, cal$onset[t], p)
-      y <- x; y[c("well", "pre", "pre_m")] <- 0
+      st <- tagged_step(X, T, P, cal$onset[t], p, cal$onset_e[t] %||% 0)
+      y <- x; y[c("well", "pre", "pre_m", "pre_ee", "pre_el")] <- 0
       y <- drop(y %*% P)
       y[["early"]] <- y[["early"]] + st$early; y[["late"]] <- y[["late"]] + st$late
+      y[["early_e"]] <- y[["early_e"]] + st$early_e; y[["late_e"]] <- y[["late_e"]] + st$late_e
       y[["dead_other"]] <- y[["dead_other"]] + st$dead_other
       X <- st$X; x <- agg_state(X, y)
     } else x <- drop(x %*% P)
     trace[t + 1, ] <- x
   }
   list(ev = ev, acc = acc, cost0 = cost0, q_harm = q_harm, d_harm = d_harm, trace = trace,
-       pre0 = cal$x0[["pre"]], cost_fp = cost_fp, qaly_fp = qaly_fp, fpq = fpq, fpd = fpd, ev_t = ev_t, acc_t = acc_t)
+       pre0 = cal$x0[["pre"]] + cal$x0[["pre_ee"]] + cal$x0[["pre_el"]], cost_fp = cost_fp, qaly_fp = qaly_fp, fpq = fpq, fpd = fpd, ev_t = ev_t, acc_t = acc_t)
 }
 
 `%||%` <- function(a, b) if (is.null(a)) b else a
@@ -532,12 +682,11 @@ kunz_cohort <- function(cohort, settings) {
 prepare_row <- function(row, data, p, settings) {
   curve <- baseline_for(data, row, settings)
   p <- row_params(p, curve, row, settings)
-  cal <- calibrate(curve, target_ugi(curve, row, settings), p, target_late(curve, row, settings, p))
-  Ps <- lapply(seq_len(nrow(curve)), function(t) transition_matrix(curve$mort_other[t], cal$onset[t], p, cal$pl[t]))
+  cal <- if (miscan_on(p)) calib_eac(curve, row, settings, p)
+         else calibrate(curve, target_ugi(curve, row, settings), p, target_late(curve, row, settings, p))
+  Ps <- lapply(seq_len(nrow(curve)), function(t) tm_at(curve, cal, p, t))
   Rs <- lapply(seq_len(nrow(curve)), function(t) cycle_rewards(Ps[[t]], curve, t, p))
-  q <- numeric(length(Ps) + 1); q[length(q)] <- 1                    # overdiagnosis probability (see overdx_prob)
-  for (t in rev(seq_along(Ps))) q[t] <- Ps[[t]]["pre", "dead_other"] + Ps[[t]]["pre", "pre"] * q[t + 1]
-  list(curve = curve, cal = cal, V = values_by_cycle(Ps, Rs, settings), q = q[seq_along(Ps)], p = p)
+  list(curve = curve, cal = cal, V = values_by_cycle(Ps, Rs, settings), q = overdx_from(Ps), p = p)
 }
 
 row_outcomes <- function(row, data, p, settings, arms, prep = prepare_row(row, data, p, settings),
@@ -689,8 +838,9 @@ calibration_table <- function(p, data, settings, arms = ARMS, cohort = cohort_ro
       alive <- rowSums(tr[, !STATES %in% DEAD, drop = FALSE])
       pp <- 1 - exp(-1 / prep$p$sojourn_years)
       flows <- t(vapply(seq_len(nrow(curve)), function(t) {
-        P <- transition_matrix(curve$mort_other[t], prep$cal$onset[t], prep$p, prep$cal$pl[t])
-        tr[t, "pre"] * c(P["pre", "early"] + P["pre", "late"], P["pre", "late"])
+        P <- tm_at(curve, prep$cal, prep$p, t)
+        pr <- c("pre", "pre_ee", "pre_el")
+        c(sum(tr[t, pr] * rowSums(P[pr, c(DX_EARLY, DX_LATE)])), sum(tr[t, pr] * rowSums(P[pr, DX_LATE])))
       }, numeric(2)))
       tibble::tibble(race_eth = row$race_eth, sex = row$sex, risk_group = row$risk_group, share = row$share,
                      arm = a, age = curve$age_from, seer = target, onset = prep$cal$onset,
@@ -711,9 +861,10 @@ trace_table <- function(p, data, settings, arms) {
     })
   }) |>
     tidyr::pivot_longer(dplyr::all_of(STATES), names_to = "state", values_to = "prop") |>
-    dplyr::mutate(state = sub("^pre_m$", "pre", sub("^lead_", "", state))) |>
+    dplyr::mutate(state = dplyr::recode(state, pre_m = "pre", pre_ee = "pre", pre_el = "pre", lead_early = "early",
+                                        lead_late = "late", lead_ee = "early", lead_el = "late", early_e = "early", late_e = "late")) |>
     dplyr::group_by(arm, cycle, state) |> dplyr::summarise(prop = sum(prop * share), .groups = "drop") |>
-    dplyr::mutate(state = factor(state, setdiff(STATES, c("pre_m", "lead_early", "lead_late")),
+    dplyr::mutate(state = factor(state, c("well", "pre", "early", "late", "dead_cancer", "dead_other"),
                                  c("Well", "Undiagnosed cancer", "Early-stage dx", "Late-stage dx",
                                    "Cancer death", "Other-cause death")))
 }

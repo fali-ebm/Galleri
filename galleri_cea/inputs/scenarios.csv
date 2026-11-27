@@ -37,3 +37,11 @@ Site-specific sojourn (esophageal adenocarcinoma 4.9 years),site_sojourn,1,"7, 4
 Site-specific sojourn (esophageal adenocarcinoma 7.1 years),site_sojourn,1,"7, 43"
 Site-specific sojourn (esophageal adenocarcinoma 7.1 years),sojourn_eac,7.1,43
 Kunzmann flags by sex (59.7% of men),kunz_sexspec,1,8
+MISCAN-ESO natural history for esophageal adenocarcinoma,miscan_eac,1,"43, 55"
+"MISCAN-ESO, early preclinical phase half as long",miscan_eac,1,"43, 55"
+"MISCAN-ESO, early preclinical phase half as long",eac_dwell_ratio,0.5,"43, 55"
+"MISCAN-ESO, early preclinical phase twice as long",miscan_eac,1,"43, 55"
+"MISCAN-ESO, early preclinical phase twice as long",eac_dwell_ratio,2,"43, 55"
+"MISCAN-ESO, EAC sojourn 4.0 years (lower end of MISCAN target)",miscan_eac,1,"43, 55"
+"MISCAN-ESO, EAC sojourn 4.0 years (lower end of MISCAN target)",sojourn_eac_male,4.0,"43, 55"
+"MISCAN-ESO, EAC sojourn 4.0 years (lower end of MISCAN target)",sojourn_eac_female,4.0,"43, 55"

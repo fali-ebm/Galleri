@@ -1,5 +1,5 @@
 # =============================================================
-# Import the inputs workbook (tools/export_inputs_xlsx.py) back into the CSVs
+# Import the inputs workbook (tools/export_inputs_xlsx.R) back into the CSVs
 # the model reads. Used by import_inputs_xlsx.R and the test suite.
 #
 #   import_workbook(xlsx, project, apply = FALSE)

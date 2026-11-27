@@ -6,7 +6,7 @@
 #   Rscript import_inputs_xlsx.R my.xlsx     another workbook (default Galleri_model_inputs.xlsx)
 #
 # Run from galleri_cea/. Create the workbook with
-#   python3 tools/export_inputs_xlsx.py
+#   Rscript tools/export_inputs_xlsx.R
 # then run the model with Rscript run.R. Details: tools/import_inputs.R.
 # =============================================================
 source(file.path("tools", "import_inputs.R"))
