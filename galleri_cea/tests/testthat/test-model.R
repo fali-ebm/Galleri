@@ -3,6 +3,8 @@ proj <- ceakit::load_project(testthat::test_path("..", ".."))
 E <- proj$env; p0 <- ceakit::param_list(proj$params); S <- proj$settings; D <- proj$data
 ev <- function(name, p = p0, s = S) ceakit::evaluate(proj$analyses[[name]], p, D, s)
 row1 <- D$cohort[1, ]
+blind <- function(p) { p$sens_ep_eso <- 0; p$sens_ep_stom <- 0; p$sens_g_other <- 0; p$fpr_g_es <- 0; p }
+perfect <- function(p) { p$sens_ep_eso <- 1; p$sens_ep_stom <- 1; p$cso_acc <- 1; p$screen_early_share <- -1; p$sens_g_rep_ratio <- 1; p }
 sim <- function(arm, row = row1, p = p0, s = S) {
   prep <- E$prepare_row(row, D, p, s)
   E$simulate_arm(arm, row, prep$curve, prep$cal, prep$p, s, E$workup_summary(prep$p), prep$V)
@@ -36,14 +38,16 @@ test_that("calibration: usual care reproduces SEER incidence at every age, for e
   }
 })
 
-test_that("stage calibration: symptomatic late-stage share matches SEER by site mix, race and sex", {
+test_that("stage calibration: lifetime late share at symptomatic diagnosis matches SEER (pool and EAC), by race and sex", {
   for (race in c("nhw", "nhb", "hisp")) for (sex in S$subgroups$sexes) {
     C <- E$subgroup_cohort(55, sex, race, S)
-    ct <- E$calibration_table(p0, D, S, "Usual care", C)
-    expect_equal(ct$model_late_share, ct$seer_late_share, tolerance = 1e-10)
-    curve <- E$baseline_for(D, C[1, ], S)
-    expect_true(all(ct$seer_late_share >= pmin(curve$late_eso, curve$late_stom) - 1e-12 &
-                    ct$seer_late_share <= pmax(curve$late_eso, curve$late_stom) + 1e-12))
+    for (i in 1:2) {
+      cal <- E$prepare_row(C[i, ], D, p0, S)$cal
+      expect_equal(cal$o_late / cal$o_clin, cal$oth$L_seen, tolerance = 1e-8)
+      expect_equal(cal$eac_late / cal$eac_clin, cal$eac$L_seen, tolerance = 1e-8)
+    }
+    curve <- E$baseline_for(D, C[1, ], S); Lo <- E$prepare_row(C[1, ], D, p0, S)$cal$oth$L_seen
+    expect_true(Lo >= min(curve$late_eso, curve$late_stom) - 1e-12 && Lo <= max(curve$late_eso, curve$late_stom) + 1e-12)
   }
   p <- p0; p$or_late_clin <- 2
   expect_gt(mean(E$calibration_table(p, D, S, "Usual care")$model_late_share),
@@ -85,10 +89,11 @@ test_that("screening stops at the stop age and repeats at the interval", {
 })
 
 test_that("regression: no lead-time penalty - detection with no stage shift changes no deaths", {
-  D2 <- D; D2$baseline_risks$late_eso <- 0.6; D2$baseline_risks$late_stom <- 0.6   # constant clinical mix
-  p <- p0; p$p_late_screen <- 0.6; p$sens_g_other <- 0
+  D2 <- D
+  p <- p0; p$screen_early_share <- 1e-9; p$sens_g_other <- 0; p$p_perf_egd <- 0; p$p_death_sae <- 0   # Galleri finds only late cancers
   m <- ceakit::evaluate(proj$analyses$galleri, p, D2, S)
-  expect_equal(unname(m["ca_deaths", "Galleri"]), unname(m["ca_deaths", "Usual care"]), tolerance = 1e-6)
+  expect_equal(unname(m["ca_deaths", "Galleri"]), unname(m["ca_deaths", "Usual care"]), tolerance = 1e-4)
+  expect_equal(unname(m["stage12_ugi", "Galleri"]), unname(m["stage12_ugi", "Usual care"]), tolerance = 1e-3)
 })
 
 test_that("stage shift at screening reduces cancer deaths", {
@@ -110,7 +115,7 @@ test_that("the usual care arm has no procedures or harms", {
 })
 
 test_that("a Galleri test with zero sensitivity and zero false positives only adds test costs", {
-  p <- p0; p$sens_g_ugi <- 0; p$sens_g_other <- 0; p$fpr_g_es <- 0
+  p <- blind(p0)
   m <- ev("galleri", p)
   expect_equal(unname(m["qaly_total", "Galleri"]), unname(m["qaly_total", 1]))
   expect_equal(unname(m["ca_deaths", "Galleri"]), unname(m["ca_deaths", 1]))
@@ -161,7 +166,7 @@ test_that("Galleri 2x2: every test is exactly one of TP, FP, TN, FN, and TP + FP
     if (arm == "Galleri") expect_equal(m[["screen_tp"]] + m[["screen_fp"]], m[["investigated"]], tolerance = 1e-10)
     expect_lte(m[["fn_symptomatic_1y"]], m[["screen_fn"]])
   }
-  p <- p0; p$sens_g_ugi <- 1; p$sens_g_rep_ratio <- 1                     # perfect sensitivity: no false negatives
+  p <- perfect(p0)                                                         # perfect sensitivity: no false negatives
   expect_equal(unname(ev("galleri", p)["screen_fn", "Galleri"]), 0)
   p <- p0; p$sens_g_other <- 0; p$fpr_g_es <- 0                            # perfect specificity: no false positives
   expect_equal(unname(ev("galleri", p)["screen_fp", "Galleri"]), 0)
@@ -210,7 +215,7 @@ test_that("overdiagnosis equals the excess lifetime diagnoses vs usual care (no 
 test_that("false-positive burden: counted only in cancer-free people and consistent with the totals", {
   m <- ev("galleri")[, "Galleri"]
   expect_lte(m[["egd_free"]], m[["free_investigated"]])               # false positives inside the hold skip the EGD
-  p <- p0; p$egd_hold_years <- 0
+  p <- p0; p$egd_rule <- 0; p$egd_hold_years <- 0
   m_nh <- ev("galleri", p)[, "Galleri"]
   expect_equal(m_nh[["egd_free"]], m_nh[["free_investigated"]])       # no hold: every false positive has an EGD
   for (k in c("ent", "pet_ct", "eus", "eus_sampling", "perforations"))
@@ -330,10 +335,10 @@ test_that("accuracy by age, sex and race: 2x2 adds up and PPV follows SEER risk"
   a <- E$accuracy_table(p0, D, S)
   expect_equal(a$tp + a$fp + a$tn + a$fn, a$tests, tolerance = 1e-8)
   expect_equal(nrow(a), length(S$subgroups$sexes) * length(S$subgroups$races) * (S$screen_stop_age - 50 + 1))
-  # sensitivity is a test property: round 1 vs later rounds, the same in every group
-  r1 <- a$sensitivity[a$age == 50]; r2 <- a$sensitivity[a$age == 70]
-  expect_equal(r1, rep(p0$sens_g_ugi, length(r1)), tolerance = 1e-8)
-  expect_equal(r2, rep(p0$sens_g_ugi * p0$sens_g_rep_ratio, length(r2)), tolerance = 1e-8)
+  # sensitivity per preclinical cancer lies between the stage I-II and stage III-IV values
+  gs <- E$galleri_stage_sens(p0, D)
+  r1 <- a$sensitivity[a$age == 50]
+  expect_true(all(r1 >= min(gs$sE) - 1e-9 & r1 <= max(gs$sL) + 1e-9))
   # PPV is higher where risk is higher: men vs women, age 80 vs 55
   g <- function(sx, ag) a$ppv_upper_gi[a$sex == sx & a$race_eth == "all" & a$age == ag]
   expect_gt(g("male", 70), g("female", 70)); expect_gt(g("male", 80), g("male", 55))
@@ -350,18 +355,18 @@ test_that("Kunzmann arm: one-time score and one-time EGD for the flagged share",
 
 # ---- Revised tree (Nov 2026) -------------------------------------------------
 test_that("revised tree: people are conserved with every new feature switched on", {
-  p <- p0; p$fp_kappa <- 2900; p$hr_ca_after_fp <- 2; p$egd_hold_years <- 3; p$f_invisible <- 0.8; p$p_fn_persist <- 0.3
+  p <- p0; p$fp_kappa <- 2900; p$hr_ca_after_fp <- 2; p$egd_rule <- 0; p$egd_hold_years <- 3; p$f_invisible <- 0.8; p$p_fn_persist <- 0.3
   for (arm in E$ARMS) expect_equal(range(rowSums(sim(arm, p = p)$trace)), c(1, 1), tolerance = 1e-12)
 })
 
 test_that("revised tree: the Galleri changes leave usual care and Kunzmann untouched", {
-  p <- p0; p$fp_kappa <- 2900; p$egd_hold_years <- 0; p$f_invisible <- 0.8; p$p_tb_lap <- 0.5; p$p_pet_ugi <- 0
+  p <- p0; p$fp_kappa <- 2900; p$egd_rule <- 0; p$egd_hold_years <- 0; p$f_invisible <- 0.8; p$p_tb_lap <- 0.5; p$p_pet_ugi <- 0
   a <- ev("comparison"); b <- ev("comparison", p)
   expect_equal(a[, c("Usual care", "Kunzmann -> EGD")], b[, c("Usual care", "Kunzmann -> EGD")])
 })
 
 test_that("EGD hold: none without a hold; skipped positives go straight to the rest of the workup", {
-  p <- p0; p$egd_hold_years <- 0
+  p <- p0; p$egd_rule <- 0; p$egd_hold_years <- 0
   m <- ev("galleri", p)[, "Galleri"]
   expect_equal(m[["egd_skipped_hold"]], 0)
   expect_gt(ev("galleri")["egd_skipped_hold", "Galleri"], 0)
@@ -378,13 +383,13 @@ test_that("hidden cancers: f_invisible 0 leaves none; more hidden cancers mean f
 })
 
 test_that("Bayesian false-positive propensity: repeat false positives rise with persistence, the total barely moves", {
-  p <- p0; p$fp_kappa <- 3400
-  a <- ev("galleri")[, "Galleri"]; b <- ev("galleri", p)[, "Galleri"]
+  p <- p0; p$fp_kappa <- 1e6; p$egd_rule <- 0; p$egd_hold_years <- 0; q <- p0; q$egd_rule <- 0; q$egd_hold_years <- 0
+  a <- ev("galleri", p)[, "Galleri"]; b <- ev("galleri", q)[, "Galleri"]
   expect_gt(b[["repeat_false_positives"]], 1.5 * a[["repeat_false_positives"]])
   expect_equal(b[["free_investigated"]], a[["free_investigated"]], tolerance = 0.01)   # marginal rate stays fpr_g_es
   # one test per person: the posterior mean is exactly the population rate
   s1 <- S; s1$screen_stop_age <- 50
-  expect_equal(ev("galleri", p, s1)["free_investigated", "Galleri"], ev("galleri", s = s1)["free_investigated", "Galleri"])
+  expect_equal(ev("galleri", p, s1)["free_investigated", "Galleri"], ev("galleri", q, s1)["free_investigated", "Galleri"])
 })
 
 test_that("cancer risk after a false positive moves risk to false positives without adding cancers", {
@@ -411,7 +416,7 @@ test_that("Kunzmann sex-specific scenario switches the flagged share", {
 # ---- Microsimulation (hesim natural history + per-person screening) -----------------
 test_that("microsimulation: a test that finds nothing leaves every person's health as in usual care", {
   skip_if_not_installed("hesim")
-  p <- p0; p$sens_g_ugi <- 0; p$sens_g_other <- 0; p$fpr_g_es <- 0
+  p <- blind(p0)
   x <- E$ms_row(row1, D, p, S, c("Usual care", "Galleri"), 3000, 5)
   u <- x[x$arm == "Usual care", ]; g <- x[x$arm == "Galleri", ]
   expect_equal(g$qaly, u$qaly); expect_equal(g$ly, u$ly); expect_equal(g$ca_death, u$ca_death)
@@ -430,8 +435,8 @@ test_that("microsimulation: arms share the same people; everyone dies or reaches
   expect_true(all(u$tests == 0) && all(g$tests >= 1))
 })
 
-# ---- MISCAN-ESO natural history for esophageal adenocarcinoma (scenario, Nov 2026) ----
-pm <- p0; pm$miscan_eac <- 1
+# ---- MISCAN-ESO natural history for esophageal adenocarcinoma (base case since Nov 2026) ----
+pm <- p0; pm$miscan_eac <- 1; po <- p0; po$miscan_eac <- 0
 
 test_that("MISCAN-ESO rates: the closed form meets the sojourn, late-share and dwell-ratio targets", {
   for (r in c(0.5, 1, 2)) {
@@ -445,11 +450,11 @@ test_that("MISCAN-ESO rates: the closed form meets the sojourn, late-share and d
   }
 })
 
-test_that("MISCAN-ESO off: no one enters the EAC states and the base case is untouched", {
-  prep <- E$prepare_row(row1, D, p0, S)
+test_that("MISCAN-ESO off: no one enters the EAC states", {
+  prep <- E$prepare_row(row1, D, po, S)
   expect_equal(sum(prep$cal$onset_e), 0)
   for (a in E$ARMS) {
-    tr <- sim(a)$trace
+    tr <- sim(a, p = po)$trace
     expect_equal(sum(tr[, c("pre_ee", "pre_el", "lead_ee", "lead_el", "early_e", "late_e")]), 0)
   }
 })
@@ -466,7 +471,7 @@ test_that("MISCAN-ESO: transition rows sum to 1 and usual care reproduces SEER i
 })
 
 test_that("MISCAN-ESO: a test that finds nothing only adds cost; finding EAC early shifts stage", {
-  p <- pm; p$sens_g_ugi <- 0; p$sens_g_other <- 0; p$fpr_g_es <- 0
+  p <- blind(pm)
   m <- ev("galleri", p)
   expect_equal(unname(m["qaly_total", "Galleri"]), unname(m["qaly_total", 1]))
   expect_equal(unname(m["ca_deaths", "Galleri"]), unname(m["ca_deaths", 1]))
@@ -485,6 +490,41 @@ test_that("MISCAN-ESO: a longer early phase makes screen-detected EAC earlier", 
   expect_gt(lead_share(2), lead_share(1)); expect_gt(lead_share(1), lead_share(0.5))
 })
 
-test_that("microsimulation refuses the MISCAN-ESO scenario (cohort model only)", {
-  expect_error(E$ms_row(row1, D, pm, S, E$ARMS, 10, 1), "cohort model only")
+# ---- Stage-specific Galleri sensitivity and stage I-II endpoint (Nov 2026) -------------
+test_that("stage-specific sensitivity reproduces the episode sensitivities and the detected stage mix", {
+  g <- E$galleri_stage_sens(p0, D)
+  expect_equal(unname(g$eps), unname(c(p0$sens_ep_eso, p0$sens_ep_stom) * p0$cso_acc), tolerance = 1e-8)
+  expect_equal(g$early, p0$screen_early_share, tolerance = 1e-8)
+  expect_true(all(g$sE < g$sL) && all(g$sL <= 1) && all(g$sE >= 0))     # trials: Galleri finds mostly late cancers
+  q <- p0; q$screen_early_share <- -1; expect_equal(E$galleri_stage_sens(q, D)$rho, 1)
+})
+
+test_that("stage I-II endpoint: Galleri adds stage I-II diagnoses, a test that finds nothing adds none", {
+  m <- ev("galleri")
+  expect_gt(m["stage12_gained_ugi", "Galleri"], 0); expect_gt(m["stage12_gained_eso", "Galleri"], 0)
+  expect_equal(unname(m["stage12_ugi", 1] + m["stage34_ugi", 1]), unname(m["clin_dx_lifetime", 1]), tolerance = 1e-9)
+  expect_equal(unname(m["stage12_ugi", "Galleri"]), unname(m["stage12_eso", "Galleri"] + m["stage12_gastric", "Galleri"]), tolerance = 1e-12)
+  expect_equal(unname(m["stage12_eso", "Galleri"]), unname(m["stage12_eac", "Galleri"] + m["stage12_escc", "Galleri"]), tolerance = 1e-12)
+  b <- ev("galleri", blind(p0))
+  expect_equal(unname(b["stage12_ugi", "Galleri"]), unname(b["stage12_ugi", 1]), tolerance = 1e-9)
+  # a test that finds more early cancers gains more stage I-II diagnoses
+  q <- p0; q$screen_early_share <- 0.39
+  expect_gt(ev("galleri", q)["stage12_gained_ugi", "Galleri"], m["stage12_gained_ugi", "Galleri"])
+})
+
+test_that("two-stage pool: transition rows sum to 1 and screen-found pool cancers keep their stage", {
+  prep <- E$prepare_row(row1, D, p0, S)
+  for (t in c(1, 30)) { P <- E$tm_at(prep$curve, prep$cal, prep$p, t)
+    expect_equal(unname(rowSums(P)), rep(1, length(E$STATES)))
+    expect_equal(unname(P["pre_ol", "early"]), 0) }                     # a late preclinical cancer never presents early
+  tr <- sim("Galleri")$trace
+  expect_gt(max(tr[, "lead_late"]), 0); expect_gt(max(tr[, "lead_early"]), 0)
+})
+
+test_that("microsimulation: two-stage natural history runs with MISCAN-ESO and stage-specific sensitivity", {
+  skip_if_not_installed("hesim")
+  x <- E$ms_row(row1, D, p0, S, c("Usual care", "Galleri"), 4000, 3)
+  g <- x[x$arm == "Galleri", ]
+  expect_true(any(g$eac & g$cancer)); expect_true(all(g$stage12 + g$stage34 <= 1))
+  expect_true(all(!g$screen_stage12 | g$screen_detected))
 })

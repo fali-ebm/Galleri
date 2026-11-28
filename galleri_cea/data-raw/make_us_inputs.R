@@ -70,6 +70,24 @@ stage <- raw("seer_stage_by_race_sex.csv") |>
 stage_race <- c(all = "all", nhw = "white", nhb = "black", nhapi = "all", nhaian = "all", hisp = "all")
 late_for <- function(site_, g, s) stage$late[stage$site == site_ & stage$race == stage_race[[g]] & stage$sex == s]
 eac <- raw("seer_eac_share_by_race.csv")
+# Sex-specific adenocarcinoma share. SEER CSR Table 8.22 gives the share by race only (both
+# sexes). Split it by sex with the male:female incidence ratios of adenocarcinoma (r_E) and
+# squamous cell carcinoma (r_S) (Mathieu 2014; data-raw/raw/eac_sex_incidence_ratios.csv): the
+# odds of adenocarcinoma are r_E / r_S times higher in men, and the incidence-weighted mean of
+# the two shares, with SEER's age-adjusted esophageal rates by sex for the race, equals the
+# published share. NH White: men 0.763, women 0.501 (published 0.714 for both).
+sxr <- raw("eac_sex_incidence_ratios.csv"); OR_sex <- sxr$male_to_female_ratio[sxr$histology == "adenocarcinoma"] /
+  sxr$male_to_female_ratio[sxr$histology == "squamous"]
+aar <- raw("seer_csr_age_adjusted_by_race.csv") |> filter(site == "esophagus")
+aar_race <- c(all = "all", nhw = "nhw", nhb = "black", nhapi = "api", nhaian = "aian", hisp = "hispanic")
+split_share <- function(s, M, F) {
+  f <- function(b) { o <- OR_sex * b / (1 - b); (o / (1 + o) * M + b * F) / (M + F) - s }
+  b <- uniroot(f, c(1e-9, 1 - 1e-9), tol = 1e-12)$root; o <- OR_sex * b / (1 - b); c(male = o / (1 + o), female = b)
+}
+eac <- bind_rows(lapply(seq_len(nrow(eac)), function(i) {
+  r <- aar[aar$race == aar_race[[eac$race[i]]], ]; sh <- split_share(eac$eac_share[i], r$male, r$female)
+  tibble(race = eac$race[i], sex = c("male", "female"), eac_share = round(unname(sh), 4))
+}))
 
 # EQ-5D-5L US norms by age (Jiang 2021); WHO GHE 2019 standard YLL per death
 # (data-raw/raw/eq5d_us_norms.csv, who_ghe_standard_yll.csv; 5-year bands, 85 = 85+)
@@ -90,7 +108,7 @@ baseline <- bind_rows(lapply(seq_len(nrow(grid)), function(i) {
 })) |>
   left_join(rename(lt, age_from = age, mort_all = qx), by = c("race_eth", "sex", "age_from")) |>
   mutate(mort_other = 1 - (1 - mort_all) / (1 - q_ugi)) |>
-  left_join(rename(eac, race_eth = race), by = "race_eth") |>
+  left_join(rename(eac, race_eth = race), by = c("race_eth", "sex")) |>
   mutate(age_to = age_from,
          inc_other = pmax(0, inc_all - inc_eso - inc_stom),
          utility_well = u_norm(age_from),

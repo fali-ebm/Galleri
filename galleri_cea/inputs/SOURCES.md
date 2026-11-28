@@ -16,13 +16,22 @@ The `status` column in each table means:
 
 | Parameter | Value | Derivation |
 |---|---|---|
-| `sens_g_ugi` | 0.637 (range 0.40-0.85) | PATHFINDER 2 episode sensitivity for the 12 deadly cancers (69.8%) × cancer signal origin (CSO) accuracy (91.3%). The range runs from CCGA3 stage I-II sensitivity (esophagus 12/25, stomach 4/12) to CCGA3 all-stage sensitivity (esophagus 84/99, stomach 20/29). **ASSUMPTION**: the 12-cancer figure applies to esophagus and stomach. |
-| `sens_g_other` | 0.0068 | Overall episode sensitivity 39.3% × CSO error 8.7% × an assumed 20% of wrong CSOs that are called esophagus/stomach. **ASSUMPTION** |
+Since November 2026 the model uses the **marketed (PMA) Galleri test** as reported to the FDA (GRAIL executive summary, Molecular and Clinical Genetics Panel, 23 September 2026 [62]): the stored PATHFINDER 2 and NHS-Galleri samples rerun with the final classifier. Raw counts with table and figure numbers: `data-raw/raw/galleri_es_accuracy.csv`; every value below is derived by `Rscript data-raw/galleri_es_accuracy.R`.
+
+| Parameter | Value | Derivation |
+|---|---|---|
+| `sens_ep_eso` | 0.642 (0.453-0.796) | 12-month episode sensitivity for esophageal cancer, random-effects pooled PATHFINDER 2 (1/2) and NHS-Galleri round 1 (17/26) [62, Table 33] |
+| `sens_ep_stom` | 0.466 (0.200-0.753) | Same for stomach: PATHFINDER 2 1/4, NHS-Galleri 4/7 [62, Table 33] |
+| `screen_early_share` | 0.182 (4/22; 0.07-0.39) | Galleri-detected esophageal (18: stage I 0, II 2, III 10, IV 5, NA 1) and stomach (5: II 2, III 2, IV 1) cancers at stage I-II [62, Figure 12]. Earlier test version, PATHFINDER 2: 0 of 3 staged |
+| `cso_acc` | 0.926 (338/365) | CSO prediction correct among true positives: PATHFINDER 2 100/106, NHS-Galleri 238/259 [62, Tables 19, 31]. Only an esophagus/stomach CSO sends a person to EGD |
+| **Stage-specific sensitivity (derived)** | stage I-II 7.3%, stage III-IV 43.4% (esophagus); 6.8%, 40.5% (stomach) | `galleri_stage_sens()`: episode sensitivity counts cancers diagnosed within 12 months of a negative test as misses, so it is not the chance of detecting a preclinical cancer. With each cancer type as a two-stage preclinical process (sojourn, SEER late share), the late-stage sensitivity of esophagus and stomach and one early/late ratio are solved so that the model reproduces `sens_ep_eso` × `cso_acc`, `sens_ep_stom` × `cso_acc` and `screen_early_share` exactly (US, all races, ages 50-79). Re-solved in every PSA draw |
+| `sens_g_other` | 0.0054 (0.0021-0.0137) | PATHFINDER 2: 4 of 431 cancers outside the esophagus/stomach were given a stomach/esophagus CSO (Extended Data Fig. 4) [1], scaled by the PMA test's lower CSO error ((1 − 0.926) / (1 − 0.873)) |
 | `sens_g_rep_ratio` | 0.775 (0.67-0.90) | Multiplier on Galleri sensitivity (upper GI and other cancers) in every round after the first. NHS-Galleri episode sensitivity for the 12 prespecified cancers was 63.4% in round 1 and 47.6% / 50.7% in rounds 2-3 (Neal 2026, doi:10.1038/s41591-026-04652-8): 49.2 / 63.4 = 0.775. The model already depletes the prevalent pool; this captures lower detectability of newly arisen cancers. Stage of MCED-detected cancers did not improve in repeat rounds (stage I-II 39.6%, 40.2%, 37.0%), so `p_late_screen` is the same in every round. |
 | `p_fn_persist` | 0 (scenario 1) | **ASSUMPTION**. Share of cancers missed by Galleri that stay undetectable by Galleri at later rounds (non-shedding tumours). They move to a `pre_m` state that progresses like any undiagnosed cancer but cannot test +ve. Base case 0 = each round independent; the scenario "Missed cancers stay missed" sets 1. |
-| `fpr_g_es` | 0.00036 | False-positive rate 0.36% (specificity 99.64%) × an assumed 10% of false positives with an esophagus/stomach CSO. **ASSUMPTION** |
+| `fpr_g_es` | 0.0000810 (0.0000316-0.000200) | PMA false-positive rate, all CSOs, PATHFINDER 2 + NHS-Galleri: 164 / 71,034 = 0.231% [62, Tables 13, 25] × share of false positives with a stomach/esophagus CSO, 4/114 (PATHFINDER 2, MCED-V2, Suppl. Table S7 [1]; not reported for the PMA test). Scenario: earlier test version 0.0127% (4/31,567) |
+| `fp_kappa` | 3.16 | Person-level persistence of false positives. Real-world retests after a positive test and a negative workup: 32 of 132 people without cancer tested positive again (Westgate et al., cited in [62]), so P(+ again | + once, no cancer) = 0.242 = (mκ + 1)/(κ + 1). All CSOs; retest within 6 months; short follow-up. Scenario: independent tests (κ = 10^6) |
 | Workup yield | from your counts | Galleri accuracy sets how many people test +ve and how many of them have cancer. Your workup counts set the procedures per person worked up and the share of those cancers the workup finds: found ÷ (found + missed despite workup). |
-| `p_late_screen` | 0.47 | 53% of PATHFINDER 2 screen-detected cancers were stage I-II. |
+| `p_late_screen` | 0.47 | Other-site cancers found by the upper GI workup only. Upper GI cancers keep the stage they are found in (natural history). |
 
 ## Galleri +ve workup (literature values until local counts are added)
 
@@ -200,9 +209,9 @@ The revised decision tree is in the engine. Each undiagnosed person in the Galle
 | `p_egd_pos` | 0.50 | Validation target only |
 | `p_lap_cx`, `t_lap`, `c_lap`, `c_surv` | 0.02, 21 d, $5,000, $600 | **DUMMY** placeholders, to source |
 
-## MISCAN-ESO natural history for esophageal adenocarcinoma (scenario, November 2026)
+## MISCAN-ESO natural history for esophageal adenocarcinoma (base case since late November 2026)
 
-Switch `miscan_eac` = 1 (scenario; base case 0). Calibration and validation script: `Rscript tools/calibrate_miscan_eac.R` → `outputs/miscan_eac/` (`targets.csv`, `rates.csv`, `by_age.csv`, `miscan_eac_calibration.png`).
+Switch `miscan_eac` = 1 (base case; 0 = scenario "Original natural history"). Calibration and validation script: `Rscript tools/calibrate_miscan_eac.R` → `outputs/miscan_eac/` (`targets.csv`, `rates.csv`, `by_age.csv`, `miscan_eac_calibration.png`).
 
 Esophageal adenocarcinoma (EAC = SEER esophageal incidence × adenocarcinoma share × Kunzmann relative risk) is split from the rest of upper GI cancer (gastric and non-adenocarcinoma esophageal cancer), which keeps `sojourn_years` and its own SEER stage mix. EAC follows the structure of CISNET MISCAN-ESO (Erasmus/UW) [55]: preclinical cancer moves through stages before symptoms with exponential durations. Here the stages are collapsed to SEER summary stage: preclinical early (PE, localized) → symptoms early (rate hE) or → preclinical late (PL, rate λ); PL → symptoms late (rate hL). A screen-detected EAC is early if found in PE and late if found in PL, so its stage comes from the natural history instead of `p_late_screen`. Lead time after screen detection is exponential with the mean remaining sojourn (S from PE, 1/hL from PL). Diagnosed EAC has esophagus-specific survival.
 
@@ -218,6 +227,23 @@ Rates for non-Hispanic White men: hE 0.067, λ 0.304, hL 0.371 per year (mean 2.
 
 **External validation** (not used in calibration), lifetime per 100,000 with no screening, CISNET three-model average for White people born 1950, followed from age 40 [56]: men 654 EAC cases and 536 EAC deaths; model (non-Hispanic White men from 50, SEER 2013–2017 rates) 667 and 546 (+2.0%, +1.8%). Women: CISNET 125 and 103; model 182 and 146 (+46%, +42%). The excess in women comes from the adenocarcinoma share, which SEER Table 8.22 gives by race only (White 71.4%), so it is applied to both sexes although women have relatively more squamous cell carcinoma. Base case (men) is unaffected.
 
-**Out of scope:** MISCAN-ESO's Barrett's esophagus layer (BE prevalence 1.4% at 60–64, progression 0.18%/y, dwell 6.7 / 1.0 / 1.1 y, regression) [55]. The model screens for cancer; Barrett's surveillance and ablation are not modelled. The microsimulation runs the base-case natural history only (it stops if `miscan_eac` = 1).
+**Out of scope:** MISCAN-ESO's Barrett's esophagus layer (BE prevalence 1.4% at 60–64, progression 0.18%/y, dwell 6.7 / 1.0 / 1.1 y, regression) [55]. The model screens for cancer; Barrett's surveillance and ablation are not modelled. The microsimulation runs it too (continuous-time two-stage states).
 
 References: [55] CISNET MISCAN-ESO model profile (Erasmus/UW), 2018. [56] Rubenstein JH, et al. Gastroenterology 2022;163:163-73.
+
+## Harmonized model (November 2026)
+
+One natural history and one test model now drive both analyses: the **net burden model** (undiscounted, natural units, patient time and endoscopy capacity; `tools/run_harmonized.R`) and the **comparative model** against usual care ("do nothing"; discounted 3%; headline from the 1,000,000-person microsimulation, PSA, VOI and subgroups from the cohort model).
+
+| Change | Basis |
+|---|---|
+| **MISCAN-ESO is the base case** (`miscan_eac` = 1) | Esophageal adenocarcinoma: sex-specific sojourn, preclinical early → late, CISNET-validated. Scenario "Original natural history" restores one sojourn for all upper GI cancer |
+| **Two-stage preclinical squamous esophageal and gastric cancer** (`pre`, `pre_ol`) | The same structure as EAC with `sojourn_years` (2.37 y [7]; squamous cell **ASSUMPTION**) and the SEER late share of this pool. The death-free late shares of both processes are solved together (fixed-point iteration) so that usual care reproduces SEER incidence by age and the lifetime late share at symptomatic diagnosis exactly. A screen-found cancer keeps the stage it was found in (stage I-II from the early phase, III-IV from the late phase), so the stage shift comes from the natural history |
+| **Stage I-II diagnoses = primary endpoint** | Stage I-II (SEER localized as the proxy; endoscopically resectable or stage II) vs III-IV, lifetime, by type (adenocarcinoma, squamous, gastric). Galleri vs usual care: extra stage I-II diagnoses, stage III-IV averted, cost per extra stage I-II diagnosis. Check against NHS-Galleri upper GI (3 rounds, all diagnoses): stage I-II 36 vs 22, stage IV 32 vs 54 (Sasieni 2026, Table S6 [61]) |
+| `within_year_onset` = 1 | Cancers start at a uniform time in the year; those that would present before the next yearly test never meet one (`pre_f`, `pre_fe`, `pre_fl`). Matches the continuous-time microsimulation |
+| `egd_rule` = 1, `egd_threshold` = −1 (model-derived), `egd_memory_years` = 6 | After a negative EGD a new positive gets an EGD when P(upper GI cancer | history) ≥ L/(L + G) (QALYs: G gained by finding the cancer now, L lost by an EGD in a person without cancer). Posterior from usual-care prevalence, regrowth after the EGD, stage-specific sensitivity and the person's false-positive history. Scenarios: fixed 2-year hold, thresholds 0.3 and 0.5 |
+| Sex-specific EAC share (`data-raw/raw/eac_sex_incidence_ratios.csv`) | SEER race shares split by sex with male:female incidence ratios EAC 8 (6-10), squamous 2.5 (2-3) (Mathieu 2014), constrained to SEER M/F esophageal rates. Fixes the excess in women in the CISNET validation |
+| Patient time `pt_*` (hours) | Galleri draw 1.5, EGD 8, EUS 8, PET CT 4, ENT 2.5, laparoscopy 24, other contact 3: Jonas 2008 colonoscopy time diary (travel 1.1 h, 2.8 h at the centre, 0.8 h recovery) [57]; **ASSUMPTION** beyond that |
+| Capacity: `us_pop_50plus`, `us_upper_endo`, `us_eus` | 123.3 million aged 50+ (Census Vintage 2024) [60]; 7,459,419 upper endoscopies and 290,655 upper EUS in the US, 2019 (Peery 2022) [58]; 23.5 million GI endoscopies in 2022 (Peery 2025) [59]. National annual figures assume a stationary 50+ population screened since 50: US 50+ × lifetime events per life-year |
+
+References: [57] Jonas DE, et al. Med Decis Making 2008;28:56-65, doi:10.1177/0272989X07309643. [58] Peery AF, et al. Gastroenterology 2022;162:621-44, doi:10.1053/j.gastro.2021.10.017. [59] Peery AF, et al. Gastroenterology 2025;168:1000-24, doi:10.1053/j.gastro.2024.12.029. [60] US Census Bureau, Vintage 2024. [61] Sasieni P, et al. N Engl J Med 2026;395:1374-86, doi:10.1056/NEJMoa2505723. [62] GRAIL, FDA MCGP executive summary, 23 Sept 2026.

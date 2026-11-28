@@ -178,7 +178,7 @@ validate_inputs <- function(X, errs, warns) {
       if (d == "dirichlet" && (is.na(P$group[i]) || !isTRUE(n(P$n[i]) > 0))) errs$add(sprintf("Parameters %s: dirichlet needs a group and n > 0", k))
       if (xor(is.na(P$price_value[i]), is.na(P$price_year[i]))) errs$add(sprintf("Parameters %s: fill both Price as published and Price year, or neither", k))
     }
-    P$analysis <- c(`Both analyses` = "both", `Comparison (Kunzmann arm)` = "comparison")[P$analysis] %|na|% tolower(P$analysis)
+    P$analysis <- c(`Both analyses` = "both", `Comparison (Kunzmann arm)` = "comparison", `Net burden analysis` = "burden")[P$analysis] %|na|% tolower(P$analysis)
     P$refs[!is.na(P$refs) & P$refs == NONE_REF] <- NA
     X$parameters <- P
   }

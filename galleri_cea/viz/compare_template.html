@@ -24,16 +24,16 @@
 .strip .v { font: 300 32px/1 var(--display); font-variant-numeric: tabular-nums; }
 .strip .k { font-size: 13px; color: var(--mute); }
 .strip .v.hot { color: var(--alarm); }
-#price text, #sc text, #cum text, #deaths text, #hist text, #mscmp text, #inc text, #val text, #msc text { paint-order: stroke; stroke: var(--ink); stroke-width: 4px; stroke-linejoin: round; }
+#stg text, #price text, #sc text, #cum text, #deaths text, #hist text, #mscmp text, #inc text, #val text, #msc text { paint-order: stroke; stroke: var(--ink); stroke-width: 4px; stroke-linejoin: round; }
 </style>
 </head>
 <body>
 <main class="wrap">
 
 <header class="hero">
-  <span class="eyebrow">Yearly Galleri test vs usual care · upper GI cancer · 100,000 US men from age 50</span>
-  <h1><span id="h-lives"></span> lives, <em id="h-cost"></em></h1>
-  <p class="dek">Without screening, <b id="h-uc"></b> of 100,000 men would die of esophageal or stomach cancer. A Galleri test every year from 50 to 85 prevents <b id="h-ugi"></b> of those deaths, and <b id="h-oth"></b> more from other cancers its workup finds along the way.</p>
+  <span class="eyebrow">Yearly Galleri test vs usual care (do nothing) · esophageal cancer, with gastric cancer alongside · 100,000 US men from age 50</span>
+  <h1><span id="h-s12"></span> more esophageal cancers caught at stage I–II, <em id="h-cost"></em></h1>
+  <p class="dek" id="h-dek"></p>
   <div class="herogrid">
     <div class="fig" id="deaths-wrap">
       <div class="key" style="margin-bottom:14px"><span><i class="sw uc"></i>upper GI cancer death, usual care</span><span><i class="sw found"></i>death prevented by Galleri</span></div>
@@ -43,8 +43,18 @@
   </div>
 </header>
 
+<section class="chapter" aria-labelledby="c0">
+  <span class="num">01 · THE PRIMARY ENDPOINT</span>
+  <h2 id="c0"></h2>
+  <p class="text note" id="stg-intro"></p>
+  <div class="key"><span><i class="sw found"></i>stage I–II (endoscopically resectable or stage II)</span><span><i class="sw alarm"></i>stage III–IV</span></div>
+  <div class="fig" id="stg-wrap"><svg id="stg" role="img" aria-label="Diagnoses by stage over a lifetime, usual care and yearly Galleri, for esophageal adenocarcinoma, squamous cell and gastric cancer"></svg></div>
+  <div class="strip" id="stg-strip"></div>
+  <p class="text note" id="stg-why"></p>
+</section>
+
 <section class="chapter" aria-labelledby="c1">
-  <span class="num">01 · THE BENEFIT</span>
+  <span class="num">02 · DEATHS PREVENTED</span>
   <h2 id="c1">Deaths prevented arrive <em>slowly</em>, decades after the first test</h2>
   <p class="text note">Cumulative upper GI cancer deaths by age. The gap between the lines is the benefit of finding cancers earlier.</p>
   <div class="key"><span><i class="sw uc"></i>usual care</span><span><i class="sw found"></i>yearly Galleri</span><span><i class="sw band"></i>deaths prevented</span></div>
@@ -52,36 +62,36 @@
 </section>
 
 <section class="chapter" aria-labelledby="c2">
-  <span class="num">02 · THE VERDICT, 1,000 TIMES</span>
-  <h2 id="c2">Not one of 1,000 simulations comes in under <em>$1 million</em> per QALY</h2>
+  <span class="num">03 · THE VERDICT, 1,000 TIMES</span>
+  <h2 id="c2"></h2>
   <p class="text note" id="psa-intro"></p>
   <div class="fig" id="psa-wrap"><canvas id="psa" role="img" aria-label="Scatter of 1,000 probabilistic results, extra cost against QALYs gained, with lines for $100,000, $1 million and $10 million per QALY"></canvas></div>
 </section>
 
 <section class="chapter" aria-labelledby="c3">
-  <span class="num">03 · THE PRICE</span>
-  <h2 id="c3">To be worth it, the test would have to cost about <em id="h-price"></em></h2>
+  <span class="num">04 · THE PRICE</span>
+  <h2 id="c3"></h2>
   <p class="text note" id="price-intro"></p>
   <div class="fig" id="price-wrap"><svg id="price" role="img" aria-label="Cost per QALY against Galleri test price, on a log scale, with the $100,000 to $150,000 threshold band"></svg></div>
 </section>
 
 <section class="chapter" aria-labelledby="c4">
-  <span class="num">04 · WHAT IF WE ARE WRONG</span>
-  <h2 id="c4">Only the <em>price of the test</em> moves the answer</h2>
+  <span class="num">05 · WHAT IF WE ARE WRONG</span>
+  <h2 id="c4"></h2>
   <p class="text note">Each dot is the cost per QALY with one assumption changed. The scale is logarithmic: each gridline is ten times the last.</p>
   <div class="fig" id="sc-wrap"><svg id="sc" role="img" aria-label="Cost per QALY under each scenario, log scale, against the threshold band"></svg></div>
 </section>
 
 <section class="chapter" aria-labelledby="c5">
-  <span class="num">05 · EVERY KIND OF PATIENT</span>
-  <h2 id="c5">No age, sex or race comes <em>close</em></h2>
+  <span class="num">06 · EVERY KIND OF PATIENT</span>
+  <h2 id="c5"></h2>
   <p class="text note">108 groups, each recalibrated to its own SEER cancer rates and life table. Cells show cost per QALY gained, in millions of dollars.</p>
   <div class="ramp" id="ramp"></div>
   <div class="fig" id="mo-wrap" style="overflow-x:auto"><svg id="mosaic" role="img" aria-label="Cost per QALY for every combination of start age, sex and race or ethnicity"></svg></div>
 </section>
 
 <section class="chapter" aria-labelledby="c7">
-  <span class="num">06 · ONE MAN AT A TIME</span>
+  <span class="num">07 · ONE MAN AT A TIME</span>
   <h2 id="c7">For <em id="h-same"></em> in 100 men, the test changes <em>nothing</em></h2>
   <p class="text note" id="ms-intro"></p>
   <div class="key"><span><i class="sw uc"></i>no change in healthy life</span><span><i class="sw alarm"></i>worse off</span><span><i class="sw found"></i>better off</span></div>
@@ -94,10 +104,10 @@
 </section>
 
 <section class="chapter" aria-labelledby="c8">
-  <span class="num">07 · A SECOND OPINION ON THE DISEASE</span>
-  <h2 id="c8">Recalibrated to CISNET's esophageal cancer model, the answer <em>barely moves</em></h2>
+  <span class="num">08 · THE DISEASE MODEL</span>
+  <h2 id="c8">Esophageal adenocarcinoma follows <em>CISNET's MISCAN-ESO</em> model</h2>
   <p class="text note" id="mi-intro"></p>
-  <div class="fig" id="nh-wrap"><svg id="nh" role="img" aria-label="Natural history of esophageal adenocarcinoma in the MISCAN-ESO scenario: early and late hidden stages before symptoms"></svg></div>
+  <div class="fig" id="nh-wrap"><svg id="nh" role="img" aria-label="Natural history of esophageal adenocarcinoma (MISCAN-ESO, base case): early and late hidden stages before symptoms"></svg></div>
   <p class="text note" id="inc-intro"></p>
   <div class="key"><span><i class="sw band"></i>SEER target</span><span><i class="sw found"></i>model</span></div>
   <div class="fig" id="inc-wrap"><svg id="inc" role="img" aria-label="Esophageal adenocarcinoma incidence by age, SEER target and model, men and women"></svg></div>
@@ -105,11 +115,11 @@
   <div class="key"><span><i class="sw uc"></i>CISNET, three-model average</span><span><i class="sw found"></i>this model</span></div>
   <div class="fig" id="val-wrap"><svg id="val" role="img" aria-label="Lifetime esophageal adenocarcinoma cases and deaths per 100,000, CISNET and this model"></svg></div>
   <p class="text note" id="msc-intro"></p>
-  <div class="fig" id="msc-wrap"><svg id="msc" role="img" aria-label="Galleri cost per QALY in the base case and the MISCAN-ESO scenarios"></svg></div>
+  <div class="fig" id="msc-wrap"><svg id="msc" role="img" aria-label="Net QALYs per 100,000 men and cost per QALY in the base case and natural-history variants"></svg></div>
 </section>
 
 <section class="chapter" aria-labelledby="c6">
-  <span class="num">08 · THE OTHER OPTION</span>
+  <span class="num">09 · THE OTHER OPTION</span>
   <h2 id="c6">A one-time risk score and endoscopy <em>does harm</em></h2>
   <p class="text note">The Kunzmann score (sensitivity 77.5%, specificity 64.4%) flags 35.7% of men for a single endoscopy at 50. It finds few cancers, and the endoscopies in the 99.9% who have none take away more healthy life than the cancers caught give back.</p>
   <div class="strip" id="kunz"></div>
@@ -117,8 +127,8 @@
 
 <p class="text"><a class="next" href="https://claude.ai/artifact/KSek511vhqrfmtnnSmC3ui">← Before this: the burden of 2.8 million blood tests</a></p>
 <footer class="foot">
-  <p>Source: Galleri upper GI screening model (github.com/fali-ebm/Galleri, galleri_cea). Base case: non-Hispanic White men screened every year from 50 to 85 and followed to 100; costs in 2025 US dollars, costs and QALYs discounted at 3%. Natural history calibrated to SEER; Galleri accuracy from PATHFINDER 2 and NHS-Galleri; NCHS 2024 life tables. Uncertainty from 1,000 probabilistic runs.</p>
-  <p>Chapter 06: hesim individual-level microsimulation of 1,000,000 men, the same men in every arm (seed 2026). Chapter 07: MISCAN-ESO scenario, esophageal adenocarcinoma sojourn from Kong 2014 (CEBP, doi:10.1158/1055-9965.EPI-13-1233), CISNET lifetime targets from Rubenstein 2022 (Gastroenterology, doi:10.1053/j.gastro.2022.03.037). Everything on this page is rebuilt in R by <code>Rscript make_all.R</code>.</p>
+  <p>Source: Galleri upper GI screening model (github.com/fali-ebm/Galleri, galleri_cea). Base case: non-Hispanic White men screened every year from 50 to 85 and followed to 100; costs in 2025 US dollars, costs and QALYs discounted at 3%. Natural history calibrated to SEER (two-stage preclinical cancer; esophageal adenocarcinoma from CISNET MISCAN-ESO); Galleri accuracy for the marketed (PMA) test from PATHFINDER 2 and NHS-Galleri as reported to the FDA (GRAIL, September 2026), stage-specific; NCHS 2024 life tables. Uncertainty from 1,000 probabilistic runs.</p>
+  <p>Chapter 07: hesim individual-level microsimulation of 1,000,000 men, the same men in every arm (seed 2026). Chapter 08: MISCAN-ESO, esophageal adenocarcinoma sojourn from Kong 2014 (CEBP, doi:10.1158/1055-9965.EPI-13-1233), CISNET lifetime targets from Rubenstein 2022 (Gastroenterology, doi:10.1053/j.gastro.2022.03.037). Everything on this page is rebuilt in R by <code>Rscript make_all.R</code>.</p>
   <p>Deaths prevented include other cancers found during the workup of a Galleri positive. The price line holds everything else at the base case; the model's cost per QALY is linear in the test price.</p>
 </footer>
 </main>
@@ -136,12 +146,17 @@ function showTip(html, ev) { tip.innerHTML = html; tip.style.opacity = 1; const 
 const hideTip = () => tip.style.opacity = 0;
 const ugiSaved = Math.round(DATA.ugi_deaths_uc - DATA.ugi_deaths_g), othSaved = Math.round(DATA.other_deaths_averted), ucDeaths = Math.round(DATA.ugi_deaths_uc);
 const priceAt = icer => (icer - DATA.price_icpt) / DATA.price_slope, icerAt = p => DATA.price_icpt + DATA.price_slope * p;
-document.getElementById('h-lives').textContent = Math.round(DATA.deaths_averted);
-document.getElementById('h-cost').textContent = money(DATA.d_cost_total).replace(' billion', ' billion');
-document.getElementById('h-uc').textContent = fmt(ucDeaths);
-document.getElementById('h-ugi').textContent = ugiSaved;
-document.getElementById('h-oth').textContent = othSaved;
-document.getElementById('h-price').textContent = '$' + Math.round(priceAt(100000)) + ', not $' + fmt(DATA.price);
+const T = DATA.text, ST = DATA.stage, pct = v => (100 * v).toFixed(v < 0.1 ? 1 : 0) + '%';
+document.getElementById('h-s12').textContent = Math.round(ST.gain_eso);
+document.getElementById('h-cost').textContent = money(ST.cost_per) + ' each';
+document.getElementById('h-dek').innerHTML = `Without screening, <b>${pct(ST.share_uc)}</b> of esophageal cancers in 100,000 men are diagnosed at stage I–II, when they can be removed endoscopically or cured by surgery. A Galleri test every year from 50 to 85 raises that to <b>${pct(ST.share_g)}</b>, prevents <b>${ugiSaved}</b> of <b>${fmt(ucDeaths)}</b> esophageal and stomach cancer deaths, and finds other cancers that prevent <b>${othSaved}</b> more. It costs <b>${money(DATA.d_cost_total)}</b> more per 100,000 men. In the person-level microsimulation of 1,000,000 men (the headline) that buys <b>${(DATA.ms.qaly * 1e5).toFixed(0)}</b> quality-adjusted life-years (±${(DATA.ms.qaly95 * 1e5).toFixed(0)}), <b>${money(DATA.ms.icer)}</b> per QALY; ` +
+  (T.dominated ? `in the cohort model the earlier diagnoses' gain is used up entirely by the burden on people without cancer.` : `the cohort model gives <b>${money(DATA.icer)}</b>.`);
+document.getElementById('c2').innerHTML = T.dominated ? `Across ${fmt(T.psa_n)} simulations, Galleri adds healthy life in <em>${fmt(T.psa_gain)}</em>, and none comes in under $1 million per QALY`
+  : T.psa_under_1m === 0 ? `Not one of ${fmt(T.psa_n)} simulations comes in under <em>$1 million</em> per QALY` : `<em>${fmt(T.psa_under_1m)}</em> of ${fmt(T.psa_n)} simulations come in under $1 million per QALY`;
+document.getElementById('c3').innerHTML = T.dominated ? `While it adds no healthy life, <em>no test price</em> makes it worth it`
+  : `To be worth it, the test would have to cost about <em>$${Math.round(priceAt(100000))}, not $${fmt(DATA.price)}</em>`;
+document.getElementById('c4').innerHTML = T.sc_ok.length ? `Only <em>${T.sc_ok.length}</em> of the assumptions tested bring it under $150,000 per QALY` : `No single assumption brings it under <em>$150,000</em> per QALY`;
+document.getElementById('c5').innerHTML = T.sg_ok === 0 ? `No age, sex or race comes <em>close</em>` : `<em>${T.sg_ok}</em> of ${T.sg_n} groups come under $150,000 per QALY`;
 
 /* hero: one dot per death */
 function drawDeaths() {
@@ -158,8 +173,9 @@ function drawDeaths() {
   svg.on('mousemove', ev => showTip(`<b>${fmt(ucDeaths)}</b> upper GI cancer deaths per 100,000 men without screening.<br><span style="color:${C.found}"><b>${ugiSaved}</b></span> prevented by yearly Galleri, plus <b>${othSaved}</b> deaths from other cancers found by the workup.`, ev)).on('mouseleave', hideTip);
   const tags = [
     ['Blood tests', fmt(Math.round(DATA.tests)), ''], ['Extra cost, 2025 dollars', money(DATA.d_cost_total), 'hot'],
-    ['Cost per death prevented', money(DATA.d_cost_total / DATA.deaths_averted), 'hot'], ['Cost per QALY gained', money(DATA.icer), 'hot'],
-    ['Healthy life-years gained (QALYs)', fmt(Math.round(DATA.qaly_net)), 'good'], ['Late-stage diagnoses avoided', fmt(Math.round(DATA.late_averted)), 'good'],
+    ['Extra stage I–II esophageal diagnoses', fmt(Math.round(ST.gain_eso)), 'good'], ['Cost per extra stage I–II esophageal diagnosis', money(ST.cost_per), 'hot'],
+    ['Cost per death prevented', money(DATA.d_cost_total / DATA.deaths_averted), 'hot'], ['Cost per QALY gained (microsimulation)', money(DATA.ms.icer), 'hot'], ['Cost per QALY gained (cohort)', T.dominated ? 'no QALY gain' : money(DATA.icer), 'hot'],
+    ['Healthy life-years gained (QALYs)', DATA.qaly_net.toFixed(DATA.qaly_net < 10 ? 1 : 0), DATA.qaly_net > 0 ? 'good' : 'hot'], ['Late-stage diagnoses avoided', fmt(Math.round(DATA.late_averted)), 'good'],
     ['Overdiagnosed cancers', fmt(Math.round(DATA.overdx)), ''], ['Healthy men worked up', fmt(Math.round(DATA.false_alarms)), '']];
   const t = d3.select('#tags'); t.selectAll('*').remove();
   tags.forEach(([k, v, c]) => { const d = t.append('div').attr('class', 'tag ' + c); d.append('span').attr('class', 'k').text(k); d.append('span').attr('class', 'v').text(v); });
@@ -231,6 +247,8 @@ function drawPSA() {
 
 /* 03 price */
 function drawPrice() {
+  if (T.dominated) { document.getElementById('price-intro').innerHTML = `In the base case Galleri adds no QALYs (net <b>${DATA.qaly_net.toFixed(1)}</b> per 100,000 men, discounted), so a lower price only makes it cost less; it never makes it good value. The scenario and simulation chapters show how far from a QALY gain the uncertainty reaches.`;
+    d3.select('#price').attr('height', 0).selectAll('*').remove(); return; }
   const p100 = priceAt(100000), p150 = priceAt(150000), share = 0.077 * DATA.price;
   document.getElementById('price-intro').innerHTML = `Everything else held at the base case, the cost per QALY rises in a straight line with the test price. At the list price of <b>$${fmt(DATA.price)}</b> it is <b>${money(DATA.icer)}</b>. It reaches $100,000 to $150,000 per QALY only at <b>$${Math.round(p100)} to $${Math.round(p150)}</b> a test. Charging upper GI screening only its share of the cancers Galleri finds (about 7.7%, <b>$${Math.round(share)}</b>) gives ${money(icerAt(share))}.`;
   const wrap = document.getElementById('price-wrap'), W = wrap.clientWidth, H = 360, m = { t: 24, r: 30, b: 46, l: 70 };
@@ -255,22 +273,26 @@ function drawPrice() {
 }
 
 /* 04 scenarios */
+// ICER on a log axis: runs with no QALY gain sit at the right edge, labelled as such
+const gainOK = s => s.dq > 0 && s.icer > 0, icerPos = (s, lo, hi) => gainOK(s) ? Math.min(Math.max(s.icer, lo), hi) : hi;
+const icerLab = s => gainOK(s) ? money(s.icer) : 'no QALY gain';
 function drawScen() {
-  const S = DATA.scenarios.slice().sort((a, b) => b.icer - a.icer);
-  const wrap = document.getElementById('sc-wrap'), W = wrap.clientWidth, row = 30, m = { t: 30, r: 80, b: 20, l: Math.min(420, W * 0.46) }, H = m.t + m.b + row * S.length;
+  const S = DATA.scenarios.slice().map(s => ({ ...s, icer: gainOK(s) ? s.icer : Infinity })).sort((a, b) => b.icer - a.icer);
+  const wrap = document.getElementById('sc-wrap'), W = wrap.clientWidth, row = 30, m = { t: 30, r: 150, b: 20, l: Math.min(420, W * 0.42) }, H = m.t + m.b + row * S.length;
   const svg = d3.select('#sc').attr('width', W).attr('height', H).attr('viewBox', `0 0 ${W} ${H}`); svg.selectAll('*').remove();
-  const x = d3.scaleLog([5e4, 1e7], [m.l, W - m.r]);
+  const x0 = d3.scaleLog([5e4, 1e10], [m.l, W - m.r]), NG = W - m.r + 60, x = v => isFinite(v) ? x0(Math.max(5e4, Math.min(1e10, v))) : NG;
+  svg.append('text').attr('x', NG).attr('y', m.t - 14).attr('text-anchor', 'middle').style('font-size', '11px').style('fill', C.faint).text('no QALY gain');
   svg.append('rect').attr('x', x(1e5)).attr('width', x(1.5e5) - x(1e5)).attr('y', m.t - 8).attr('height', H - m.t - m.b + 8).attr('fill', C.found).attr('fill-opacity', .22);
   svg.append('text').attr('x', x(1.25e5)).attr('y', m.t - 14).attr('text-anchor', 'middle').style('fill', C.found).style('font-size', '11.5px').text('threshold');
-  [1e5, 1e6, 1e7].forEach(t => { svg.append('line').attr('x1', x(t)).attr('x2', x(t)).attr('y1', m.t - 8).attr('y2', H - m.b).attr('stroke', C.rule);
-    svg.append('text').attr('x', x(t)).attr('y', m.t - 14).attr('text-anchor', t === 1e5 ? 'end' : 'middle').style('font-family', 'var(--mono)').style('font-size', '11px').style('fill', C.faint).text(t === 1e5 ? '' : money(t)); });
-  const base = DATA.icer;
+  [1e5, 1e6, 1e7, 1e8, 1e9, 1e10].forEach(t => { svg.append('line').attr('x1', x(t)).attr('x2', x(t)).attr('y1', m.t - 8).attr('y2', H - m.b).attr('stroke', C.rule);
+    svg.append('text').attr('x', x(t)).attr('y', m.t - 14).attr('text-anchor', t === 1e5 ? 'end' : 'middle').style('font-family', 'var(--mono)').style('font-size', '11px').style('fill', C.faint).text(t === 1e5 ? '' : t >= 1e9 ? '$' + t / 1e9 + 'B' : '$' + t / 1e6 + 'M'); });
+  const base = T.dominated ? Infinity : DATA.icer;
   svg.append('line').attr('x1', x(base)).attr('x2', x(base)).attr('y1', m.t - 8).attr('y2', H - m.b).attr('stroke', C.paper).attr('stroke-opacity', .35).attr('stroke-dasharray', '3 3');
-  S.forEach((s, i) => { const yy = m.t + i * row + row / 2, isBase = s.s === 'Base case', hot = s.icer < 1e6;
+  S.forEach((s, i) => { const yy = m.t + i * row + row / 2, isBase = s.s === 'Base case', hot = s.icer < 1e6, xv = s.icer;
     svg.append('text').attr('x', m.l - 14).attr('y', yy).attr('dy', '0.35em').attr('text-anchor', 'end').style('fill', isBase || hot ? C.paper : C.mute).style('font-weight', isBase || hot ? 600 : 400).style('font-size', '12.5px').text(s.s);
-    svg.append('line').attr('x1', x(base)).attr('x2', x(s.icer)).attr('y1', yy).attr('y2', yy).attr('stroke', hot ? C.overdx : C.faint).attr('stroke-width', 1.5);
-    svg.append('circle').attr('cx', x(s.icer)).attr('cy', yy).attr('r', isBase ? 6 : 5).attr('fill', isBase ? C.ink : hot ? C.overdx : C.paper).attr('stroke', isBase ? C.paper : C.ink).attr('stroke-width', 2);
-    svg.append('text').attr('x', x(s.icer) + (s.icer > base ? 10 : -10)).attr('y', yy).attr('dy', '0.35em').attr('text-anchor', s.icer > base ? 'start' : 'end').style('font-family', 'var(--mono)').style('font-size', '11px').style('fill', C.mute).text(money(s.icer));
+    svg.append('line').attr('x1', x(base)).attr('x2', x(xv)).attr('y1', yy).attr('y2', yy).attr('stroke', hot ? C.overdx : C.faint).attr('stroke-width', 1.5);
+    svg.append('circle').attr('cx', x(xv)).attr('cy', yy).attr('r', isBase ? 6 : 5).attr('fill', isBase ? C.ink : hot ? C.overdx : isFinite(s.icer) ? C.paper : 'none').attr('stroke', isBase ? C.paper : isFinite(s.icer) ? C.ink : C.faint).attr('stroke-width', 2);
+    const right = false; svg.append('text').attr('x', x(xv) - 10).attr('y', yy).attr('dy', '0.35em').attr('text-anchor', right ? 'start' : 'end').style('font-family', 'var(--mono)').style('font-size', '11px').style('fill', C.mute).text(isFinite(s.icer) ? money(s.icer) : '');
   });
 }
 
@@ -382,8 +404,8 @@ function drawMS() {
 /* 07 MISCAN-ESO */
 function drawMiscan() {
   const Q = DATA.miscan, rm = Q.rates.male, rf = Q.rates.female;
-  const base = Q.scenarios.find(s => s.s === 'Base case').icer, mis = Q.scenarios.find(s => /natural history/.test(s.s)).icer;
-  document.getElementById('mi-intro').innerHTML = `The base case gives every upper GI cancer one hidden phase of 2.4 years on average. MISCAN-ESO, one of the National Cancer Institute's CISNET models, describes esophageal adenocarcinoma differently: it hides for about <b>${rm.S} years</b> in men and <b>${rf.S}</b> in women (Kong 2014), passing from an early to a late stage before it causes symptoms. In this scenario that cancer follows the MISCAN-ESO pattern; stomach and other esophageal cancers keep the base case. A cancer Galleri finds in the early phase is early stage; one found in the late phase is late.`;
+  const base = Q.scenarios.find(s => s.s === 'Base case').icer, mis = (Q.scenarios.find(s => /^Original natural history/.test(s.s)) || { icer: NaN }).icer;
+  document.getElementById('mi-intro').innerHTML = `Esophageal adenocarcinoma follows MISCAN-ESO, one of the National Cancer Institute's CISNET models: it hides for about <b>${rm.S} years</b> in men and <b>${rf.S}</b> in women before symptoms (Kong 2014), passing from an early (stage I–II) to a late (III–IV) phase. Squamous esophageal and gastric cancer have the same two phases with a shorter hidden period (2.4 years). A cancer Galleri finds in the early phase is diagnosed at stage I–II; one found in the late phase at III–IV, so the stage shift comes from the natural history itself.`;
   // natural history flow (men)
   const wrap = document.getElementById('nh-wrap'), W = Math.max(640, wrap.clientWidth), H = 262;
   const svg = d3.select('#nh').attr('width', W).attr('height', H).attr('viewBox', `0 0 ${W} ${H}`); svg.selectAll('*').remove();
@@ -426,7 +448,7 @@ function drawMiscan() {
   });
 
   const vm = Q.validation.find(v => v.label === 'Cases, men'), dm = Q.validation.find(v => v.label === 'Deaths, men');
-  document.getElementById('val-intro').innerHTML = `An outside check the model was not fitted to: CISNET's three esophageal models, averaged, put lifetime cases at <b>${vm.cisnet}</b> and deaths at <b>${dm.cisnet}</b> per 100,000 White men without screening (Rubenstein 2022). This model gives <b>${Math.round(vm.model)}</b> and <b>${Math.round(dm.model)}</b>. Women run high because SEER reports the adenocarcinoma share by race only, so it is applied to women as well, who have more squamous cell cancer.`;
+  document.getElementById('val-intro').innerHTML = `An outside check the model was not fitted to: CISNET's three esophageal models, averaged, put lifetime cases at <b>${vm.cisnet}</b> and deaths at <b>${dm.cisnet}</b> per 100,000 White men without screening (Rubenstein 2022). This model gives <b>${Math.round(vm.model)}</b> and <b>${Math.round(dm.model)}</b> (${d3.format('+.0%')(vm.model / vm.cisnet - 1)} and ${d3.format('+.0%')(dm.model / dm.cisnet - 1)}). For women, with the adenocarcinoma share split by sex using male:female incidence ratios, the figures are within a few percent too (bars below).`;
   const vw = document.getElementById('val-wrap'), VW = vw.clientWidth, V = Q.validation, row = 44, vm2 = { t: 26, r: 70, b: 10, l: 130 }, VH = vm2.t + vm2.b + row * V.length;
   const vs = d3.select('#val').attr('width', VW).attr('height', VH).attr('viewBox', `0 0 ${VW} ${VH}`); vs.selectAll('*').remove();
   const vx = d3.scaleLinear([0, d3.max(V, v => Math.max(v.cisnet, v.model)) * 1.08], [vm2.l, VW - vm2.r]).nice();
@@ -441,22 +463,51 @@ function drawMiscan() {
       .on('mousemove', ev => showTip(`<b>Lifetime EAC ${v.label.toLowerCase()}</b>, per 100,000<div class="r"><span>CISNET</span><span class="m">${fmt(v.cisnet)}</span></div><div class="r"><span style="color:${C.found}">This model</span><span class="m">${fmt(Math.round(v.model))}</span></div>`, ev)).on('mouseleave', hideTip);
   });
 
-  document.getElementById('msc-intro').innerHTML = `With the MISCAN-ESO natural history the cost per QALY falls from <b>${money(base)}</b> to <b>${money(mis)}</b>. Varying the parts MISCAN-ESO does not pin down (how the hidden years split between early and late, a shorter hidden phase) keeps it between ${money(d3.min(Q.scenarios, s => s.icer))} and ${money(d3.max(Q.scenarios, s => s.icer))}: about 40 times the $100,000–$150,000 range, whichever description of the disease is used.`;
-  const sw = document.getElementById('msc-wrap'), SW = sw.clientWidth, S = Q.scenarios.slice().sort((a, b) => b.icer - a.icer), srow = 34, sm = { t: 26, r: 80, b: 10, l: Math.min(430, SW * 0.5) }, SH = sm.t + sm.b + srow * S.length;
+  document.getElementById('msc-intro').innerHTML = `Net QALYs per 100,000 men (discounted) and cost per QALY in the base case and with the parts of the natural history the data do not pin down changed (how the hidden years split between stage I–II and III–IV, a shorter hidden phase, and the original one-phase model for all upper GI cancer). Runs where Galleri adds no QALYs are marked as such.`;
+  // net QALYs per 100,000 men under each natural-history variant (cost per QALY in the label)
+  const sw = document.getElementById('msc-wrap'), SW = sw.clientWidth, S = Q.scenarios.slice().sort((a, b) => b.dq - a.dq), srow = 34, sm = { t: 26, r: 120, b: 30, l: Math.min(430, SW * 0.5) }, SH = sm.t + sm.b + srow * S.length;
   const ss = d3.select('#msc').attr('width', SW).attr('height', SH).attr('viewBox', `0 0 ${SW} ${SH}`); ss.selectAll('*').remove();
-  const sx = d3.scaleLinear([4e6, 6e6], [sm.l, SW - sm.r]);
-  [4e6, 4.5e6, 5e6, 5.5e6, 6e6].forEach(t => { ss.append('line').attr('x1', sx(t)).attr('x2', sx(t)).attr('y1', sm.t - 6).attr('y2', SH - sm.b).attr('stroke', C.rule).attr('stroke-opacity', .6);
-    ss.append('text').attr('x', sx(t)).attr('y', sm.t - 12).attr('text-anchor', 'middle').style('font-family', 'var(--mono)').style('font-size', '11px').style('fill', C.faint).text(money(t)); });
-  ss.append('line').attr('x1', sx(base)).attr('x2', sx(base)).attr('y1', sm.t - 6).attr('y2', SH - sm.b).attr('stroke', C.paper).attr('stroke-opacity', .35).attr('stroke-dasharray', '3 3');
-  S.forEach((s, i) => { const yy = sm.t + i * srow + srow / 2, isB = s.s === 'Base case';
-    ss.append('text').attr('x', sm.l - 14).attr('y', yy).attr('dy', '0.35em').attr('text-anchor', 'end').style('font-size', '12.5px').style('font-weight', isB ? 600 : 400).text(s.s.replace('MISCAN-ESO natural history for esophageal adenocarcinoma', 'MISCAN-ESO natural history'));
-    ss.append('line').attr('x1', sx(base)).attr('x2', sx(s.icer)).attr('y1', yy).attr('y2', yy).attr('stroke', C.faint).attr('stroke-width', 1.5);
-    ss.append('circle').attr('cx', sx(s.icer)).attr('cy', yy).attr('r', isB ? 6.5 : 5.5).attr('fill', isB ? C.ink : C.found).attr('stroke', isB ? C.paper : C.ink).attr('stroke-width', 2);
-    ss.append('text').attr('x', sx(s.icer) + (s.icer >= base ? 12 : -12)).attr('y', yy).attr('dy', '0.35em').attr('text-anchor', s.icer >= base ? 'start' : 'end').style('font-family', 'var(--mono)').style('font-size', '11px').style('fill', C.mute).text(money(s.icer));
+  const qv = S.map(s => s.dq * DATA.per), sx = d3.scaleLinear([Math.min(0, d3.min(qv)) * 1.1, Math.max(0, d3.max(qv)) * 1.1 || 1], [sm.l, SW - sm.r]).nice();
+  ss.append('g').attr('class', 'axis').attr('transform', `translate(0,${SH - sm.b})`).call(d3.axisBottom(sx).ticks(5).tickSize(-(SH - sm.t - sm.b))).call(g => g.select('.domain').remove()).call(g => g.selectAll('line').attr('stroke', C.rule).attr('stroke-opacity', .6));
+  ss.append('line').attr('x1', sx(0)).attr('x2', sx(0)).attr('y1', sm.t - 6).attr('y2', SH - sm.b).attr('stroke', C.paper).attr('stroke-opacity', .5);
+  ss.append('text').attr('x', sx(0)).attr('y', sm.t - 12).attr('text-anchor', 'middle').style('font-size', '11px').style('fill', C.faint).text('no net QALYs');
+  const b0 = S.find(s => s.s === 'Base case');
+  S.forEach((s, i) => { const yy = sm.t + i * srow + srow / 2, isB = s.s === 'Base case', q = s.dq * DATA.per;
+    ss.append('text').attr('x', sm.l - 14).attr('y', yy).attr('dy', '0.35em').attr('text-anchor', 'end').style('font-size', '12.5px').style('font-weight', isB ? 600 : 400).text(s.s);
+    ss.append('line').attr('x1', sx(b0.dq * DATA.per)).attr('x2', sx(q)).attr('y1', yy).attr('y2', yy).attr('stroke', C.faint).attr('stroke-width', 1.5);
+    ss.append('circle').attr('cx', sx(q)).attr('cy', yy).attr('r', isB ? 6.5 : 5.5).attr('fill', isB ? C.ink : q > 0 ? C.found : C.alarm).attr('stroke', isB ? C.paper : C.ink).attr('stroke-width', 2);
+    ss.append('text').attr('x', Math.max(sx(q), sx(0)) + 12).attr('y', yy).attr('dy', '0.35em').style('font-family', 'var(--mono)').style('font-size', '11px').style('fill', C.mute).text(`${q.toFixed(1)} · ${icerLab(s)}`);
   });
 }
 
-function drawAll() { drawDeaths(); drawCum(); drawPSA(); drawPrice(); drawScen(); drawMosaic(); drawMS(); drawMiscan(); drawKunz(); }
+/* 01 primary endpoint: diagnoses by stage, usual care vs Galleri */
+function drawStage() {
+  document.getElementById('c0').innerHTML = `Galleri moves <em>${Math.round(ST.gain_eso)}</em> esophageal cancers per 100,000 men to stage I–II, at <em>${money(ST.cost_per)}</em> each`;
+  document.getElementById('stg-intro').innerHTML = `Lifetime diagnoses per 100,000 men by stage: stage I–II means the cancer can still be removed endoscopically or cured by surgery; this is where screening earns its benefit. Bars compare usual care (do nothing) with a yearly Galleri test, for each cancer type. The squamous and gastric cancers are found because Galleri reports one esophagus/stomach signal; esophageal cancer is the focus.`;
+  const rows = []; ST.uc.forEach((u, i) => { const g = ST.g[i]; rows.push({ grp: u.g, arm: 'Usual care', e: u.e, l: u.l }, { grp: u.g, arm: 'Galleri', e: g.e, l: g.l }); });
+  const wrap = document.getElementById('stg-wrap'), W = wrap.clientWidth, row = 30, gapG = 26, m = { t: 10, r: 120, b: 34, l: Math.min(260, W * 0.34) };
+  const H = m.t + m.b + rows.length * row + (ST.uc.length - 1) * gapG;
+  const svg = d3.select('#stg').attr('width', W).attr('height', H).attr('viewBox', `0 0 ${W} ${H}`); svg.selectAll('*').remove();
+  const x = d3.scaleLinear([0, d3.max(rows, r => r.e + r.l) * 1.02], [m.l, W - m.r]);
+  svg.append('g').attr('class', 'axis').attr('transform', `translate(0,${H - m.b})`).call(d3.axisBottom(x).ticks(6).tickFormat(fmt).tickSize(-(H - m.t - m.b))).call(g => g.select('.domain').remove()).call(g => g.selectAll('line').attr('stroke', C.rule).attr('stroke-opacity', .6)).selectAll('text').attr('dy', '1.3em');
+  rows.forEach((r, i) => {
+    const y = m.t + i * row + Math.floor(i / 2) * gapG, bh = row - 8;
+    if (i % 2 === 0) svg.append('text').attr('x', m.l - 12).attr('y', y + row - 2).attr('text-anchor', 'end').style('font-weight', 600).style('fill', C.paper).text(r.grp);
+    svg.append('text').attr('x', m.l - 12).attr('y', y + bh / 2).attr('dy', '0.35em').attr('text-anchor', 'end').style('font-size', '12px').style('fill', r.arm === 'Galleri' ? C.found : C.mute).text(i % 2 ? 'Galleri' : 'Usual care');
+    const g = svg.append('g').on('mousemove', ev => showTip(`<b>${r.grp}</b> · ${r.arm}<div class="r"><span style="color:${C.found}">Stage I–II</span><span class="m">${r.e.toFixed(1)}</span></div><div class="r"><span style="color:${C.alarm}">Stage III–IV</span><span class="m">${r.l.toFixed(1)}</span></div><div class="r"><span>Share at I–II</span><span class="m">${pct(r.e / (r.e + r.l))}</span></div>`, ev)).on('mouseleave', hideTip);
+    g.append('rect').attr('x', x(0)).attr('y', y).attr('width', x(r.e) - x(0)).attr('height', bh).attr('rx', 3).attr('fill', C.found).attr('fill-opacity', r.arm === 'Galleri' ? 1 : .55);
+    g.append('rect').attr('x', x(r.e) + 2).attr('y', y).attr('width', Math.max(0, x(r.e + r.l) - x(r.e) - 2)).attr('height', bh).attr('rx', 3).attr('fill', C.alarm).attr('fill-opacity', r.arm === 'Galleri' ? .9 : .5);
+    svg.append('text').attr('x', x(r.e + r.l) + 8).attr('y', y + bh / 2).attr('dy', '0.35em').style('font-size', '12px').style('fill', C.mute).text(`${pct(r.e / (r.e + r.l))} at I–II`);
+  });
+  svg.append('text').attr('x', (m.l + W - m.r) / 2).attr('y', H - 4).attr('text-anchor', 'middle').style('font-size', '12px').style('fill', C.faint).text('Diagnoses per 100,000 men, lifetime');
+  const tags = [['Extra stage I–II, esophageal', fmt(Math.round(ST.gain_eso)), ''], ['Stage III–IV averted, esophageal', fmt(Math.round(ST.late_av_eso)), ''],
+    ['Extra stage I–II, esophageal + gastric', fmt(Math.round(ST.gain_ugi)), ''], ['Cost per extra stage I–II (esophageal)', money(ST.cost_per), 'hot']];
+  const t = d3.select('#stg-strip'); t.selectAll('*').remove();
+  tags.forEach(([k, v, c]) => { const d = t.append('div'); d.append('span').attr('class', 'v ' + c).text(v); d.append('span').attr('class', 'k').text(k); });
+  document.getElementById('stg-why').innerHTML = `Why so few: in the trials, only <b>${pct(ST.trial_early)}</b> of the esophageal and stomach cancers Galleri found were stage I–II (4 of 22; PATHFINDER 2 and NHS-Galleri, FDA summary). Solving for that, the test picks up a hidden cancer at stage I–II <b>${pct(ST.sE)}</b> of the time and at stage III–IV <b>${pct(ST.sL)}</b> (which reproduces its ${pct(ST.ep_eso)} episode sensitivity with a correct esophagus/stomach signal). A cancer found at stage III–IV would have been diagnosed at III–IV anyway, so it adds lead time, not survival. In the model, <b>${pct(ST.scr_share)}</b> of Galleri-found upper GI cancers are stage I–II.`;
+}
+
+function drawAll() { drawStage(); drawDeaths(); drawCum(); drawPSA(); drawPrice(); drawScen(); drawMosaic(); drawMS(); drawMiscan(); drawKunz(); }
 drawAll();
 let rt; new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(drawAll, 150); }).observe(document.querySelector('.wrap'));
 </script>

@@ -33,9 +33,11 @@ cv <- function(k, a) { v <- coh[key == k & arm == a, value]; if (length(v)) v[1]
 per <- 1e5
 PER100K <- c("ly_total", "qaly_total", "daly_total")    # cohort stores these per 100,000; cost per person
 mc <- function(x) c(mean = mean(x), se = sd(x) / sqrt(length(x)))
+X[, clin_net := clin_dx - found_other]   # cohort clin_dx_lifetime is net of other-site cancers found early
 map <- list(   # microsim column, cohort key, scale
+  c("stage12", "stage12_ugi", per), c("stage34", "stage34_ugi", per), c("screen_stage12", "screen_stage12_ugi", per),
   c("screen_detected", "found_upper_gi", per), c("found_other", "found_other", per),
-  c("clin_dx", "clin_dx_lifetime", per), c("overdiagnosed", "overdiagnosed_ugi", per),
+  c("clin_net", "clin_dx_lifetime", per), c("overdiagnosed", "overdiagnosed_ugi", per),
   c("ca_death", "ca_deaths", per), c("false_pos", "free_investigated", per), c("egd", "egd", per),
   c("egd_skipped", "egd_skipped_hold", per), c("hidden", "hidden_after_egd", per), c("pet", "pet_ct", per),
   c("eus", "eus", per), c("laparoscopy", "laparoscopy", per), c("watchful_waiting", "surveillance_imaging", per),
@@ -51,15 +53,17 @@ V[, within_mc := abs(microsim - cohort) <= mc_95]
 fwrite(V, file.path(out_dir, "validation.csv"))
 
 # ---- per-person increments (same people, Galleri vs usual care; Kunzmann vs usual care)
-W <- dcast(X, person + risk_group ~ arm, value.var = c("qaly", "cost", "ly", "ca_death", "screen_detected", "stage_late", "dx_time"))
+W <- dcast(X, person + risk_group ~ arm, value.var = c("qaly", "cost", "ly", "ca_death", "screen_detected", "stage_late", "dx_time", "stage12", "stage34"))
 setnames(W, gsub("[^A-Za-z0-9_]+", "_", names(W)))
 W[, `:=`(dq_g = qaly_Galleri - qaly_Usual_care, dc_g = cost_Galleri - cost_Usual_care,
          dq_k = qaly_Kunzmann_EGD - qaly_Usual_care, dc_k = cost_Kunzmann_EGD - cost_Usual_care)]
 inc <- function(dq, dc) c(qaly = mean(dq), qaly_mc95 = 1.96 * sd(dq) / sqrt(length(dq)),
                          cost = mean(dc), cost_mc95 = 1.96 * sd(dc) / sqrt(length(dc)), icer = mean(dc) / mean(dq),
                          share_gain = mean(dq > 1e-9), share_loss = mean(dq < -1e-9), share_same = mean(abs(dq) <= 1e-9))
-ICR <- rbind(data.table(comparison = "Galleri vs usual care", t(inc(W$dq_g, W$dc_g))),
-             data.table(comparison = "Kunzmann -> EGD vs usual care", t(inc(W$dq_k, W$dc_k))))
+s12 <- function(a, b) { d <- as.numeric(a) - as.numeric(b); c(stage12_gained_per100k = 1e5 * mean(d), stage12_gained_mc95 = 1e5 * 1.96 * sd(d) / sqrt(length(d))) }
+ICR <- rbind(data.table(comparison = "Galleri vs usual care", t(inc(W$dq_g, W$dc_g)), t(s12(W$stage12_Galleri, W$stage12_Usual_care))),
+             data.table(comparison = "Kunzmann -> EGD vs usual care", t(inc(W$dq_k, W$dc_k)), t(s12(W$stage12_Kunzmann_EGD, W$stage12_Usual_care))))
+ICR[, cost_per_stage12_gained := 1e5 * cost / stage12_gained_per100k]
 ICR[, cohort_icer := c(cv("icer", "Galleri"), coh[key == "icer" & arm == "Kunzmann -> EGD", value][1])]
 fwrite(ICR, file.path(out_dir, "summary.csv"))
 

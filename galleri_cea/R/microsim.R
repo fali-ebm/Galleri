@@ -17,56 +17,82 @@
 # the cohort model, each one found is credited with its expected value (found now vs
 # presenting with symptoms later, from backward induction).
 
-MS_STATES <- c("well", "pre", "clin_early", "clin_late", "dead_other")
+# States (hesim): 1 well, 2 / 10 preclinical upper GI other than EAC, early (stage I-II) / late
+# (III-IV), 3 / 4 clinical early / late, 5 dead (other causes), 6 / 7 preclinical EAC early / late,
+# 8 / 9 clinical EAC early / late. Both preclinical processes are two-stage (miscan_rates()); EAC
+# states are used when miscan_eac = 1.
+MS_STATES <- c("well", "pre", "clin_early", "clin_late", "dead_other", "pre_ee", "pre_el", "clin_early_e", "clin_late_e", "pre_ol")
 
 # ---- Continuous-time calibration -------------------------------------------------
-# The cohort model's yearly onset assumes death comes first within each year. In
-# continuous time the same probabilities give more onset and presentation before death
-# (most at old ages), so onset hazards are re-solved here, year by year, so that the
-# expected presentations per living person equal the same SEER targets. Within a year
-# hazards are constant: well -> pre (onset), pre -> clinical (1 / sojourn), other death.
+# The cohort model's yearly onset assumes death comes first within each year. In continuous
+# time the same probabilities give more onset and presentation before death (most at old
+# ages), so onset hazards are re-solved here, year by year, so that the expected
+# presentations per living person equal the same SEER targets: the rest of upper GI cancer and,
+# with miscan_eac = 1, esophageal adenocarcinoma separately. Within a year all hazards are
+# constant, so the year is solved exactly with a matrix exponential of the generator over
+#   W well, P pre, E / L preclinical EAC early / late, DE / DL / DEe / DLe diagnosed and alive,
+#   X dead, and two counters (presentations: other, EAC).
 ms_calibrate <- function(prep, settings, row) {
   curve <- prep$curve; p <- prep$p; cal <- prep$cal; nT <- nrow(curve)
-  target <- target_ugi(curve, row, settings)
-  lo <- -log(1 - curve$mort_other); lp <- 1 / p$sojourn_years
+  mis <- miscan_on(p); eac <- cal$eac
+  t_o <- if (mis) target_other(curve, row, settings) else target_ugi(curve, row, settings)
+  t_e <- if (mis) target_eac(curve, row, settings) else rep(0, nT)
+  lo <- -log(1 - curve$mort_other); oth <- cal$oth
   lce <- -log(1 - p$m_early); lcl <- -log(1 - p$m_late)
-  W <- cal$x0[["well"]]; P <- cal$x0[["pre"]]; De <- 0; Dl <- 0
-  r_on <- numeric(nT); clipped <- 0
-  g <- function(l) if (abs(l) < 1e-12) 1 else (1 - exp(-l)) / l       # mean of exp(-l s) over the year
-  for (t in seq_len(nT)) {
-    l2 <- lo[t] + lp; alive0 <- W + P + De + Dl
-    pres <- function(lon) { l1 <- lo[t] + lon
-      lp * (P * g(l2) + if (lon > 0) lon * W * (g(l1) - g(l2)) / (l2 - l1 + 1e-15) else 0) }
-    goal <- target[t] * alive0
-    if (pres(0) >= goal) { lon <- 0; clipped <- clipped + 1 }
-    else lon <- uniroot(function(z) pres(z) - goal, c(0, 50), tol = 1e-14)$root
-    r_on[t] <- lon; l1 <- lo[t] + lon
-    Pnew <- P * exp(-l2) + lon * W * (exp(-l1) - exp(-l2)) / (l2 - l1 + 1e-15)
-    pr <- pres(lon); pl <- cal$pl[t]
-    De <- De * exp(-(lo[t] + lce)) + pr * (1 - pl) * exp(-(lo[t] + lce) / 2)
-    Dl <- Dl * exp(-(lo[t] + lcl)) + pr * pl * exp(-(lo[t] + lcl) / 2)
-    W <- W * exp(-l1); P <- Pnew
+  lce_e <- -log(1 - (p$m_early_eac %||% p$m_early)); lcl_e <- -log(1 - (p$m_late_eac %||% p$m_late))
+  S <- c("W", "P", "Q", "E", "L", "DE", "DL", "DEe", "DLe", "X", "cP", "cE")      # P / Q: pool early / late
+  x <- setNames(numeric(length(S)), S)
+  x[c("W", "P", "Q", "E", "L")] <- c(cal$x0[["well"]], cal$x0[["pre"]], cal$x0[["pre_ol"]], cal$x0[["pre_ee"]], cal$x0[["pre_el"]])
+  r_on <- r_one <- numeric(nT); clipped <- 0
+  year <- function(t, lon, lone, x) {
+    Q <- matrix(0, length(S), length(S), dimnames = list(S, S))
+    add <- function(f, to, r) Q[f, to] <<- Q[f, to] + r
+    add("W", "P", lon); add("W", "E", lone); add("W", "X", lo[t])
+    add("P", "DE", oth$hE); add("P", "Q", oth$lam); add("P", "X", lo[t]); add("Q", "DL", oth$hL); add("Q", "X", lo[t])
+    if (mis) { add("E", "DEe", eac$hE); add("E", "L", eac$lam); add("E", "X", lo[t]); add("L", "DLe", eac$hL); add("L", "X", lo[t]) }
+    add("DE", "X", lo[t] + lce); add("DL", "X", lo[t] + lcl); add("DEe", "X", lo[t] + lce_e); add("DLe", "X", lo[t] + lcl_e)
+    diag(Q) <- -rowSums(Q)
+    Q["P", "cP"] <- oth$hE; Q["Q", "cP"] <- oth$hL; if (mis) { Q["E", "cE"] <- eac$hE; Q["L", "cE"] <- eac$hL }   # counters (no outflow)
+    drop(x %*% as.matrix(Matrix::expm(Matrix::Matrix(Q))))
   }
-  list(r_on = pmax(r_on, 1e-12), clipped = clipped)
+  for (t in seq_len(nT)) {
+    x[c("cP", "cE")] <- 0; alive0 <- sum(x[c("W", "P", "Q", "E", "L", "DE", "DL", "DEe", "DLe")])
+    lon <- if (t > 1) r_on[t - 1] else 0.001; lone <- if (t > 1) r_one[t - 1] else if (mis) 0.001 else 0
+    solve1 <- function(which, other) {
+      f <- function(z) { y <- if (which == "o") year(t, z, other, x) else year(t, other, z, x)
+        (if (which == "o") y[["cP"]] - t_o[t] * alive0 else y[["cE"]] - t_e[t] * alive0) }
+      if (f(0) >= 0) { clipped <<- clipped + 1; return(0) }
+      uniroot(f, c(0, 5), tol = 1e-13)$root
+    }
+    for (it in 1:4) { lon <- solve1("o", lone); if (mis) lone <- solve1("e", lon) }
+    r_on[t] <- lon; r_one[t] <- lone
+    x <- year(t, lon, lone, x)
+  }
+  list(r_on = pmax(r_on, 1e-12), r_one = pmax(r_one, 1e-12), clipped = clipped)
 }
 
 # ---- Natural history with hesim -----------------------------------------------
 ms_natural_history <- function(prep, n, seed, settings, row) {
-  curve <- prep$curve; cal <- prep$cal; p <- prep$p; nT <- nrow(curve)
-  r <- function(x) pmax(x, 1e-12)
-  r_on <- ms_calibrate(prep, settings, row)$r_on; r_oc <- r(-log(1 - curve$mort_other))
-  r_pr <- 1 / p$sojourn_years
-  rates <- list(r_on, r_oc, r(r_pr * (1 - cal$pl)), r(r_pr * cal$pl), r_oc)
-  tmat <- rbind(c(NA, 1, NA, NA, 2), c(NA, NA, 3, 4, 5), rep(NA, 5), rep(NA, 5), rep(NA, 5))
-  dimnames(tmat) <- list(MS_STATES, MS_STATES)
+  curve <- prep$curve; cal <- prep$cal; p <- prep$p; nT <- nrow(curve); mis <- miscan_on(p)
+  r <- function(x) pmax(x, 1e-12); cst <- function(v) rep(r(v), nT)
+  mc <- ms_calibrate(prep, settings, row); r_oc <- r(-log(1 - curve$mort_other))
+  oth <- cal$oth; eac <- cal$eac %||% oth
+  rates <- list(mc$r_on, r_oc, cst(oth$hE), cst(oth$lam), r_oc,                                  # 1-5
+                if (mis) mc$r_one else cst(1e-12), cst(eac$hE), cst(eac$lam), r_oc, cst(eac$hL), r_oc,   # 6-11
+                cst(oth$hL), r_oc)                                                             # 12-13
+  tmat <- matrix(NA, 10, 10, dimnames = list(MS_STATES, MS_STATES))
+  tmat[1, 2] <- 1; tmat[1, 5] <- 2; tmat[2, 3] <- 3; tmat[2, 10] <- 4; tmat[2, 5] <- 5
+  tmat[1, 6] <- 6; tmat[6, 8] <- 7; tmat[6, 7] <- 8; tmat[6, 5] <- 9; tmat[7, 9] <- 10; tmat[7, 5] <- 11
+  tmat[10, 4] <- 12; tmat[10, 5] <- 13
   tm <- seq_len(nT) - 1
   mk <- function(v) hesim::params_surv(
     coefs = setNames(lapply(v, function(z) matrix(log(z), 1, 1, dimnames = list(NULL, "(Intercept)"))), paste0("rate", seq_along(v))),
     aux = list(time = tm), dist = "pwexp")
   pars <- do.call(hesim::params_surv_list, lapply(rates, mk))
   set.seed(seed)
-  pre0 <- cal$x0[["pre"]] / (cal$x0[["well"]] + cal$x0[["pre"]])
-  start <- ifelse(runif(n) < pre0, 2L, 1L)
+  x0 <- cal$x0; tot <- x0[["well"]] + x0[["pre"]] + x0[["pre_ol"]] + x0[["pre_ee"]] + x0[["pre_el"]]
+  u0 <- runif(n); c1 <- x0[["pre"]] / tot; c1b <- c1 + x0[["pre_ol"]] / tot; c2 <- c1b + x0[["pre_ee"]] / tot; c3 <- c2 + x0[["pre_el"]] / tot
+  start <- ifelse(u0 < c1, 2L, ifelse(u0 < c1b, 10L, ifelse(u0 < c2, 6L, ifelse(u0 < c3, 7L, 1L))))
   hd <- hesim::hesim_data(strategies = data.table::data.table(strategy_id = 1),
                           patients = data.table::data.table(patient_id = seq_len(n)))
   td <- hesim::expand(hd, by = c("strategies", "patients")); td[, `(Intercept)` := 1]
@@ -74,12 +100,14 @@ ms_natural_history <- function(prep, n, seed, settings, row) {
   m <- hesim::IndivCtstm$new(trans_model = tr)
   m$sim_disease(max_t = nT)
   dp <- m$disprog_
-  T_on <- ifelse(start == 2L, 0, Inf); T_clin <- rep(Inf, n); late <- rep(FALSE, n); T_oc <- rep(Inf, n)
-  i <- dp$to == 2; T_on[dp$patient_id[i]] <- dp$time_stop[i]
-  i <- dp$to %in% 3:4; T_clin[dp$patient_id[i]] <- dp$time_stop[i]; late[dp$patient_id[i]] <- dp$to[i] == 4
+  T_on <- ifelse(start %in% c(2L, 6L, 7L, 10L), 0, Inf); eacf <- start %in% c(6L, 7L); T_pl <- ifelse(start %in% c(7L, 10L), 0, Inf)
+  T_clin <- rep(Inf, n); late <- rep(FALSE, n); T_oc <- rep(Inf, n)
+  i <- dp$to %in% c(2, 6); T_on[dp$patient_id[i]] <- dp$time_stop[i]; eacf[dp$patient_id[i & dp$to == 6]] <- TRUE
+  i <- dp$to %in% c(7, 10); T_pl[dp$patient_id[i]] <- dp$time_stop[i]    # entered preclinical late (EAC or pool)
+  i <- dp$to %in% c(3, 4, 8, 9); T_clin[dp$patient_id[i]] <- dp$time_stop[i]; late[dp$patient_id[i]] <- dp$to[i] %in% c(4, 9)
   i <- dp$to == 5; T_oc[dp$patient_id[i]] <- dp$time_stop[i]
   # after presentation: other-cause death (same yearly hazards, memoryless) and cancer death
-  # (constant yearly hazard by stage); one uniform per person shared by both stages and arms
+  # (constant yearly hazard by stage and cancer type); one uniform per person shared by both arms
   H <- c(0, cumsum(r_oc))
   draw_after <- function(t0) {                         # inverse cumulative hazard from t0
     out <- rep(Inf, length(t0)); ok <- is.finite(t0) & t0 < nT
@@ -89,8 +117,8 @@ ms_natural_history <- function(prep, n, seed, settings, row) {
     out
   }
   T_oc_post <- draw_after(T_clin)
-  data.frame(id = seq_len(n), T_on = T_on, T_clin = T_clin, late = late, T_oc = T_oc, T_oc_post = T_oc_post,
-             u_cd = runif(n))
+  data.frame(id = seq_len(n), T_on = T_on, eac = eacf, T_pl = T_pl, T_clin = T_clin, late = late, T_oc = T_oc,
+             T_oc_post = T_oc_post, u_cd = runif(n))
 }
 
 # ---- Screening overlay ---------------------------------------------------------
@@ -105,7 +133,11 @@ ms_paths <- function(wk) lapply(wk$rest, function(r) {
 ms_screen <- function(nh, arm, prep, row, settings, wk, seed) {
   p <- prep$p; curve <- prep$curve; V <- prep$V; q <- prep$q; nT <- nrow(curve); N <- nrow(nh)
   set.seed(seed)
-  H <- max(0, round(p$egd_hold_years %||% 0)); kap <- p$fp_kappa %||% 1e6; m <- p$fpr_g_es
+  H <- hold_years(p); kap <- p$fp_kappa %||% 1e6; m <- p$fpr_g_es; bayes <- (p$egd_rule %||% 0) == 1
+  cal <- prep$cal; S_e <- (cal$eac %||% list(S = p$sojourn_years))$S
+  thr <- vapply(seq_len(nT), function(t) egd_threshold_at(p, cal, V, t), 0)
+  stage_at <- function(ii, tau) tau >= nh$T_pl[ii]                     # found in the stage it is in
+  GS <- cal$gs
   theta <- if (kap >= 1e6) rep(m, N) else rbeta(N, m * kap, (1 - m) * kap)
   z <- function() numeric(N)
   O <- list(tests = z(), positives = z(), fp = z(), fp_other = z(), egd = z(), ent = z(), pet = z(), eus = z(),
@@ -140,7 +172,7 @@ ms_screen <- function(nh, arm, prep, row, settings, wk, seed) {
       O$cost_fp[idx[fr]] <- O$cost_fp[idx[fr]] + dfc * cst[fr]; O$qaly_fp[idx[fr]] <- O$qaly_fp[idx[fr]] + dfq * ql[fr]
       O$daly_fp[idx[fr]] <- O$daly_fp[idx[fr]] + dfd * ql[fr]
       T_pd[idx[pd]] <- tau
-      fi <- idx[found & !pd]; dx_t[fi] <- tau; dx_late[fi] <- runif(length(fi)) < pls
+      fi <- idx[found & !pd]; dx_t[fi] <- tau; dx_late[fi] <- stage_at(fi, tau)
       next
     }
     # ---- Galleri ----
@@ -149,7 +181,9 @@ ms_screen <- function(nh, arm, prep, row, settings, wk, seed) {
     rep_m <- if (rounds > 0) p$sens_g_rep_ratio %||% 1 else 1; rounds <- rounds + 1
     nI <- length(idx); u <- runif(nI)
     ugi <- pre & !pm[idx]
-    pos_u <- ugi & u < p$sens_g_ugi * rep_m
+    lt <- nh$T_pl[idx] <= tau                                               # preclinical late at this test
+    sens_i <- ifelse(nh$eac[idx], ifelse(lt, GS$s_el[t], GS$s_ee[t]), ifelse(lt, GS$s_pool_l[t], GS$s_pool_e[t]))
+    pos_u <- ugi & u < sens_i * rep_m
     newpm <- ugi & !pos_u & runif(nI) < (p$p_fn_persist %||% 0); pm[idx[newpm]] <- TRUE
     pool <- curve$inc_other[t] * (if (t == 1) p$sojourn_years else 1)
     oth <- !pre & runif(nI) < pool
@@ -160,6 +194,12 @@ ms_screen <- function(nh, arm, prep, row, settings, wk, seed) {
     if (!any(pos)) next
     j <- idx[pos]; nj <- length(j); type <- ifelse(pos_u[pos], "u", ifelse(pos_o[pos], "o", "f"))
     egd <- h_now[pos] == 0
+    if (bayes && any(!egd)) {                                              # Bayesian hold (egd_rule = 1)
+      ctx <- egd_ctx(cal, p, t)
+      th_k <- (m * kap + k_fp[j]) / (kap + rounds - 1)                     # posterior mean FP propensity given k
+      post <- egd_posterior(H - h_now[pos] + 1, th_k, t, rounds - 1, curve, p, ctx)
+      egd <- egd | post >= thr[t]
+    }
     O$positives[j] <- O$positives[j] + 1; O$fp[j] <- O$fp[j] + (type == "f"); O$fp_other[j] <- O$fp_other[j] + (type == "o")
     O$egd_skipped[j] <- O$egd_skipped[j] + !egd
     cst <- numeric(nj); qp <- numeric(nj); dp <- numeric(nj); dead <- rep(FALSE, nj); found <- rep(FALSE, nj)
@@ -234,7 +274,7 @@ ms_screen <- function(nh, arm, prep, row, settings, wk, seed) {
     O$daly_fp[j[fp]] <- O$daly_fp[j[fp]] + dfd * (qp[fp] + path_daly[fp] + ww[fp])
     k_fp[j[fp]] <- k_fp[j[fp]] + 1L
     T_pd[j[dead]] <- tau
-    fj <- j[found & !dead]; dx_t[fj] <- tau; dx_late[fj] <- runif(length(fj)) < pls
+    fj <- j[found & !dead]; dx_t[fj] <- tau; dx_late[fj] <- stage_at(fj, tau)
   }
   list(O = O, dx_t = dx_t, dx_late = dx_late, T_pd = T_pd, k_fp = k_fp, pm = pm)
 }
@@ -242,7 +282,8 @@ ms_screen <- function(nh, arm, prep, row, settings, wk, seed) {
 # ---- Per-person timeline and outcomes -------------------------------------------
 ms_outcomes <- function(nh, sc, prep, settings) {
   p <- prep$p; curve <- prep$curve; nT <- nrow(curve); N <- nrow(nh); O <- sc$O
-  r_e <- -log(1 - p$m_early); r_l <- -log(1 - p$m_late)
+  r_e <- ifelse(nh$eac, -log(1 - (p$m_early_eac %||% p$m_early)), -log(1 - p$m_early))
+  r_l <- ifelse(nh$eac, -log(1 - (p$m_late_eac %||% p$m_late)), -log(1 - p$m_late))
   det <- is.finite(sc$dx_t)
   T_d0 <- pmin(nh$T_oc, sc$T_pd)                                   # death before presentation (other cause or procedure)
   clin <- !det & nh$T_clin < pmin(T_d0, nT)
@@ -281,7 +322,9 @@ ms_outcomes <- function(nh, sc, prep, settings) {
   tk <- yr(T_cd[ca_death]); cost[ca_death] <- cost[ca_death] + (1 + dc)^-(tk - 1) * p$c_eol
   daly[ca_death] <- daly[ca_death] + (1 + dd)^-(tk - 1) * curve$daly_ref_le[tk]
   tp <- yr(sc$T_pd[proc_death]); daly[proc_death] <- daly[proc_death] + (1 + dd)^-(tp - 1) * curve$daly_ref_le[tp]
-  data.frame(cancer = nh$T_on < pmin(T_death, nT), screen_detected = det, clin_dx = clin,
+  dxd <- det | clin
+  data.frame(cancer = nh$T_on < pmin(T_death, nT), eac = nh$eac, screen_detected = det,
+             stage12 = dxd & !st_late, stage34 = dxd & st_late, screen_stage12 = det & !sc$dx_late, clin_dx = clin,
              overdiagnosed = det & !pres, stage_late = ifelse(det | clin, st_late, NA),
              onset_age = ifelse(is.finite(nh$T_on), nh$T_on, NA), dx_time = ifelse(is.finite(D), D, NA),
              ca_death = ca_death, proc_death = proc_death, death_time = T_death,
@@ -295,8 +338,6 @@ ms_outcomes <- function(nh, sc, prep, settings) {
 
 # One cohort row, all arms, the same simulated people (in chunks to bound memory).
 ms_row <- function(row, data, p, settings, arms, n, seed, chunk = 2e5) {
-  if (miscan_on(p)) stop("the MISCAN-ESO scenario (miscan_eac = 1) runs in the cohort model only; ",
-                         "the microsimulation uses the base-case natural history")
   prep <- prepare_row(row, data, p, settings); wk <- workup_summary(prep$p)
   starts <- seq(1, n, by = chunk); out <- list(); inc <- NULL
   for (ci in seq_along(starts)) {

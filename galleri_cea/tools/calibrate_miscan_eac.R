@@ -57,8 +57,10 @@ eac_flows <- function(C) {
     tr <- s$trace; n <- nrow(curve)
     f <- t(vapply(seq_len(n), function(t) {
       P <- E$tm_at(curve, prep$cal, prep$p, t); x <- tr[t, ]
-      clin_e <- x[["pre_ee"]] * (P["pre_ee", "early_e"] + P["pre_ee", "late_e"]) + x[["pre_el"]] * P["pre_el", "late_e"]
-      late_e <- x[["pre_ee"]] * P["pre_ee", "late_e"] + x[["pre_el"]] * P["pre_el", "late_e"]
+      # includes this year's onsets that present before the next yearly test (pre_fe / pre_fl, within_year_onset)
+      clin_e <- x[["pre_ee"]] * (P["pre_ee", "early_e"] + P["pre_ee", "late_e"]) + x[["pre_el"]] * P["pre_el", "late_e"] +
+                x[["pre_fe"]] * P["pre_fe", "early_e"] + x[["pre_fl"]] * P["pre_fl", "late_e"]
+      late_e <- x[["pre_ee"]] * P["pre_ee", "late_e"] + x[["pre_el"]] * P["pre_el", "late_e"] + x[["pre_fl"]] * P["pre_fl", "late_e"]
       death_e <- x[["early_e"]] * P["early_e", "dead_cancer"] + x[["late_e"]] * P["late_e", "dead_cancer"]
       alive <- sum(x[!E$STATES %in% E$DEAD])
       c(clin = clin_e, late = late_e, death = death_e, alive = alive)

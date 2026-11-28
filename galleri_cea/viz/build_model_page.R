@@ -15,6 +15,7 @@ GL <- rd("outputs/galleri/results_long.csv"); CL <- rd("outputs/comparison/resul
 SC <- rd("outputs/galleri/scenarios.csv"); SC <- SC[SC$arm == "Galleri", ]
 MS <- rd("outputs/microsim/summary.csv"); MV <- rd("outputs/microsim/validation.csv")
 MF <- rd("outputs/microsim/per_person_facts.csv"); MD <- rd("outputs/microsim/distributions.csv")
+GS <- jsonlite::fromJSON("outputs/harmonized/harmonized.json")$meta$galleri_stage_sens   # stage-specific sensitivity (tools/run_harmonized.R)
 
 getv <- function(D, arm, key, col = "value") { v <- D[D$arm == arm & D$key == key, col]; if (!length(v)) NA_real_ else as.numeric(v[1]) }
 g  <- function(k, a = "Galleri") getv(GL, a, k)
@@ -112,7 +113,7 @@ arms <- N("Cohort eligible", "50-year-old NH White men", "root", kids = list(
     N("Score < 8", "→ usual care", "out", el = pr(1 - kshare)))),
   N("3 · Galleri, every year", paste("to age", S$screen_stop_age), "arm", kids = list(
     N("Galleri +ve (E/S signal)", "→ figure 2", "dec", kids = list(
-      N("Cancer present", sprintf("sens %s, then ×%s", pct(P$sens_g_ugi), num(P$sens_g_rep_ratio)), "found"),
+      N("Cancer present", sprintf("stage I-II %s / III-IV %s, then ×%s", pct(GS$sE[["eso"]]), pct(GS$sL[["eso"]]), num(P$sens_g_rep_ratio)), "found"),
       N("No upper GI cancer", sprintf("FP rate %s per test", pct(P$fpr_g_es, 3)), "harm", hot = TRUE))),
     N("Galleri −ve", "", "out", kids = list(
       N("True negative", "retested next year", "out"),
@@ -159,8 +160,8 @@ pb2 <- N("Repeat finding", "personalised decision", "root", kids = list(
   rep_branch("After a negative laparoscopy", pl3, pe3, P$r_lap_after_lap)))
 
 nh <- N("Well", "no upper GI cancer", "out", kids = list(
-  N("Preclinical cancer", sprintf("mean sojourn %s y", num(P$sojourn_years)), "dec", el = "onset", kids = list(
-    N("Screen-detected", sprintf("late %s; lead time", pct(P$p_late_screen, 0)), "found", kids = list(
+  N("Preclinical cancer", sprintf("stage I-II, then III-IV; sojourn %s y (EAC %s y)", num(P$sojourn_years), num(P$sojourn_eac_male)), "dec", el = "onset", kids = list(
+    N("Screen-detected", "in the stage it is in; lead time", "found", kids = list(
       N("Would-be symptom time", "stage-specific survival", "out"))),
     N("Not yet visible at EGD", "after a +ve test", "dash", dash = TRUE),
     N("Symptoms: early", "SEER stage mix", "out", kids = list(N("Cancer death", paste(pct(P$m_early), "/ y"), "harm"))),
@@ -216,7 +217,7 @@ res_rows <- paste0(
        n(g("qaly_fp"), 1), n(g("daly_fp"), 1)), "—"))
 
 # microsimulation vs cohort (Galleri arm)
-vrows <- list(c("Upper GI cancers found by screening", "screen_detected", 0), c("Symptomatic diagnoses", "clin_dx", 0),
+vrows <- list(c("Upper GI cancers found by screening", "screen_detected", 0), c("Stage I-II diagnoses (primary endpoint)", "stage12", 0), c("Stage III-IV diagnoses", "stage34", 0), c("Symptomatic diagnoses (net of other-site cancers found)", "clin_net", 0),
   c("Overdiagnosed (upper GI)", "overdiagnosed", 0), c("Cancer deaths", "ca_death", 0),
   c("Cancer-free people worked up", "false_pos", 0), c("EGDs", "egd", 0), c("PET CT", "pet", 0), c("EUS", "eus", 0),
   c("Laparoscopies", "laparoscopy", 1), c("QALYs per person", "qaly", 4), c("Lifetime cost per person", "cost", -1))
@@ -249,7 +250,7 @@ scrows <- paste0(paste(sprintf("<tr%s><td>%s</td><td class='num'>%s</td></tr>", 
 
 # inputs that need review
 rv_keys <- c("p_pet_ugi", "p_lap_cx", "t_lap", "c_lap", "c_surv", "p_eus_samp", "p_tb_lap", "r_lap_after_eus", "r_lap_after_lap",
-             "p_reeus_after_eus", "p_reeus_after_lap", "p_pb_malig", "t_visible", "sens_g_ugi", "fpr_g_es", "fp_kappa", "eac_dwell_ratio")
+             "p_reeus_after_eus", "p_reeus_after_lap", "p_pb_malig", "t_visible", "screen_early_share", "sens_ep_eso", "fpr_g_es", "fp_kappa", "eac_dwell_ratio")
 rv <- paste(vapply(rv_keys, function(k) {
   r <- PST[[k]]; st <- r$status
   sprintf("<tr class='%s'><td>%s</td><td class='num'>%s</td><td><span class='pill %s'>%s</span></td><td><code>%s</code></td></tr>",
@@ -273,7 +274,7 @@ kappa <- formatC(P$fp_kappa, format = "d", big.mark = ",")
 tpl <- paste(readLines("viz/model_page_template.html", warn = FALSE, encoding = "UTF-8"), collapse = "\n")
 fill <- list(CSS = CSS, TODAY = today, STOP = S$screen_stop_age, KPIS = kpis, RES_ROWS = res_rows,
   FIG_ARMS = fig("arms"), FIG_EGD = fig("egd"), FIG_REST = fig("rest"), FIG_PB1 = fig("pb1"), FIG_PB2 = fig("pb2"), FIG_NH = fig("nh"),
-  KSHARE = pct(kshare), KCAP = pct(kcap), SENS_G = pct(P$sens_g_ugi), REP = num(P$sens_g_rep_ratio),
+  KSHARE = pct(kshare), KCAP = pct(kcap), SENS_G = sprintf("%s (stage I-II) / %s (stage III-IV)", pct(GS$sE[["eso"]]), pct(GS$sL[["eso"]])), REP = num(P$sens_g_rep_ratio),
   HOLD = hold, SE = pct(se), FI = pct(fi, 0), TVIS = num(P$t_visible), PETUGI = pr(pet_ugi),
   TL = pct(tl, 0), PL2 = pr(pl2), PE2 = pct(pe2, 0), PL3 = pr(pl3), PE3 = pct(pe3, 0),
   FPR = pct(P$fpr_g_es, 3), KAPPA = kappa,

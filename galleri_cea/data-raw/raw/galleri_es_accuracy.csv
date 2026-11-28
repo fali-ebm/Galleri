@@ -1,0 +1,43 @@
+study,measure,numerator,denominator,value,location,note
+PATHFINDER 2,E/S CSO1 among true positives (any cancer),8,173,,Extended Data Fig. 4,"CSO prediction row 'Stomach, Esophagus (8)': 4 upper GI, 1 bladder/urothelial, 1 bone/soft tissue, 1 colon/rectum, 1 pancreas/gallbladder"
+PATHFINDER 2,Upper GI cancers with an E/S CSO1,4,5,,Extended Data Fig. 4,"Clinical CSO 'Stomach, Esophagus (5)': 4 predicted E/S, 1 predicted pancreas/gallbladder"
+PATHFINDER 2,Upper GI cancers detected by the MCED test (true positive),5,9,,Fig. 3b; Suppl. Table S16,"TP: esophagus 3 (stage III 2, recurrent 1), stomach 2 (stage III 1, missing 1); FN: esophagus 2 (I 1, IV 1), stomach 2 (I 1, IV 1)"
+PATHFINDER 2,Upper GI cancers with a positive E/S signal (sens_g_ugi),4,9,,Ext. Data Fig. 4 + Fig. 3b,E/S-labelled true positives / all upper GI cancers diagnosed in 12 months
+PATHFINDER 2,Other-site cancers given an E/S CSO1 (sens_g_other),4,431,,Ext. Data Fig. 4 + Table 2,"440 cancers in 12 months (173 TP + 267 FN), 9 upper GI"
+PATHFINDER 2,False positives with CSO1 = stomach/esophagus,4,114,,Suppl. Table S7,"Findings: benign mass/nodule 1, Barrett's/GERD 1, gastritis/peptic ulcer 1, other non-cancer 3 (not exclusive)"
+PATHFINDER 2,E/S false-positive rate (fpr_g_es),4,31567,,Table 2 + Suppl. Table S7,FP + TN = 114 + 31453 non-cancer participants
+PATHFINDER 2,E/S signal PPV for any cancer,8,12,,Ext. Data Fig. 4 + Suppl. Table S7,8 true positives + 4 false positives with an E/S CSO1
+PATHFINDER 2,E/S signal PPV for upper GI cancer,4,12,,Ext. Data Fig. 4 + Suppl. Table S7,
+PATHFINDER 2,Overall false-positive rate,114,31567,,Table 2,0.36%
+PATHFINDER 2,Overall PPV,173,287,,Table 2,60.3%
+PATHFINDER 2,CSO1 accuracy,,,0.873,Table 2,
+PATHFINDER 2,Staged new upper GI true positives at stage III-IV,3,3,,Suppl. Table S16,No stage I-II among MCED-detected upper GI cancers (one stomach missing stage)
+NHS-Galleri,Positive tests round 1,722,,0.0103,Discussion,1.03%
+NHS-Galleri,Positive tests round 2,518,,0.0080,Discussion,0.80%
+NHS-Galleri,Positive tests round 3,561,,0.0090,Discussion,0.90%
+NHS-Galleri,PPV (any cancer) across 3 rounds,937,1801,,Discussion,52%
+NHS-Galleri,CSO1 correct among true positives,815,937,,Discussion,87.0%
+NHS-Galleri,Programme sensitivity round 1 (intervention),494,,0.4314,Suppl. Table S15,MCED + NHS screening; post hoc
+NHS-Galleri,Programme sensitivity round 2 (intervention),318,,0.3219,Suppl. Table S15,
+NHS-Galleri,Programme sensitivity round 3 (intervention),346,,0.2695,Suppl. Table S15,
+NHS-Galleri,Esophagus cancers intervention (I/II/III/IV/missing),75,,,Suppl. Table S6,"8 / 17 / 26 / 19 / 5"
+NHS-Galleri,Esophagus cancers control (I/II/III/IV/missing),79,,,Suppl. Table S6,"3 / 10 / 24 / 38 / 4"
+NHS-Galleri,Stomach cancers intervention (I/II/III/IV/missing),33,,,Suppl. Table S6,"2 / 9 / 8 / 13 / 1"
+NHS-Galleri,Stomach cancers control (I/II/III/IV/missing),27,,,Suppl. Table S6,"4 / 5 / 1 / 16 / 1"
+GRAIL FDA summary 2026 (PMA Galleri),PATHFINDER 2 episode sensitivity (all cancers),106,303,,Table 12,"PMA Galleri classifier rerun on trial samples; specificity 99.85%, PPV 77.0%"
+GRAIL FDA summary 2026 (PMA Galleri),PATHFINDER 2 false-positive rate (all CSOs),32,21115,,Table 13,Weighted N; 0.15% (0.09-0.25%)
+GRAIL FDA summary 2026 (PMA Galleri),NHS-Galleri round 1 episode sensitivity (all cancers),259,820,,Table 24,"specificity 99.74%, PPV 66.2%"
+GRAIL FDA summary 2026 (PMA Galleri),NHS-Galleri round 1 false-positive rate (all CSOs),132,49919,,Table 25,Weighted N; 0.26% (0.18-0.39%)
+GRAIL FDA summary 2026 (PMA Galleri),CSO accuracy PATHFINDER 2,100,106,,Table 19,94.3%
+GRAIL FDA summary 2026 (PMA Galleri),CSO accuracy NHS-Galleri,238,259,,Table 31,91.9%
+GRAIL FDA summary 2026 (PMA Galleri),Esophagus episode sensitivity PATHFINDER 2,1,2,,Table 15 / 33,
+GRAIL FDA summary 2026 (PMA Galleri),Esophagus episode sensitivity NHS-Galleri round 1,17,26,,Table 27 / 33,65.4% (46.2-80.6%)
+GRAIL FDA summary 2026 (PMA Galleri),Esophagus episode sensitivity combined (random effects),,,0.642,Table 33,95% CI 45.3-79.6%
+GRAIL FDA summary 2026 (PMA Galleri),Stomach episode sensitivity PATHFINDER 2,1,4,,Table 15 / 33,
+GRAIL FDA summary 2026 (PMA Galleri),Stomach episode sensitivity NHS-Galleri round 1,4,7,,Table 27 / 33,57.1% (25.0-84.2%)
+GRAIL FDA summary 2026 (PMA Galleri),Stomach episode sensitivity combined (random effects),,,0.466,Table 33,95% CI 20.0-75.3%
+GRAIL FDA summary 2026 (PMA Galleri),Galleri-detected esophagus cancers by stage (I/II/III/IV/NA),18,,,Figure 12,"0 / 2 / 10 / 5 / 1"
+GRAIL FDA summary 2026 (PMA Galleri),Galleri-detected stomach cancers by stage (I/II/III/IV/NA),5,,,Figure 12,"0 / 2 / 2 / 1 / 0"
+GRAIL FDA summary 2026 (real world),Retest after positive test and negative workup: negative retest,0,100,,Clinician follow-up guide (Westgate et al. poster),"No cancers in 16.7 months; retest offered within 6 months of an unresolved workup; all CSOs"
+GRAIL FDA summary 2026 (real world),Retest after positive test and negative workup: positive retest,13,45,,Clinician follow-up guide (Westgate et al. poster),29% diagnosed with cancer in 10.3 months; all CSOs
+GRAIL FDA summary 2026,Esophagus incidence ages 50-79 England vs US (per 100k),,,30.92,Appendix (NCRAS vs SEER 2013-2018),US 12.25; England 2.5x

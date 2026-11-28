@@ -1,7 +1,5 @@
 scenario,parameter,value,refs
 Galleri test half price,c_galleri,474.5,32
-Galleri sensitivity at CCGA3 stage I-II level,sens_g_ugi,0.40,4
-Galleri sensitivity at CCGA3 all-stage level,sens_g_ugi,0.85,4
 Shorter sojourn time (lower 95% CI),sojourn_years,1.92,7
 Longer sojourn time (upper 95% CI),sojourn_years,2.96,7
 "Higher perforation case fatality (EGD mortality 1/10,000, ASGE)",p_death_perf,0.5,10
@@ -37,11 +35,28 @@ Site-specific sojourn (esophageal adenocarcinoma 4.9 years),site_sojourn,1,"7, 4
 Site-specific sojourn (esophageal adenocarcinoma 7.1 years),site_sojourn,1,"7, 43"
 Site-specific sojourn (esophageal adenocarcinoma 7.1 years),sojourn_eac,7.1,43
 Kunzmann flags by sex (59.7% of men),kunz_sexspec,1,8
-MISCAN-ESO natural history for esophageal adenocarcinoma,miscan_eac,1,"43, 55"
-"MISCAN-ESO, early preclinical phase half as long",miscan_eac,1,"43, 55"
 "MISCAN-ESO, early preclinical phase half as long",eac_dwell_ratio,0.5,"43, 55"
-"MISCAN-ESO, early preclinical phase twice as long",miscan_eac,1,"43, 55"
 "MISCAN-ESO, early preclinical phase twice as long",eac_dwell_ratio,2,"43, 55"
-"MISCAN-ESO, EAC sojourn 4.0 years (lower end of MISCAN target)",miscan_eac,1,"43, 55"
 "MISCAN-ESO, EAC sojourn 4.0 years (lower end of MISCAN target)",sojourn_eac_male,4.0,"43, 55"
 "MISCAN-ESO, EAC sojourn 4.0 years (lower end of MISCAN target)",sojourn_eac_female,4.0,"43, 55"
+No EGD hold (EGD at every positive),egd_rule,0,
+EGD hold 3 years,egd_rule,0,
+Site-specific sojourn (esophageal adenocarcinoma 4.9 years),miscan_eac,0,
+Site-specific sojourn (esophageal adenocarcinoma 7.1 years),miscan_eac,0,
+Original natural history (one sojourn for all upper GI cancer),miscan_eac,0,7
+Fixed 2-year EGD hold (original rule),egd_rule,0,"7, 43"
+Fixed 2-year EGD hold (original rule),egd_hold_years,2,"7, 43"
+"Bayesian EGD rule, threshold 0.3",egd_threshold,0.3,
+"Bayesian EGD rule, threshold 0.5",egd_threshold,0.5,
+Yearly onset timing (original cohort timing),within_year_onset,0,
+"Galleri sensitivity at lower 95% CI (esophagus 45%, stomach 20%)",sens_ep_eso,0.453,62
+"Galleri sensitivity at lower 95% CI (esophagus 45%, stomach 20%)",sens_ep_stom,0.200,62
+"Galleri sensitivity at upper 95% CI (esophagus 80%, stomach 75%)",sens_ep_eso,0.796,62
+"Galleri sensitivity at upper 95% CI (esophagus 80%, stomach 75%)",sens_ep_stom,0.753,62
+"Galleri finds more early cancers (stage I-II share 39%, upper CI)",screen_early_share,0.39,62
+"Galleri finds fewer early cancers (stage I-II share 7%, lower CI)",screen_early_share,0.07,62
+Galleri sensitivity equal at every stage (no stage gradient),screen_early_share,-1,
+False positives independent between tests (no persistence),fp_kappa,1e6,
+Earlier test version (MCED-V2): E/S false-positive rate 0.0127%,fpr_g_es,0.000127,1
+Earlier test version (MCED-V2): E/S false-positive rate 0.0127%,sens_g_other,0.00928,1
+Repeat-round sensitivity at NHS-Galleri programme-sensitivity ratio (0.69),sens_g_rep_ratio,0.69,61

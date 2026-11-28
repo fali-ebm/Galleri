@@ -9,6 +9,7 @@
 #                                     subgroups, accuracy, tests, CHEERS report -> outputs/
 #   2. tools/run_microsim.R 1e6 2026  hesim individual-level model -> outputs/microsim/
 #   3. tools/calibrate_miscan_eac.R   MISCAN-ESO calibration targets and validation -> outputs/miscan_eac/
+#   3b. tools/run_harmonized.R        net burden (undiscounted) and comparative (vs usual care) models -> outputs/harmonized/
 #   4. tools/viz_data.R               data for the story pages -> viz/galleri_viz_data.json
 #   5. viz/build_*.R                  the three HTML pages in viz/
 #   6. tools/export_inputs_xlsx.R     Galleri_model_inputs.xlsx from inputs/ (round trip checked)
@@ -26,6 +27,7 @@ step <- function(label, script, args = character(0)) {
 step("1 cohort model", "run.R")
 if (!quick) step("2 microsimulation", "tools/run_microsim.R", c("1000000", "2026"))
 step("3 MISCAN-ESO calibration", "tools/calibrate_miscan_eac.R")
+step("3b harmonized net burden and comparative models", "tools/run_harmonized.R")
 step("4 page data", "tools/viz_data.R")
 step("5a burden page", "viz/build_burden.R")
 step("5b comparison page", "viz/build_compare.R")
@@ -33,7 +35,7 @@ step("5c decision model page", "viz/build_model_page.R")
 step("6 inputs workbook", "tools/export_inputs_xlsx.R")
 step("6b workbook round trip", "import_inputs_xlsx.R", "--check")
 pk <- c("ceakit", "hesim", "data.table", "openxlsx2", "readxl", "readr", "jsonlite", "dplyr", "tidyr", "purrr",
-        "tibble", "testthat", "rmarkdown", "targets", "voi", "ggplot2")
+        "tibble", "testthat", "rmarkdown", "targets", "voi", "ggplot2", "Matrix")
 ver <- vapply(pk, function(k) if (requireNamespace(k, quietly = TRUE)) as.character(utils::packageVersion(k)) else "not installed", "")
 writeLines(c(capture.output(sessionInfo()), "", "Packages used by the pipeline:", sprintf("  %-12s %s", pk, ver)), "session_info.txt")
 message("\nAll done. R and package versions: session_info.txt")

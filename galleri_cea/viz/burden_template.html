@@ -177,6 +177,15 @@ button:focus-visible { outline: 2px solid var(--found); outline-offset: 2px; }
   <div class="tablebox"><table id="tbl"><thead><tr><th>Per 100,000 men, age 50 to 85</th><th style="text-align:right">Base case</th><th style="text-align:right">95% interval</th></tr></thead><tbody></tbody></table></div>
 </section>
 
+<section class="chapter" aria-labelledby="c7">
+  <span class="num">09 · THE NET BURDEN</span>
+  <h2 id="c7"></h2>
+  <p class="text note" id="net-intro"></p>
+  <div class="tablebox"><table id="net"><thead><tr><th>Per 100,000 people screened from 50, lifetime, undiscounted</th><th style="text-align:right">Base case: White men</th><th style="text-align:right">US: all races, both sexes</th></tr></thead><tbody></tbody></table></div>
+  <p class="text note" id="cap-intro"></p>
+  <div class="ledger" id="cap"></div>
+</section>
+
 <p class="text"><a class="next" href="https://claude.ai/artifact/YcKcYAsVTv88jqJVtZyFQS">Next: is it worth it? Galleri or usual care →</a></p>
 <footer class="foot">
   <p>Source: Galleri upper GI screening model (github.com/fali-ebm/Galleri, galleri_cea), base case: non-Hispanic White men screened every year from age 50 to 85, followed to 100. Natural history calibrated to SEER 2013–17 incidence and stage; Galleri accuracy from PATHFINDER 2 and NHS-Galleri; workup probabilities from the literature; NCHS 2024 life tables. Intervals are the 2.5th and 97.5th percentiles of 1,000 probabilistic runs.</p>
@@ -492,7 +501,30 @@ function drawAcc() {
   });
 }
 
-function drawAll() { layoutRain(); drawRain(1); drawDiscs(); drawSankey(); drawLedger(); drawFPB(); drawAcc(); drawOverdx(); drawFN(); drawTable(); }
+/* ---------- 09: net burden (tools/run_harmonized.R, undiscounted) ---------- */
+function drawNet() {
+  const N = DATA.net, nf = (v, d) => v == null || !isFinite(v) ? '—' : Math.abs(v) >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : d3.format(',.' + d + 'f')(v);
+  const get = (pop, m) => { const r = N.find(r => r.population === pop && r.measure === m); return r ? r.value : null; };
+  const pops = Array.from(new Set(N.map(r => r.population)));
+  const s12 = get(pops[0], 'Extra stage I-II upper GI diagnoses (endoscopically resectable or stage II)'), fpw = get(pops[0], 'False-positive workups (people without cancer; repeats counted)');
+  document.getElementById('c7').innerHTML = `For every extra cancer caught at stage I–II, there are <em>${nf(fpw / s12, 1)}</em> workups of people without cancer`;
+  document.getElementById('net-intro').innerHTML = `The burden model counts what a yearly Galleri programme does, in natural units and without discounting: what it gains (cancers moved to stage I–II, late-stage diagnoses and deaths averted) against what it costs people (workups, procedures, complications, overdiagnosis and their own time). Patient time per step follows Jonas et al. 2008 (colonoscopy time diary; EGD and EUS counted as a day off).`;
+  const tb = d3.select('#net tbody'); tb.selectAll('*').remove();
+  let sec = null;
+  N.filter(r => r.population === pops[0] && !/^Capacity/.test(r.section)).forEach(r => {
+    if (r.section !== sec) { sec = r.section; tb.append('tr').append('td').attr('colspan', 3).style('font-weight', 600).style('padding-top', '14px').text({ Benefit: 'Benefits', Harm: 'Harms', Net: 'Net', Ratio: 'Ratios (per person)' }[sec] || sec); }
+    const tr = tb.append('tr'), sub = r.measure.startsWith('  '), d = r.section === 'Ratio' ? 1 : Math.abs(r.value) < 10 ? 2 : 0;
+    tr.append('td').attr('class', sub ? 'sub' : null).text(r.measure.trim());
+    tr.append('td').attr('class', 'n').text(nf(r.value, d)); tr.append('td').attr('class', 'n').text(nf(get(pops[1], r.measure), d));
+  });
+  document.getElementById('cap-intro').innerHTML = `If every American aged 50 and over were screened every year (a steady-state programme, ${d3.format(',')(Math.round(DATA.us_pop / 1e6))} million people), each year would bring:`;
+  const cap = N.filter(r => r.population === pops[1] && /^Capacity/.test(r.section));
+  const c = d3.select('#cap'); c.selectAll('*').remove();
+  cap.forEach(r => { const d = c.append('div'), share = r.measure.includes('share');
+    d.append('span').attr('class', 'v').text(share ? (100 * r.value).toFixed(1) + '%' : nf(r.value, 0)); d.append('span').attr('class', 'k').text(r.measure.trim().replace(/^- /, '')); });
+}
+
+function drawAll() { drawNet(); layoutRain(); drawRain(1); drawDiscs(); drawSankey(); drawLedger(); drawFPB(); drawAcc(); drawOverdx(); drawFN(); drawTable(); }
 drawAll();
 let rt; new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(() => { layoutRain(); drawRain(1); drawSankey(); drawFPB(); drawAcc(); drawOverdx(); drawFN(); }, 150); }).observe(document.querySelector('.wrap'));
 </script>

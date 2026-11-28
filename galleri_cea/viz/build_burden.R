@@ -82,7 +82,8 @@ acc <- lapply(D$accuracy, function(r) r[keep])
 data <- list(fpb = fpb, acc = acc, ages = ages, tot = tot, links = D$workup_links, ledger = ledger, table = table,
   tests_total = val("galleri_tests"), investigated = val("investigated"), found = val("screen_detected"),
   overdx = val("overdiagnosed"), fn = val("screen_fn"), fn_symp = val("fn_symptomatic_1y"),
-  price = P$c_galleri, cost_year = D$meta$cost_year)
+  price = P$c_galleri, cost_year = D$meta$cost_year,
+  net = utils::read.csv("outputs/harmonized/burden.csv", stringsAsFactors = FALSE), us_pop = P$us_pop_50plus)
 
 js <- as.character(toJSON(data, auto_unbox = TRUE, digits = NA, null = "null", na = "null"))
 tpl <- paste(readLines(file.path(here, "burden_template.html"), warn = FALSE, encoding = "UTF-8"), collapse = "\n")

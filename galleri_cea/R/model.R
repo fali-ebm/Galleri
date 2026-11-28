@@ -20,8 +20,8 @@ project_title <- "Galleri upper GI screening & workup"
 SETTINGS_DEFAULTS <- list(
   wtp = 100000, n_sim = 1000, seed = 2026, owsa_pct = 0.25, evppi = TRUE,
   evppi_groups = list(
-    `Galleri accuracy` = c("sens_g_ugi", "sens_g_other", "fpr_g_es", "sens_g_rep_ratio"),
-    `Natural history` = c("sojourn_years", "m_early", "m_late", "or_late_clin", "p_late_screen"),
+    `Galleri accuracy` = c("sens_ep_eso", "sens_ep_stom", "screen_early_share", "cso_acc", "sens_g_other", "fpr_g_es", "sens_g_rep_ratio", "fp_kappa"),
+    `Natural history` = c("sojourn_years", "sojourn_eac_male", "sojourn_eac_female", "eac_dwell_ratio", "m_early", "m_late", "m_early_eac", "m_late_eac", "or_late_clin"),
     `Utilities & harms` = c("u_mult_early", "u_mult_late", "d_proc", "d_sae")),
   max_age = 100, disc_cost = 0.03, disc_qaly = 0.03, disc_daly = 0,
   screen_stop_age = 85, screen_interval = 1,          # annual screening to age 85
@@ -131,6 +131,29 @@ METRICS <- tibble::tribble(
   "cost_tests", "2. Screening & workup burden", "Screening, workup and complication cost per person ($, discounted)", "person", 2,
   "cost_tx", "2. Screening & workup burden", "Lifetime cancer care cost per person ($)", "person", 2,
   "cost_total", "2. Screening & workup burden", "Total lifetime cost per person ($)", "person", 2,
+  "stage12_ugi", "3a. Stage shift (primary)", "Stage I-II upper GI diagnoses, lifetime (endoscopically resectable or stage II)", "count", 1,
+  "stage34_ugi", "3a. Stage shift (primary)", "Stage III-IV upper GI diagnoses, lifetime", "count", 1,
+  "stage12_gained_ugi", "3a. Stage shift (primary)", "Extra stage I-II upper GI diagnoses vs reference", "count", 1,
+  "stage34_averted_ugi", "3a. Stage shift (primary)", "Stage III-IV upper GI diagnoses averted vs reference", "count", 1,
+  "stage12_share_ugi", "3a. Stage shift (primary)", "Share of upper GI diagnoses at stage I-II", "ratio", 3,
+  "stage12_eso", "3a. Stage shift (primary)", "Stage I-II esophageal diagnoses, lifetime", "count", 1,
+  "stage34_eso", "3a. Stage shift (primary)", "Stage III-IV esophageal diagnoses, lifetime", "count", 1,
+  "stage12_gained_eso", "3a. Stage shift (primary)", "Extra stage I-II esophageal diagnoses vs reference", "count", 1,
+  "stage34_averted_eso", "3a. Stage shift (primary)", "Stage III-IV esophageal diagnoses averted vs reference", "count", 1,
+  "stage12_share_eso", "3a. Stage shift (primary)", "Share of esophageal diagnoses at stage I-II", "ratio", 3,
+  "stage12_eac", "3a. Stage shift (primary)", "  - adenocarcinoma: stage I-II", "count", 1,
+  "stage34_eac", "3a. Stage shift (primary)", "  - adenocarcinoma: stage III-IV", "count", 1,
+  "stage12_escc", "3a. Stage shift (primary)", "  - squamous cell: stage I-II", "count", 1,
+  "stage34_escc", "3a. Stage shift (primary)", "  - squamous cell: stage III-IV", "count", 1,
+  "stage12_gastric", "3a. Stage shift (primary)", "Stage I-II gastric diagnoses (concomitant), lifetime", "count", 1,
+  "stage34_gastric", "3a. Stage shift (primary)", "Stage III-IV gastric diagnoses, lifetime", "count", 1,
+  "screen_stage12_ugi", "3a. Stage shift (primary)", "Screen-found upper GI cancers at stage I-II", "count", 1,
+  "screen_stage34_ugi", "3a. Stage shift (primary)", "Screen-found upper GI cancers at stage III-IV", "count", 1,
+  "screen_stage12_share", "3a. Stage shift (primary)", "Share of screen-found upper GI cancers at stage I-II", "ratio", 3,
+  "screen_stage12_eso", "3a. Stage shift (primary)", "Screen-found esophageal cancers at stage I-II", "count", 1,
+  "screen_stage34_eso", "3a. Stage shift (primary)", "Screen-found esophageal cancers at stage III-IV", "count", 1,
+  "cost_per_stage12_gained", "6. Efficiency", "Cost per extra stage I-II upper GI diagnosis vs reference ($)", "ratio", 0,
+  "cost_per_stage12_gained_eso", "6. Efficiency", "Cost per extra stage I-II esophageal diagnosis vs reference ($)", "ratio", 0,
   "screen_detected", "3. Benefit", "Cancers found by screening/workup (all rounds)", "count", 1,
   "found_upper_gi", "3. Benefit", "  - upper GI (esophagus/stomach)", "count", 1,
   "found_other", "3. Benefit", "  - other sites", "count", 1,
@@ -199,11 +222,13 @@ METRICS <- tibble::tribble(
   "fp_per_found", "6. Efficiency", "False positives investigated per cancer found", "ratio", 1,
   "invasive_per_found", "6. Efficiency", "Invasive procedures per cancer found", "ratio", 1)
 
-ALL_PARAMS <- c("sens_g_ugi", "sens_g_other", "fpr_g_es", "sens_egd",
+ALL_PARAMS <- c("sens_ep_eso", "sens_ep_stom", "screen_early_share", "cso_acc", "sens_g_other", "fpr_g_es", "sens_egd",
   "p_ent_route", "p_ent_pos", "p_pet_pb", "p_pet_incid", "p_miss",
   "fp_kappa", "hr_ca_after_fp", "egd_hold_years", "f_invisible", "t_visible", "p_pet_ugi", "p_pb_malig",
   "p_eus_samp", "eus_tissue_sens", "p_tb_lap", "r_lap_after_eus", "r_lap_after_lap", "p_reeus_after_eus",
   "p_reeus_after_lap", "sojourn_eac", "site_sojourn", "miscan_eac", "sojourn_eac_male", "sojourn_eac_female", "eac_dwell_ratio", "m_early_eac", "m_late_eac",
+  "within_year_onset", "egd_rule", "egd_threshold", "egd_memory_years",
+  "pt_galleri", "pt_egd", "pt_eus", "pt_pet", "pt_ent", "pt_lap", "pt_other", "us_pop_50plus", "us_upper_endo", "us_eus",
   "p_lap_cx", "t_lap", "c_lap", "c_surv",
   "p_incid_cancer", "p_late_screen", "or_late_clin", "sojourn_years", "m_early", "m_late", "p_perf_egd", "p_death_perf",
   "sae_ent", "sae_eus", "sae_eus_samp", "p_death_sae", "msv_pet", "risk_per_sv", "loss_rad_ca", "t_egd",
@@ -216,7 +241,7 @@ keep_ordered <- function(q) {   # sampled values stay logically ordered
   q$u_mult_late <- min(q$u_mult_late, q$u_mult_early); q
 }
 
-KEY <- c("screen_detected", "late_averted", "ca_deaths_averted", "free_investigated", "overdiagnosed",
+KEY <- c("stage12_gained_eso", "stage12_gained_ugi", "stage34_averted_ugi", "screen_detected", "late_averted", "ca_deaths_averted", "free_investigated", "overdiagnosed",
          "invasive_free", "sae_total", "qaly_net", "daly_averted")
 
 make_analysis <- function(name, title, arms, owsa, cohort_n, unit, required, plots)

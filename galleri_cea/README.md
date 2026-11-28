@@ -4,6 +4,29 @@ Decision model and cost-effectiveness analysis built with **ceakit**.
 
 ## This project
 
+**Two harmonized models, one natural history** (November 2026):
+
+- **Net burden model** (`Rscript tools/run_harmonized.R` → `outputs/harmonized/burden.csv`):
+  undiscounted, natural units. Benefits (extra stage I-II diagnoses, stage III-IV
+  diagnoses and deaths averted, life-years) against harms (people without cancer
+  worked up, procedures, complications, overdiagnosis, radiation, patient time),
+  net QALYs and DALYs, and the endoscopy capacity a national programme needs.
+- **Comparative model vs usual care ("do nothing")** (`comparative.csv`, `frontier.csv`):
+  discounted costs and QALYs, ICER, net monetary benefit, efficiency frontier, and the
+  **primary endpoint: extra stage I-II diagnoses (endoscopically resectable or stage II)
+  and the cost per extra stage I-II diagnosis**, esophageal cancer first, gastric cancer
+  alongside. Headline from the 1,000,000-person microsimulation; PSA, VOI and subgroups
+  from the cohort model. The two engines agree on the stage endpoint within simulation error.
+- **Natural history**: every upper GI cancer is two-stage before symptoms (stage I-II,
+  then III-IV), so a cancer found by screening keeps the stage it is in. Esophageal
+  adenocarcinoma follows CISNET MISCAN-ESO; squamous esophageal and gastric cancer share a
+  2.4-year sojourn. Onset and stage at symptoms are calibrated exactly to SEER.
+- **Galleri accuracy** is the marketed (PMA) test as reported to the FDA (September 2026):
+  episode sensitivity for esophagus (64%) and stomach (47%), and 4 of 22 Galleri-detected
+  cancers at stage I-II. From these the model solves the chance of finding a hidden cancer
+  at stage I-II (about 7%) and III-IV (about 43%). False positives persist in the same person
+  (real-world retests).
+
 An annual-cycle cohort model over a lifetime horizon (to age 100), with
 three arms and **annual screening from the start age to 85**:
 
@@ -13,9 +36,10 @@ three arms and **annual screening from the start age to 85**:
    Everyone then follows usual care.
 3. **Galleri**: a test every year, scored against preclinical upper GI
    cancer as a 2×2 table:
-   - **Galleri +ve** (esophagus/stomach signal) → EGD, unless the person
-     had a negative EGD in the last `egd_hold_years` (2) rounds; then the EGD
-     is skipped. **EGD +ve** finds the cancer (sensitivity `sens_egd`). A
+   - **Galleri +ve** (esophagus/stomach signal) → EGD. After a negative EGD a new
+     positive gets an EGD only when the probability of upper GI cancer, given the
+     person's history, exceeds a QALY-based threshold (`egd_rule` = 1; scenario: a
+     fixed hold of `egd_hold_years`). **EGD +ve** finds the cancer (sensitivity `sens_egd`). A
      negative EGD can hide a visible lesion that was missed or a cancer not
      yet visible (`f_invisible`, visible after about `t_visible` years). The
      rest of the workup is ENT or PET CT (PET can show an upper GI cancer the
@@ -26,8 +50,8 @@ three arms and **annual screening from the start age to 85**:
      (`p_perf_egd`); a fatal perforation (`p_death_perf`) ends the workup.
    - **False positives and Bayes**: each person's false-positive propensity
      is beta-distributed around `fpr_g_es` with concentration `fp_kappa`
-     (very large = independent tests in the base case), updated by each
-     result; the cohort tracks 0, 1 or 2+ earlier false positives.
+     (3.16 from real-world retests: a false positive is often repeated), updated by
+     each result; the cohort tracks 0 to 12+ earlier false positives.
    - **Galleri -ve** → usual care. **True negatives** stay well and are
      rescreened next round. **False negatives** keep their undiagnosed
      cancer: they present with symptoms later (reported as
@@ -187,29 +211,28 @@ To use other packages, call `ceakit::psa_matrices(res)`. It returns cost,
 effect and parameter matrices for `dampack::make_psa_obj()`,
 `BCEA::bcea()` and the `voi` package.
 
-## MISCAN-ESO natural history for esophageal adenocarcinoma (scenario)
+## MISCAN-ESO natural history for esophageal adenocarcinoma (base case)
 
-`miscan_eac = 1` gives esophageal adenocarcinoma (EAC) its own natural history,
+`miscan_eac = 1` (base case) gives esophageal adenocarcinoma (EAC) its own natural history,
 calibrated to the CISNET MISCAN-ESO model: sex-specific mean preclinical
 sojourn (men 4.9 y, women 4.5 y; Kong 2014), and progression from preclinical
 early to preclinical late before symptoms, so a screen-detected EAC is early
-or late depending on when it is found. Gastric and other esophageal cancer
-keep the base-case natural history. Onset is still solved to reproduce SEER
+or late depending on when it is found. Gastric and squamous esophageal cancer
+have the same two-stage structure with a shorter sojourn. Onset is still solved to reproduce SEER
 incidence exactly, and the late share at symptomatic diagnosis reproduces SEER
 exactly (solved net of other-cause death). Diagnosed EAC has esophagus-specific
-survival. Scenarios: `MISCAN-ESO natural history for esophageal
-adenocarcinoma`, and variants with a shorter or longer early phase and a
-4.0-year sojourn.
+survival. Scenarios: `Original natural history`, and variants with a shorter
+or longer early phase and a 4.0-year sojourn.
 
 `Rscript tools/calibrate_miscan_eac.R` writes the targets, the fitted rates,
 the fit by age and an external validation against CISNET lifetime EAC cases
 and deaths (Rubenstein 2022) to `outputs/miscan_eac/`. Derivations:
-`inputs/SOURCES.md`. Cohort model only (the microsimulation refuses it).
+`inputs/SOURCES.md`. The microsimulation runs it too.
 
 ## Reproducing everything (R only)
 
 `Rscript make_all.R` runs the cohort model, the microsimulation, the
-MISCAN-ESO calibration, the page data, the three pages, the inputs workbook
+MISCAN-ESO calibration, the harmonized net burden and comparative models, the page data, the three pages, the inputs workbook
 and its round-trip check, and records `session_info.txt`. Every step is an R
 script that can also be run on its own (listed at the top of `make_all.R`).
 Required R packages: ceakit (this repository), hesim, data.table, openxlsx2,
@@ -223,8 +246,9 @@ runs an individual-level version of the same model (`R/microsim.R`):
 
 - **Natural history** is simulated person by person with **hesim**'s
   individual-level continuous-time state-transition model (`IndivCtstm`,
-  piecewise-exponential hazards by year): well → preclinical upper GI cancer
-  → clinical presentation (early/late), with other-cause death competing.
+  piecewise-exponential hazards by year): well → preclinical stage I-II →
+  preclinical stage III-IV → clinical presentation, for EAC (MISCAN-ESO) and for
+  squamous/gastric cancer, with other-cause death competing.
   Onset hazards are re-calibrated in continuous time so that usual-care
   incidence matches the same SEER targets (`incidence_check.csv`).
 - **Screening is overlaid on each person**: annual Galleri tests with a

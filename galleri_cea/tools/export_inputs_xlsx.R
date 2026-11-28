@@ -125,18 +125,18 @@ wb <- wb_set_col_widths(wb, "README", cols = 1:2, widths = c(110, 70))
 # ---- Parameters: one tab per step of the decision tree -----------------------
 # Tabs whose names start with a number are read by the importer into inputs/parameters.csv.
 STEPS <- list(
-  list("1 Galleri test", "Annual Galleri test. Chance of a positive result with an esophagus/stomach (E/S) signal for each true health state, how sensitivity falls after round 1, and whether false positives repeat in the same person.",
-       c("sens_g_ugi", "sens_g_other", "fpr_g_es", "sens_g_rep_ratio", "p_fn_persist", "fp_kappa", "hr_ca_after_fp")),
+  list("1 Galleri test", "Annual Galleri test (PMA version). Episode sensitivity for esophageal and gastric cancer and the stage I-II share of Galleri-detected cancers (the model solves stage-specific sensitivity from these), CSO accuracy, false positives with an esophagus/stomach (E/S) signal, how sensitivity falls after round 1, and whether false positives repeat in the same person.",
+       c("sens_ep_eso", "sens_ep_stom", "screen_early_share", "cso_acc", "sens_g_other", "fpr_g_es", "sens_g_rep_ratio", "p_fn_persist", "fp_kappa", "hr_ca_after_fp")),
   list("2 EGD", "Galleri +ve: EGD unless inside the hold after a negative EGD. What the EGD finds, what it misses (visible lesion missed vs cancer not yet visible), and perforation.",
-       c("sens_egd", "f_invisible", "t_visible", "egd_hold_years", "p_perf_egd", "p_death_perf")),
+       c("sens_egd", "f_invisible", "t_visible", "egd_rule", "egd_threshold", "egd_memory_years", "egd_hold_years", "p_perf_egd", "p_death_perf")),
   list("3 ENT and PET CT", "EGD -ve or skipped: routed to ENT exam or PET CT. What each finds.",
        c("p_ent_route", "p_ent_pos", "p_pet_pb", "p_pet_incid", "p_pet_ugi", "p_incid_cancer", "p_miss", "p_egd_pos")),
   list("4 Pancreatobiliary", "PET pancreatobiliary +ve: EUS (FNA/FNB a coin toss), tumor board after a negative or unsampled EUS, laparoscopy or watchful waiting. After a prior negative EUS or laparoscopy, laparoscopy becomes less likely.",
        c("p_pb_malig", "p_eus_samp", "eus_tissue_sens", "p_tb_lap", "r_lap_after_eus", "r_lap_after_lap", "p_reeus_after_eus", "p_reeus_after_lap")),
   list("5 Kunzmann arm", "Kunzmann score once at the start age; a one-time EGD for a score of 8 or more. The flagged share and sensitivity are on the Settings tab; this switch runs the sex-specific split as a scenario.",
        c("kunz_sexspec")),
-  list("6 Natural history", "Preclinical sojourn, stage at screen detection and at symptoms, and cancer mortality by stage. The MISCAN-ESO rows give esophageal adenocarcinoma its own natural history in the miscan_eac scenario.",
-       c("sojourn_years", "sojourn_eac", "site_sojourn", "p_late_screen", "or_late_clin", "m_early", "m_late",
+  list("6 Natural history", "Two-stage preclinical natural history (stage I-II, then III-IV) for squamous esophageal and gastric cancer (sojourn_years) and, with miscan_eac = 1 (base case), MISCAN-ESO esophageal adenocarcinoma; stage at symptoms calibrated to SEER; cancer mortality by stage; within-year onset timing.",
+       c("sojourn_years", "within_year_onset", "sojourn_eac", "site_sojourn", "p_late_screen", "or_late_clin", "m_early", "m_late",
          "miscan_eac", "sojourn_eac_male", "sojourn_eac_female", "eac_dwell_ratio", "m_early_eac", "m_late_eac")),
   list("7 Procedure harms", "Serious adverse events of each procedure and radiation from PET CT. EGD perforation is on the EGD tab.",
        c("sae_ent", "sae_eus", "sae_eus_samp", "p_lap_cx", "p_death_sae", "msv_pet", "risk_per_sv", "loss_rad_ca")),
@@ -147,7 +147,9 @@ STEPS <- list(
          "c_incid_fu", "c_symp_dx", "c_tx_first_early", "c_tx_first_late", "c_fu_early", "c_fu_late", "c_eol", "c_sae", "c_perf")),
   list("10 Utilities and DALYs", "Quality-of-life multipliers, disutilities of procedures and false positives, and disability weights.",
        c("u_mult_early", "u_mult_late", "d_proc", "d_sae", "dfp_endo", "dfp_pet", "dfp_ext", "fp_tto", "dw_anx", "p_worry",
-         "dur_worry", "dw_early", "dw_late")))
+         "dur_worry", "dw_early", "dw_late")),
+  list("11 Burden and capacity", "Net burden analysis only: patient time per step (hours) and the national figures used to scale per-100,000 results to the US.",
+       c("pt_galleri", "pt_egd", "pt_eus", "pt_pet", "pt_ent", "pt_lap", "pt_other", "us_pop_50plus", "us_upper_endo", "us_eus")))
 PR <- rd("inputs/parameters.csv"); P <- lapply(split(PR, PR$parameter), as.list)[PR$parameter]   # file order
 for (k in setdiff(c("refs", "price_value", "price_year"), names(PR))) PR[[k]] <- ""
 allk <- unlist(lapply(STEPS, `[[`, 3))
@@ -157,7 +159,7 @@ allk <- unlist(lapply(STEPS, `[[`, 3))
 if (!setequal(allk, names(P)) || anyDuplicated(allk))
   stop("STEPS and parameters.csv differ: ", paste(union(setdiff(allk, names(P)), setdiff(names(P), allk)), collapse = ", "))
 IN_MODEL_NOTE <- c(p_egd_pos = "Yes (validation target only)")
-USED_IN <- c(both = "Both analyses", comparison = "Comparison (Kunzmann arm)")
+USED_IN <- c(both = "Both analyses", comparison = "Comparison (Kunzmann arm)", burden = "Net burden analysis")
 hdr <- c("Parameter", "Label", "Value", "Low (OWSA)", "High (OWSA)", "PSA distribution", "SE", "n (beta/Dirichlet)",
          "Dirichlet group", "Status", "In model", "Unit", "Description", "Source / derivation", "Refs (see References)",
          "Used in", "Price as published (USD)", "Price year")
